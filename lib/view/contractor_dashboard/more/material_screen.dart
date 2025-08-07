@@ -1,6 +1,6 @@
 import 'package:ecoteam_app/models/dashboard/site_model.dart';
 import 'package:flutter/material.dart';
-
+import 'package:intl/intl.dart';
 
 class MaterialsScreen extends StatefulWidget {
   final String? selectedSiteId;
@@ -23,6 +23,22 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
   bool isLoading = false;
   String searchQuery = '';
 
+  final List<String> categoryList = [
+    'Construction',
+    'Reinforcement',
+    'Masonry',
+    'Aggregates',
+    'Electrical',
+    'Plumbing'
+  ];
+
+  final List<String> supplierList = [
+    'ABC Suppliers',
+    'XYZ Steel Co.',
+    'Brick Masters',
+    'Sand & Gravel Co.'
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -30,11 +46,8 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
   }
 
   void _loadMaterials() {
-    setState(() {
-      isLoading = true;
-    });
+    setState(() => isLoading = true);
 
-    // Simulate API call
     Future.delayed(const Duration(milliseconds: 500), () {
       setState(() {
         materials = [
@@ -60,28 +73,6 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
             status: 'Low Stock',
             lastUpdated: DateTime.now().subtract(const Duration(days: 1)),
           ),
-          Material(
-            id: '3',
-            name: 'Bricks',
-            category: 'Masonry',
-            quantity: 10000,
-            unit: 'Pieces',
-            supplier: 'Brick Masters',
-            cost: 0.5,
-            status: 'In Stock',
-            lastUpdated: DateTime.now().subtract(const Duration(hours: 6)),
-          ),
-          Material(
-            id: '4',
-            name: 'Sand',
-            category: 'Aggregates',
-            quantity: 50,
-            unit: 'Cubic Meters',
-            supplier: 'Sand & Gravel Co.',
-            cost: 45.0,
-            status: 'Out of Stock',
-            lastUpdated: DateTime.now().subtract(const Duration(days: 3)),
-          ),
         ];
         isLoading = false;
       });
@@ -90,320 +81,241 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
 
   List<Material> get filteredMaterials {
     if (searchQuery.isEmpty) return materials;
-    return materials.where((material) =>
-        material.name.toLowerCase().contains(searchQuery.toLowerCase()) ||
-        material.category.toLowerCase().contains(searchQuery.toLowerCase()) ||
-        material.supplier.toLowerCase().contains(searchQuery.toLowerCase())).toList();
+    return materials
+        .where((material) =>
+            material.name.toLowerCase().contains(searchQuery.toLowerCase()) ||
+            material.category.toLowerCase().contains(searchQuery.toLowerCase()) ||
+            material.supplier.toLowerCase().contains(searchQuery.toLowerCase()))
+        .toList();
   }
 
-  void _showAddMaterialDialog() {
-    final TextEditingController nameController = TextEditingController();
-    final TextEditingController categoryController = TextEditingController();
-    final TextEditingController quantityController = TextEditingController();
-    final TextEditingController unitController = TextEditingController();
-    final TextEditingController supplierController = TextEditingController();
-    final TextEditingController costController = TextEditingController();
+  void _showAddMaterialSheet() {
+    final nameController = TextEditingController();
+    final quantityController = TextEditingController();
+    final unitController = TextEditingController();
+    final costController = TextEditingController();
+    String selectedCategory = categoryList.first;
+    String selectedSupplier = supplierList.first;
     String selectedStatus = 'In Stock';
 
-    showDialog(
+    // Track validation errors
+    bool nameError = false;
+    bool quantityError = false;
+    bool unitError = false;
+    bool costError = false;
+
+    void validateForm() {
+      setState(() {
+        nameError = nameController.text.isEmpty;
+        quantityError = quantityController.text.isEmpty;
+        unitError = unitController.text.isEmpty;
+        costError = costController.text.isEmpty;
+      });
+    }
+
+    showModalBottomSheet(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Add New Material'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Material Name',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.inventory),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: categoryController,
-                decoration: const InputDecoration(
-                  labelText: 'Category',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.category),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Row(
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) {
+          return Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+              left: 16,
+              right: 16,
+              top: 24,
+            ),
+            child: SingleChildScrollView(
+              child: Column(
                 children: [
-                  Expanded(
-                    child: TextField(
-                      controller: quantityController,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        labelText: 'Quantity',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.numbers),
-                      ),
-                    ),
+                  const Text(
+                    'Add New Material',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: TextField(
-                      controller: unitController,
-                      decoration: const InputDecoration(
-                        labelText: 'Unit',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.straighten),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: nameController,
+                    decoration: InputDecoration(
+                      labelText: 'Material Name *',
+                      hintText: 'e.g. Cement, Steel Bars',
+                      prefixIcon: const Icon(Icons.inventory),
+                      border: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color: nameError ? Colors.red : Colors.grey,
+                        ),
                       ),
+                      errorText: nameError ? 'This field is required' : null,
                     ),
+                    onChanged: (value) {
+                      if (value.isNotEmpty && nameError) {
+                        setState(() => nameError = false);
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<String>(
+                    value: selectedCategory,
+                    decoration: InputDecoration(
+                      labelText: 'Category *',
+                      prefixIcon: const Icon(Icons.category),
+                      border: const OutlineInputBorder(),
+                    ),
+                    items: categoryList
+                        .map((cat) => DropdownMenuItem(
+                              value: cat,
+                              child: Text(cat),
+                            ))
+                        .toList(),
+                    onChanged: (val) => selectedCategory = val!,
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: quantityController,
+                          keyboardType: TextInputType.number,
+                          decoration: InputDecoration(
+                            labelText: 'Quantity *',
+                            hintText: 'e.g. 100, 5.5',
+                            prefixIcon: const Icon(Icons.numbers),
+                            border: OutlineInputBorder(
+                              borderSide: BorderSide(
+                                color: quantityError ? Colors.red : Colors.grey,
+                              ),
+                            ),
+                            errorText: quantityError ? 'This field is required' : null,
+                          ),
+                          onChanged: (value) {
+                            if (value.isNotEmpty && quantityError) {
+                              setState(() => quantityError = false);
+                            }
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: TextField(
+                          controller: unitController,
+                          decoration: InputDecoration(
+                            labelText: 'Unit *',
+                            hintText: 'e.g. Bags, Tons, Kg',
+                            prefixIcon: const Icon(Icons.straighten),
+                            border: OutlineInputBorder(
+                              borderSide: BorderSide(
+                                color: unitError ? Colors.red : Colors.grey,
+                              ),
+                            ),
+                            errorText: unitError ? 'This field is required' : null,
+                          ),
+                          onChanged: (value) {
+                            if (value.isNotEmpty && unitError) {
+                              setState(() => unitError = false);
+                            }
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<String>(
+                    value: selectedSupplier,
+                    decoration: const InputDecoration(
+                      labelText: 'Supplier *',
+                      prefixIcon: Icon(Icons.business),
+                      border: OutlineInputBorder(),
+                    ),
+                    items: supplierList
+                        .map((sup) => DropdownMenuItem(
+                              value: sup,
+                              child: Text(sup),
+                            ))
+                        .toList(),
+                    onChanged: (val) => selectedSupplier = val!,
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: costController,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      labelText: 'Cost per Unit *',
+                      hintText: 'e.g. 25.50, 1200',
+                      prefixIcon: const Icon(Icons.currency_rupee),
+                      border: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color: costError ? Colors.red : Colors.grey,
+                        ),
+                      ),
+                      errorText: costError ? 'This field is required' : null,
+                    ),
+                    onChanged: (value) {
+                      if (value.isNotEmpty && costError) {
+                        setState(() => costError = false);
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<String>(
+                    value: selectedStatus,
+                    decoration: const InputDecoration(
+                      labelText: 'Status *',
+                      prefixIcon: Icon(Icons.info),
+                      border: OutlineInputBorder(),
+                    ),
+                    items: ['In Stock', 'Low Stock', 'Out of Stock', 'On Order']
+                        .map((status) => DropdownMenuItem(
+                              value: status,
+                              child: Text(status),
+                            ))
+                        .toList(),
+                    onChanged: (val) => selectedStatus = val!,
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.check),
+                    label: const Text('Add Material'),
+                    onPressed: () {
+                      validateForm();
+                      
+                      if (nameError || quantityError || unitError || costError) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Please fill all required fields'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                        return;
+                      }
+
+                      final newMaterial = Material(
+                        id: DateTime.now().millisecondsSinceEpoch.toString(),
+                        name: nameController.text,
+                        category: selectedCategory,
+                        quantity: double.tryParse(quantityController.text) ?? 0,
+                        unit: unitController.text,
+                        supplier: selectedSupplier,
+                        cost: double.tryParse(costController.text) ?? 0,
+                        status: selectedStatus,
+                        lastUpdated: DateTime.now(),
+                      );
+                      setState(() => materials.add(newMaterial));
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Material "${newMaterial.name}" added!'),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: supplierController,
-                decoration: const InputDecoration(
-                  labelText: 'Supplier',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.business),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: costController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Cost per Unit',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.attach_money),
-                ),
-              ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                value: selectedStatus,
-                decoration: const InputDecoration(
-                  labelText: 'Status',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.info),
-                ),
-                items: ['In Stock', 'Low Stock', 'Out of Stock', 'On Order']
-                    .map((status) => DropdownMenuItem(value: status, child: Text(status)))
-                    .toList(),
-                onChanged: (value) => selectedStatus = value!,
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              if (nameController.text.isNotEmpty &&
-                  categoryController.text.isNotEmpty &&
-                  quantityController.text.isNotEmpty &&
-                  unitController.text.isNotEmpty &&
-                  supplierController.text.isNotEmpty &&
-                  costController.text.isNotEmpty) {
-                final newMaterial = Material(
-                  id: DateTime.now().millisecondsSinceEpoch.toString(),
-                  name: nameController.text,
-                  category: categoryController.text,
-                  quantity: double.tryParse(quantityController.text) ?? 0,
-                  unit: unitController.text,
-                  supplier: supplierController.text,
-                  cost: double.tryParse(costController.text) ?? 0,
-                  status: selectedStatus,
-                  lastUpdated: DateTime.now(),
-                );
-                setState(() {
-                  materials.add(newMaterial);
-                });
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Material "${newMaterial.name}" added successfully!'),
-                    backgroundColor: Colors.green,
-                  ),
-                );
-              }
-            },
-            child: const Text('Add'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showEditMaterialDialog(Material material) {
-    final TextEditingController nameController = TextEditingController(text: material.name);
-    final TextEditingController categoryController = TextEditingController(text: material.category);
-    final TextEditingController quantityController = TextEditingController(text: material.quantity.toString());
-    final TextEditingController unitController = TextEditingController(text: material.unit);
-    final TextEditingController supplierController = TextEditingController(text: material.supplier);
-    final TextEditingController costController = TextEditingController(text: material.cost.toString());
-    String selectedStatus = material.status;
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Edit Material'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Material Name',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.inventory),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: categoryController,
-                decoration: const InputDecoration(
-                  labelText: 'Category',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.category),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: quantityController,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        labelText: 'Quantity',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.numbers),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: TextField(
-                      controller: unitController,
-                      decoration: const InputDecoration(
-                        labelText: 'Unit',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.straighten),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: supplierController,
-                decoration: const InputDecoration(
-                  labelText: 'Supplier',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.business),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: costController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Cost per Unit',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.attach_money),
-                ),
-              ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                value: selectedStatus,
-                decoration: const InputDecoration(
-                  labelText: 'Status',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.info),
-                ),
-                items: ['In Stock', 'Low Stock', 'Out of Stock', 'On Order']
-                    .map((status) => DropdownMenuItem(value: status, child: Text(status)))
-                    .toList(),
-                onChanged: (value) => selectedStatus = value!,
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              if (nameController.text.isNotEmpty &&
-                  categoryController.text.isNotEmpty &&
-                  quantityController.text.isNotEmpty &&
-                  unitController.text.isNotEmpty &&
-                  supplierController.text.isNotEmpty &&
-                  costController.text.isNotEmpty) {
-                setState(() {
-                  final index = materials.indexWhere((m) => m.id == material.id);
-                  if (index != -1) {
-                    materials[index] = Material(
-                      id: material.id,
-                      name: nameController.text,
-                      category: categoryController.text,
-                      quantity: double.tryParse(quantityController.text) ?? 0,
-                      unit: unitController.text,
-                      supplier: supplierController.text,
-                      cost: double.tryParse(costController.text) ?? 0,
-                      status: selectedStatus,
-                      lastUpdated: DateTime.now(),
-                    );
-                  }
-                });
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Material "${nameController.text}" updated successfully!'),
-                    backgroundColor: Colors.blue,
-                  ),
-                );
-              }
-            },
-            child: const Text('Update'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showDeleteMaterialDialog(Material material) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Material'),
-        content: Text('Are you sure you want to delete "${material.name}"?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              setState(() {
-                materials.removeWhere((m) => m.id == material.id);
-              });
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Material "${material.name}" deleted successfully!'),
-                  backgroundColor: Colors.red,
-                ),
-              );
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Delete'),
-          ),
-        ],
+            ),
+          );
+        },
       ),
     );
   }
@@ -426,218 +338,101 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-    body: Column(
-      children: [
-        // Header with search and add button
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.grey.withOpacity(0.1),
-                spreadRadius: 1,
-                blurRadius: 3,
-                offset: const Offset(0, 1),
-              ),
-            ],
-          ),
-          child: Column(
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Materials Management',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  ElevatedButton.icon(
-                    onPressed: _showAddMaterialDialog,
-                    icon: const Icon(Icons.add),
-                    label: const Text('Add Material'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
-                      foregroundColor: Colors.white,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                onChanged: (value) {
-                  setState(() {
-                    searchQuery = value;
-                  });
-                },
-                decoration: InputDecoration(
-                  hintText: 'Search materials...',
-                  prefixIcon: const Icon(Icons.search),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  filled: true,
-                  fillColor: Colors.grey.shade50,
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: Colors.lightBlue,
+        onPressed: _showAddMaterialSheet,
+        icon: const Icon(Icons.add, color: Colors.white),
+        label: const Text("Add Material", style: TextStyle(color: Colors.white)),
+      ),
+      body: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.1),
+                  spreadRadius: 1,
+                  blurRadius: 3,
+                  offset: const Offset(0, 1),
                 ),
-              ),
-            ],
-          ),
-        ),
-        
-        // Materials list
-        Expanded(
-          child: isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : filteredMaterials.isEmpty
-                  ? const Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.inventory_2_outlined, size: 64, color: Colors.grey),
-                          SizedBox(height: 16),
-                          Text(
-                            'No materials found',
-                            style: TextStyle(fontSize: 18, color: Colors.grey),
-                          ),
-                        ],
-                      ),
-                    )
-                  : ListView.builder(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: filteredMaterials.length,
-                      itemBuilder: (context, index) {
-                        final material = filteredMaterials[index];
-                        return Card(
-                          margin: const EdgeInsets.only(bottom: 12),
-                          elevation: 2,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: ListTile(
-                            contentPadding: const EdgeInsets.all(16),
-                            leading: CircleAvatar(
-                              backgroundColor: getStatusColor(material.status).withOpacity(0.2),
-                              child: Icon(
-                                Icons.inventory,
-                                color: getStatusColor(material.status),
-                              ),
-                            ),
-                            title: Text(
-                              material.name,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                              ),
-                            ),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const SizedBox(height: 8),
-                                Row(
-                                  children: [
-                                    Icon(Icons.category, size: 16, color: Colors.grey.shade600),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      material.category,
-                                      style: TextStyle(color: Colors.grey.shade600),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 4),
-                                Row(
-                                  children: [
-                                    Icon(Icons.numbers, size: 16, color: Colors.grey.shade600),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      '${material.quantity} ${material.unit}',
-                                      style: TextStyle(color: Colors.grey.shade600),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 4),
-                                Row(
-                                  children: [
-                                    Icon(Icons.business, size: 16, color: Colors.grey.shade600),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      material.supplier,
-                                      style: TextStyle(color: Colors.grey.shade600),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 8),
-                                Row(
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                      decoration: BoxDecoration(
-                                        color: getStatusColor(material.status).withOpacity(0.2),
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: Text(
-                                        material.status,
-                                        style: TextStyle(
-                                          color: getStatusColor(material.status),
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    ),
-                                    const Spacer(),
-                                    Text(
-                                      '\$${material.cost.toStringAsFixed(2)}',
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.blue,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                            trailing: PopupMenuButton<String>(
-                              onSelected: (value) {
-                                switch (value) {
-                                  case 'edit':
-                                    _showEditMaterialDialog(material);
-                                    break;
-                                  case 'delete':
-                                    _showDeleteMaterialDialog(material);
-                                    break;
-                                }
-                              },
-                              itemBuilder: (context) => [
-                                const PopupMenuItem(
-                                  value: 'edit',
-                                  child: Row(
-                                    children: [
-                                      Icon(Icons.edit, size: 16),
-                                      SizedBox(width: 8),
-                                      Text('Edit'),
-                                    ],
-                                  ),
-                                ),
-                                const PopupMenuItem(
-                                  value: 'delete',
-                                  child: Row(
-                                    children: [
-                                      Icon(Icons.delete, size: 16, color: Colors.red),
-                                      SizedBox(width: 8),
-                                      Text('Delete', style: TextStyle(color: Colors.red)),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
+              ],
+            ),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.arrow_back),
                     ),
-        ),
-      ],
-    ),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Materials Management',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  onChanged: (value) => setState(() => searchQuery = value),
+                  decoration: InputDecoration(
+                    hintText: 'Search materials...',
+                    prefixIcon: const Icon(Icons.search),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    filled: true,
+                    fillColor: Colors.grey.shade50,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : filteredMaterials.isEmpty
+                    ? const Center(child: Text('No materials found'))
+                    : ListView.builder(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: filteredMaterials.length,
+                        itemBuilder: (context, index) {
+                          final material = filteredMaterials[index];
+                          return Card(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            child: ListTile(
+                              contentPadding: const EdgeInsets.all(16),
+                              title: Text(material.name),
+                              subtitle: Text(
+                                '${material.category} | ${material.quantity} ${material.unit} | ${material.supplier}',
+                              ),
+                              trailing: Text(
+                                '₹${material.cost.toStringAsFixed(2)}',
+                                style: const TextStyle(
+                                  color: Colors.blue,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              leading: CircleAvatar(
+                                backgroundColor:
+                                    getStatusColor(material.status).withOpacity(0.2),
+                                child: Icon(
+                                  Icons.inventory,
+                                  color: getStatusColor(material.status),
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+          ),
+        ],
+      ),
     );
   }
 }

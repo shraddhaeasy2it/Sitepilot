@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:file_selector/file_selector.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class PaymentsDetailScreen extends StatefulWidget {
   final String siteId;
@@ -17,13 +19,15 @@ class PaymentsDetailScreen extends StatefulWidget {
 
 class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
   final List<Map<String, dynamic>> _requests = [];
-
   final _amountController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _utrController = TextEditingController();
 
   String _selectedCategory = 'Material';
   final List<String> _categories = ['Material', 'Rental', 'Manpower', 'Misc'];
+  XFile? _selectedFile; // for file_selector
+  bool _isUploading = false;
+  bool _showUploadError = false;
 
   @override
   void dispose() {
@@ -33,44 +37,98 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
     super.dispose();
   }
 
-  String _getFormattedDate() => DateFormat('yyyy-MM-dd').format(DateTime.now());
+  String _getFormattedDate() =>
+      DateFormat('yyyy-MM-dd').format(DateTime.now());
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Payment Requests - ${widget.siteName}'),
+    return Theme(
+      data: Theme.of(context).copyWith(
+        colorScheme: ColorScheme.light(
+          primary: Colors.lightBlue.shade600,
+          secondary: Colors.lightBlue.shade400,
+        ),
       ),
-      body: _requests.isEmpty
-          ? const Center(child: Text("No payment requests yet."))
-          : ListView.builder(
-              itemCount: _requests.length,
-              padding: const EdgeInsets.all(16),
-              itemBuilder: (context, index) {
-                final req = _requests[index];
-                return Card(
-                  elevation: 2,
-                  child: ListTile(
-                    leading: Icon(Icons.payment,
-                        color: _getStatusColor(req['status'])),
-                    title: Text('₹${req['amount']} - ${req['category']}'),
-                    subtitle: Text('${req['description']}\nDate: ${req['date']}'),
-                    trailing: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        _buildStatusTag(req['status']),
-                        if (req['utr'] != null)
-                          const Icon(Icons.attach_file, size: 18),
-                      ],
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text('Payment Requests - ${widget.siteName}'),
+          backgroundColor: Colors.lightBlue.shade600,
+        ),
+        body: _requests.isEmpty
+            ? Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.payment,
+                        size: 48, color: Colors.grey.shade400),
+                    const SizedBox(height: 16),
+                    Text(
+                      "No payment requests yet",
+                      style: TextStyle(
+                        fontSize: 18,
+                        color: Colors.grey.shade600,
+                      ),
                     ),
-                    onTap: () => _showDetailDialog(req),
-                  ),
-                );
-              },
-            ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showAddRequestDialog,
-        child: const Icon(Icons.add),
+                  ],
+                ),
+              )
+            : ListView.builder(
+                itemCount: _requests.length,
+                padding: const EdgeInsets.all(16),
+                itemBuilder: (context, index) {
+                  final req = _requests[index];
+                  return Card(
+                    elevation: 2,
+                    margin: const EdgeInsets.only(bottom: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: ListTile(
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: _getStatusColor(req['status']).withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(Icons.payment,
+                            color: _getStatusColor(req['status'])),
+                      ),
+                      title: Text(
+                        '₹${req['amount'].toStringAsFixed(2)} - ${req['category']}',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(req['description']),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Date: ${req['date']}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                        ],
+                      ),
+                      trailing: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          _buildStatusTag(req['status']),
+                          if (req['document'] != null)
+                            const Icon(Icons.attachment, size: 18),
+                        ],
+                      ),
+                      onTap: () => _showDetailDialog(req, index),
+                    ),
+                  );
+                },
+              ),
+        floatingActionButton: FloatingActionButton(
+          onPressed: _showAddRequestDialog,
+          backgroundColor: Colors.lightBlue.shade600,
+          child: const Icon(Icons.add, color: Colors.white),
+        ),
       ),
     );
   }
@@ -107,169 +165,488 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
   }
 
   void _showAddRequestDialog() {
+    setState(() {
+      _selectedFile = null;
+      _showUploadError = false;
+    });
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (_) {
-        return Padding(
+        return Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 10,
+                spreadRadius: 2,
+              ),
+            ],
+          ),
           padding: EdgeInsets.only(
             bottom: MediaQuery.of(context).viewInsets.bottom,
             top: 16,
             left: 16,
             right: 16,
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('New Payment Request',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                value: _selectedCategory,
-                items: _categories.map((cat) {
-                  return DropdownMenuItem(value: cat, child: Text(cat));
-                }).toList(),
-                decoration: const InputDecoration(labelText: 'Category'),
-                onChanged: (val) {
-                  if (val != null) setState(() => _selectedCategory = val);
-                },
-              ),
-              TextField(
-                controller: _amountController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Amount (₹)'),
-              ),
-              TextField(
-                controller: _descriptionController,
-                decoration: const InputDecoration(labelText: 'Description'),
-              ),
-              const SizedBox(height: 12),
-              ElevatedButton.icon(
-                onPressed: () {
-                  final amount = double.tryParse(_amountController.text);
-                  final description = _descriptionController.text.trim();
-
-                  if (amount != null && description.isNotEmpty) {
-                    setState(() {
-                      _requests.add({
-                        'category': _selectedCategory,
-                        'amount': amount,
-                        'description': description,
-                        'date': _getFormattedDate(),
-                        'status': 'Pending',
-                        'utr': null,
-                      });
-                    });
-
-                    _amountController.clear();
-                    _descriptionController.clear();
-                    Navigator.pop(context);
-                  }
-                },
-                icon: const Icon(Icons.send),
-                label: const Text('Submit Request'),
-              ),
-              const SizedBox(height: 12),
-            ],
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'New Payment Request',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  value: _selectedCategory,
+                  items: _categories.map((cat) {
+                    return DropdownMenuItem(
+                      value: cat,
+                      child: Text(cat),
+                    );
+                  }).toList(),
+                  decoration: const InputDecoration(
+                    labelText: 'Category *',
+                    border: OutlineInputBorder(),
+                  ),
+                  onChanged: (val) {
+                    if (val != null) setState(() => _selectedCategory = val);
+                  },
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _amountController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'Amount (₹) *',
+                    prefixIcon: Icon(Icons.currency_rupee),
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _descriptionController,
+                  decoration: const InputDecoration(
+                    labelText: 'Description *',
+                    prefixIcon: Icon(Icons.description),
+                    border: OutlineInputBorder(),
+                  ),
+                  maxLines: 2,
+                ),
+                const SizedBox(height: 16),
+                _buildDocumentUploadField(),
+                const SizedBox(height: 16),
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.lightBlue.shade600,
+                    minimumSize: const Size(double.infinity, 50),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  onPressed: _validateAndSubmitRequest,
+                  icon: const Icon(Icons.send, color: Colors.white),
+                  label: const Text(
+                    'Submit Request',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
+            ),
           ),
         );
       },
     );
   }
 
-  void _showDetailDialog(Map<String, dynamic> req) {
+  Widget _buildDocumentUploadField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        RichText(
+          text: TextSpan(
+            text: 'Invoice/Payment Proof ',
+            style: const TextStyle(fontSize: 16, color: Colors.black),
+            children: const [
+              TextSpan(
+                text: '*',
+                style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        InkWell(
+          onTap: _pickDocument,
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              border: Border.all(
+                color: _showUploadError ? Colors.red : Colors.grey,
+                width: 1,
+              ),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.upload_file, color: Colors.lightBlue.shade600),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Text(
+                    _selectedFile?.name ?? 'Tap to upload document (PDF/Image)',
+                    style: TextStyle(
+                      color: _selectedFile == null
+                          ? Colors.grey
+                          : Colors.black,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                if (_isUploading)
+                  const Padding(
+                    padding: EdgeInsets.only(left: 8),
+                    child: SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  ),
+                if (_selectedFile != null && !_isUploading)
+                  IconButton(
+                    icon: const Icon(Icons.close, size: 18),
+                    onPressed: () {
+                      setState(() {
+                        _selectedFile = null;
+                        _showUploadError = true;
+                      });
+                    },
+                  ),
+              ],
+            ),
+          ),
+        ),
+        if (_showUploadError)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(
+              'Document proof is required',
+              style: TextStyle(
+                color: Colors.red.shade600,
+                fontSize: 12,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Future<void> _pickDocument() async {
+    // Request storage permission before picking file
+    final status = await Permission.storage.request();
+    if (!status.isGranted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Storage permission is required to pick files'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+    setState(() {
+      _isUploading = true;
+      _showUploadError = false;
+    });
+
+    try {
+      final typeGroup = XTypeGroup(
+        label: 'documents',
+        extensions: ['pdf', 'jpg', 'jpeg', 'png'],
+      );
+      final XFile? file = await openFile(acceptedTypeGroups: [typeGroup]);
+
+      if (file != null) {
+        setState(() {
+          _selectedFile = file;
+          _showUploadError = false;
+        });
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error picking file: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      setState(() => _isUploading = false);
+    }
+  }
+
+  void _validateAndSubmitRequest() {
+    final amount = double.tryParse(_amountController.text);
+    final description = _descriptionController.text.trim();
+
+    if (amount == null || description.isEmpty || _selectedFile == null) {
+      setState(() => _showUploadError = _selectedFile == null);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please fill all required fields and upload document'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _requests.add({
+        'category': _selectedCategory,
+        'amount': amount,
+        'description': description,
+        'date': _getFormattedDate(),
+        'status': 'Pending',
+        'document': _selectedFile?.name ?? 'document',
+        'file': _selectedFile,
+        'utr': null,
+      });
+
+      _amountController.clear();
+      _descriptionController.clear();
+      _selectedFile = null;
+      _showUploadError = false;
+    });
+
+    Navigator.pop(context);
+  }
+
+  void _showDetailDialog(Map<String, dynamic> req, int index) {
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        title: Text('Payment Request - ₹${req['amount']}'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('Category: ${req['category']}'),
-            Text('Description: ${req['description']}'),
-            Text('Status: ${req['status']}'),
-            if (req['utr'] != null) Text('UTR: ${req['utr']}'),
-          ],
-        ),
-        actions: [
-          if (req['status'] == 'Pending') ...[
-            TextButton(
-              onPressed: () {
-                setState(() => req['status'] = 'Rejected');
-                Navigator.pop(context);
-              },
-              child: const Text('Reject', style: TextStyle(color: Colors.red)),
+      builder: (_) => StatefulBuilder(
+        builder: (context, setState) {
+          return AlertDialog(
+            title: Text('Payment Request - ₹${req['amount'].toStringAsFixed(2)}'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Category: ${req['category']}'),
+                  const SizedBox(height: 8),
+                  Text('Description: ${req['description']}'),
+                  const SizedBox(height: 8),
+                  Text('Date: ${req['date']}'),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      const Text('Status: '),
+                      _buildStatusTag(req['status']),
+                    ],
+                  ),
+                  if (req['document'] != null) ...[
+                    const SizedBox(height: 8),
+                    InkWell(
+                      onTap: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Opening ${req['document']}')),
+                        );
+                      },
+                      child: Row(
+                        children: [
+                          const Icon(Icons.attachment, size: 16),
+                          const SizedBox(width: 4),
+                          Text(
+                            req['document'],
+                            style: TextStyle(
+                              color: Colors.lightBlue.shade600,
+                              decoration: TextDecoration.underline,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  if (req['utr'] != null) ...[
+                    const SizedBox(height: 8),
+                    Text('UTR: ${req['utr']}'),
+                  ],
+                ],
+              ),
             ),
-            ElevatedButton(
-              onPressed: () {
-                setState(() => req['status'] = 'Approved');
-                Navigator.pop(context);
-              },
-              child: const Text('Approve'),
-            ),
-          ],
-          if (req['status'] == 'Approved') ...[
-            TextButton(
-              onPressed: () {
-                _showUploadUTRDialog(req);
-              },
-              child: const Text('Upload UTR'),
-            ),
-          ],
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Close'),
+              ),
+              if (req['status'] == 'Pending') ...[
+                TextButton(
+                  onPressed: () {
+                    setState(() {
+                      _requests[index]['status'] = 'Rejected';
+                    });
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Payment request rejected'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  },
+                  child: const Text('Reject', style: TextStyle(color: Colors.red)),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.lightBlue.shade600,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _requests[index]['status'] = 'Approved';
+                    });
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Payment request approved'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  },
+                  child: const Text('Approve', style: TextStyle(color: Colors.white)),
+                ),
+              ],
+              if (req['status'] == 'Approved') ...[
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.lightBlue.shade600,
+                  ),
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _showUploadUTRDialog(req, index);
+                  },
+                  child: const Text('Mark as Paid', style: TextStyle(color: Colors.white)),
+                ),
+              ],
+            ],
+          );
+        },
       ),
     );
   }
 
-  void _showUploadUTRDialog(Map<String, dynamic> req) {
+  void _showUploadUTRDialog(Map<String, dynamic> req, int index) {
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Upload UTR & Document'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: _utrController,
-              decoration: const InputDecoration(labelText: 'UTR Number'),
+      builder: (_) => StatefulBuilder(
+        builder: (context, setState) {
+          return AlertDialog(
+            title: const Text('Payment Confirmation'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: _utrController,
+                    decoration: const InputDecoration(
+                      labelText: 'UTR/Reference Number *',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Upload Payment Receipt one more time',
+                    style: TextStyle(fontWeight: FontWeight.w500),
+                  ),
+                  const SizedBox(height: 8),
+                  InkWell(
+                    onTap: _pickDocument,
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey, width: 1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.upload_file, color: Colors.lightBlue.shade600),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Text(
+                              _selectedFile?.name ?? 'Tap to upload receipt (PDF/Image)',
+                              style: TextStyle(color: Colors.grey.shade600),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (_selectedFile != null)
+                            IconButton(
+                              icon: const Icon(Icons.close, size: 18),
+                              onPressed: () {
+                                setState(() {
+                                  _selectedFile = null;
+                                });
+                              },
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 12),
-            ElevatedButton.icon(
-              onPressed: () {
-                // Mock document picker
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Document uploaded successfully!')),
-                );
-              },
-              icon: const Icon(Icons.upload_file),
-              label: const Text('Upload PDF/IMG'),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              if (_utrController.text.isNotEmpty) {
-                setState(() {
-                  req['utr'] = _utrController.text;
-                  req['status'] = 'Paid';
-                });
-                _utrController.clear();
-                Navigator.pop(context);
-              }
-            },
-            child: const Text('Save'),
-          ),
-        ],
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.lightBlue.shade600,
+                ),
+                onPressed: () {
+                  if (_utrController.text.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Please enter Payment ID'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                    return;
+                  }
+
+                  setState(() {
+                    _requests[index]['utr'] = _utrController.text;
+                    _requests[index]['status'] = 'Paid';
+                    if (_selectedFile != null) {
+                      _requests[index]['document'] = _selectedFile!.name;
+                      _requests[index]['file'] = _selectedFile;
+                    }
+                  });
+                  _utrController.clear();
+                  _selectedFile = null;
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Payment marked as paid'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                },
+                child: const Text('Confirm Payment', style: TextStyle(color: Colors.white)),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
 }
+
+
+
+

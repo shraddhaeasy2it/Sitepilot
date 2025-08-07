@@ -175,24 +175,22 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       child: Row(
         children: [
           Expanded(
-            child: Card(
-              child: ListTile(
-                leading: const Icon(Icons.calendar_today),
-                title: Text(
-                  '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                subtitle: const Text('Selected Date'),
-                onTap: () => _selectDate(context),
+            child: ListTile(
+              leading: const Icon(Icons.calendar_today),
+              title: Text(
+                '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
+                style: const TextStyle(fontWeight: FontWeight.bold),
               ),
+              subtitle: const Text('Selected Date'),
+              onTap: () => _selectDate(context),
             ),
           ),
           const SizedBox(width: 8),
-          ElevatedButton.icon(
-            onPressed: () => _exportAttendance(),
-            icon: const Icon(Icons.download),
-            label: const Text('Export'),
-          ),
+          // ElevatedButton.icon(
+          //   onPressed: () => _exportAttendance(),
+          //   icon: const Icon(Icons.download),
+          //   label: const Text('Export'),
+          // ),
         ],
       ),
     );

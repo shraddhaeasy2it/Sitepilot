@@ -22,13 +22,13 @@ class TaskPage extends StatefulWidget {
 
 class Task {
   final String id;
-  final String title;
-  final String description;
-  final String siteId;
-  final String assignedTo;
-  final DateTime dueDate;
-  final String status;
-  final DateTime createdAt;
+  String title;
+  String description;
+  String siteId;
+  String assignedTo;
+  DateTime dueDate;
+  String status;
+  DateTime createdAt;
 
   Task({
     required this.id,
@@ -41,6 +41,7 @@ class Task {
     DateTime? createdAt,
   }) : createdAt = createdAt ?? DateTime.now();
 }
+
 
 class _TaskPageState extends State<TaskPage> {
   late String _selectedSiteId;
@@ -330,86 +331,92 @@ class _TaskPageState extends State<TaskPage> {
   }
 
   Widget _buildTaskItem(Task task) {
-    final site = widget.sites.firstWhere((s) => s.id == task.siteId, orElse: () => Site(id: '', name: 'Unknown Site', address: ''));
-    
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Text(
-                    task.title,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
+  final site = widget.sites.firstWhere(
+    (s) => s.id == task.siteId,
+    orElse: () => Site(id: '', name: 'Unknown Site', address: ''),
+  );
+
+  return Card(
+    margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+    child: Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  task.title,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.edit, size: 20),
+                    onPressed: () => _showEditTaskDialog(task),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: _getStatusColor(task.status).withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      task.status,
+                      style: TextStyle(
+                        color: _getStatusColor(task.status),
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: _getStatusColor(task.status).withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    task.status,
-                    style: TextStyle(
-                      color: _getStatusColor(task.status),
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              task.description,
-              style: TextStyle(color: Colors.grey.shade600),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Icon(Icons.person, size: 16, color: Colors.grey.shade600),
-                const SizedBox(width: 4),
-                Text(
-                  task.assignedTo,
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(task.description, style: TextStyle(color: Colors.grey.shade600)),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Icon(Icons.person, size: 16, color: Colors.grey.shade600),
+              const SizedBox(width: 4),
+              Text(task.assignedTo, style: TextStyle(color: Colors.grey.shade600)),
+              const Spacer(),
+              Icon(Icons.calendar_today, size: 16, color: Colors.grey.shade600),
+              const SizedBox(width: 4),
+              Text(
+                '${task.dueDate.day}/${task.dueDate.month}/${task.dueDate.year}',
+                style: TextStyle(color: Colors.grey.shade600),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Icon(Icons.construction, size: 16, color: Colors.grey.shade600),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  site.name,
                   style: TextStyle(color: Colors.grey.shade600),
+                  overflow: TextOverflow.ellipsis,
                 ),
-                const Spacer(),
-                Icon(Icons.calendar_today, size: 16, color: Colors.grey.shade600),
-                const SizedBox(width: 4),
-                Text(
-                  '${task.dueDate.day}/${task.dueDate.month}/${task.dueDate.year}',
-                  style: TextStyle(color: Colors.grey.shade600),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Icon(Icons.construction, size: 16, color: Colors.grey.shade600),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: Text(
-                    site.name,
-                    style: TextStyle(color: Colors.grey.shade600),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
+              ),
+            ],
+          ),
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
+
 
   Color _getStatusColor(String status) {
     switch (status.toLowerCase()) {
@@ -518,4 +525,78 @@ class _TaskPageState extends State<TaskPage> {
       ),
     );
   }
+  void _showEditTaskDialog(Task task) {
+  final titleController = TextEditingController(text: task.title);
+  final descController = TextEditingController(text: task.description);
+  String assignedTo = task.assignedTo;
+  String status = task.status;
+  DateTime dueDate = task.dueDate;
+
+  showDialog(
+    context: context,
+    builder: (context) {
+      return AlertDialog(
+        title: const Text('Edit Task'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildInputField(
+                controller: titleController,
+                label: 'Title',
+                icon: Icons.title,
+              ),
+              const SizedBox(height: 12),
+              _buildInputField(
+                controller: descController,
+                label: 'Description',
+                icon: Icons.description,
+                maxLines: 3,
+              ),
+              const SizedBox(height: 12),
+              _buildContractorDropdown(
+                value: assignedTo,
+                onChanged: (val) => assignedTo = val!,
+              ),
+              const SizedBox(height: 12),
+              _buildDatePicker(
+                context: context,
+                initialDate: dueDate,
+                onDateSelected: (val) => dueDate = val,
+              ),
+              const SizedBox(height: 12),
+              _buildStatusDropdown(
+                value: status,
+                onChanged: (val) => status = val!,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              setState(() {
+                task.title = titleController.text;
+                task.description = descController.text;
+                task.assignedTo = assignedTo;
+                task.dueDate = dueDate;
+                task.status = status;
+              });
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Task "${task.title}" updated')),
+              );
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      );
+    },
+  );
+}
+
 }

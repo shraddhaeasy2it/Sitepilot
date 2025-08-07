@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'more_screen.dart';
 
 class InventoryDetailScreen extends StatefulWidget {
   final String siteId;
@@ -46,7 +45,9 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
   Widget build(BuildContext context) {
     final filteredInventory = _selectedCategory == 'All'
         ? _inventory
-        : _inventory.where((item) => item['category'] == _selectedCategory).toList();
+        : _inventory
+            .where((item) => item['category'] == _selectedCategory)
+            .toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -101,10 +102,23 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
         final isLowStock = item['stock'] < item['reorderLevel'];
 
         return Card(
+          elevation: 4,
           child: ListTile(
-            leading: Icon(Icons.inventory_2_outlined, color: isLowStock ? Colors.red : Colors.green),
-            title: Text('${item['name']} (${item['stock']} units)'),
-            subtitle: Text('Category: ${item['category']} | Usage: ${item['usageTrend']}'),
+            leading: Icon(
+              Icons.inventory_2_outlined,
+              color: isLowStock ? Colors.red : Colors.green,
+            ),
+            title: Text(
+              '${item['name']} (${item['stock']} units)',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: isLowStock ? Colors.red.shade700 : Colors.green.shade700,
+              ),
+            ),
+            subtitle: Text(
+              'Category: ${item['category']} | Usage: ${item['usageTrend']}',
+              style: const TextStyle(fontSize: 13),
+            ),
             trailing: isLowStock
                 ? const Icon(Icons.warning, color: Colors.red)
                 : const Icon(Icons.check_circle, color: Colors.green),
@@ -119,8 +133,7 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
     showModalBottomSheet(
       context: context,
       builder: (_) {
-        return Column(
-          mainAxisSize: MainAxisSize.min,
+        return Wrap(
           children: [
             ListTile(
               leading: const Icon(Icons.remove_circle),
@@ -156,9 +169,18 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
     _showNumberInputDialog(
       title: 'Log Usage for ${item['name']}',
       onConfirm: (qty) {
+        if (qty > item['stock']) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Not enough stock available')),
+          );
+          return;
+        }
         setState(() {
           item['stock'] -= qty;
         });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${item['name']} stock reduced by $qty')),
+        );
       },
     );
   }
@@ -170,6 +192,9 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
         setState(() {
           item['stock'] += qty;
         });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${item['name']} stock increased by $qty')),
+        );
       },
     );
   }
@@ -182,6 +207,9 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
         setState(() {
           item['reorderLevel'] = val;
         });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${item['name']} reorder level set to $val')),
+        );
       },
     );
   }
@@ -206,7 +234,7 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
           ElevatedButton(
             onPressed: () {
               final value = int.tryParse(controller.text);
-              if (value != null) {
+              if (value != null && value >= 0) {
                 onConfirm(value);
                 Navigator.pop(context);
               }
@@ -219,22 +247,99 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
   }
 
   void _showAddStockDialog() {
-    // Future: Implement material dropdown and quantity input for adding new item
+    String name = '';
+    String category = '';
+    int stock = 0;
+    int reorderLevel = 10;
+
     showDialog(
       context: context,
-      builder: (_) => const AlertDialog(
-        title: Text('Add New Stock'),
-        content: Text('Feature to add new material stock under development.'),
+      builder: (_) => AlertDialog(
+        title: const Text('Add New Stock'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              decoration: const InputDecoration(labelText: 'Material Name'),
+              onChanged: (val) => name = val,
+            ),
+            TextField(
+              decoration: const InputDecoration(labelText: 'Category'),
+              onChanged: (val) => category = val,
+            ),
+            TextField(
+              decoration: const InputDecoration(labelText: 'Initial Stock'),
+              keyboardType: TextInputType.number,
+              onChanged: (val) => stock = int.tryParse(val) ?? 0,
+            ),
+            TextField(
+              decoration: const InputDecoration(labelText: 'Reorder Level'),
+              keyboardType: TextInputType.number,
+              onChanged: (val) => reorderLevel = int.tryParse(val) ?? 10,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () {
+              if (name.isNotEmpty && category.isNotEmpty && stock >= 0) {
+                setState(() {
+                  _inventory.add({
+                    'name': name,
+                    'category': category,
+                    'stock': stock,
+                    'reorderLevel': reorderLevel,
+                    'usageTrend': 'Medium',
+                  });
+                });
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('New material added')),
+                );
+              }
+            },
+            child: const Text('Add'),
+          ),
+        ],
       ),
     );
   }
 
   void _showTransferDialog() {
+    String materialName = '';
+    int transferQty = 0;
+
     showDialog(
       context: context,
-      builder: (_) => const AlertDialog(
-        title: Text('Transfer Between Sites'),
-        content: Text('Transfer functionality is under development.'),
+      builder: (_) => AlertDialog(
+        title: const Text('Transfer Stock Between Sites'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              decoration: const InputDecoration(labelText: 'Material Name'),
+              onChanged: (val) => materialName = val,
+            ),
+            TextField(
+              decoration: const InputDecoration(labelText: 'Quantity to Transfer'),
+              keyboardType: TextInputType.number,
+              onChanged: (val) => transferQty = int.tryParse(val) ?? 0,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Transfer request sent (mocked)')),
+              );
+            },
+            child: const Text('Transfer'),
+          ),
+        ],
       ),
     );
   }

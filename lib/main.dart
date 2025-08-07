@@ -25,7 +25,7 @@ class MyApp extends StatelessWidget {
           ),
           useMaterial3: true,
         ),
-        home: HomePageApp(),
+        home:HomePageApp(),
         debugShowCheckedModeBanner: false,
       ),
     );

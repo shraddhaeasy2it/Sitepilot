@@ -10,7 +10,6 @@ import 'package:ecoteam_app/widgets/bottom_navbar.dart';
 import 'package:ecoteam_app/widgets/summary_card.dart';
 import 'package:flutter/material.dart';
 
-
 class DashboardScreen extends StatefulWidget {
   final Site? selectedSite;
   final String? companyName;
@@ -67,7 +66,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           throw Exception('Loading timeout - please check your connection');
         },
       );
-      print('Dashboard data loaded: \n  sites: \${_dashboardData?.sites.length}, selectedSiteId: \${_dashboardData?.selectedSiteId}');
+      print('Dashboard data loaded: \n  sites: ${_dashboardData?.sites.length}, selectedSiteId: ${_dashboardData?.selectedSiteId}');
       _sites = _dashboardData!.sites;
       if (widget.selectedSite != null) {
         _selectedSiteId = widget.selectedSite!.id;
@@ -76,7 +75,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       }
       _screens = [
         DashboardContent(
-          key: ValueKey('dashboard-\${DateTime.now().millisecondsSinceEpoch}'),
+          key: ValueKey('dashboard-${DateTime.now().millisecondsSinceEpoch}'),
           selectedSiteId: _selectedSiteId,
           onSiteChanged: _onSiteChanged,
           sites: _sites,
@@ -110,13 +109,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
       ];
     } catch (e) {
-      print('Error loading dashboard data: \${e.toString()}');
+      print('Error loading dashboard data: ${e.toString()}');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to load dashboard data: \${e.toString()}'),
+            content: Text('Failed to load dashboard data: ${e.toString()}'),
+            backgroundColor: const Color(0xFF1A1A2E),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             action: SnackBarAction(
               label: 'Retry',
+              textColor: const Color(0xFF6366F1),
               onPressed: _loadData,
             ),
           ),
@@ -186,40 +189,102 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return Scaffold(
-        appBar: AppBar(
-          title: const Text('Loading Dashboard...'),
-          centerTitle: true,
+  return Scaffold(
+    body: Container(
+      // Added constraints to ensure full screen coverage
+      width: double.infinity,
+      height: double.infinity,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color.fromARGB(255, 246, 247, 248), Color.fromARGB(255, 209, 195, 223)],
         ),
-        body: const Center(
+      ),
+      child: Center(
+        child: SingleChildScrollView( // Prevents overflow issues
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              CircularProgressIndicator(),
-              SizedBox(height: 16),
-              Text('Loading your dashboard data...'),
+              const CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                strokeWidth: 3,
+              ),
+              
             ],
           ),
         ),
-      );
-    }
+      ),
+    ),
+  );
+}
+
     // Fallback: If data is still missing after loading, show error
     if (_dashboardData == null || _screens.isEmpty) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Dashboard Error')),
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.error, color: Colors.red, size: 48),
-              const SizedBox(height: 16),
-              const Text('Failed to load dashboard data.'),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: _loadData,
-                child: const Text('Retry'),
-              ),
-            ],
+        body: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color(0xFF1A1A2E), Color(0xFF16213E)],
+            ),
+          ),
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.white.withOpacity(0.2)),
+                  ),
+                  child: const Icon(
+                    Icons.error_outline,
+                    color: Colors.white,
+                    size: 48,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                const Text(
+                  'Failed to load dashboard',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Please check your connection and try again',
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 32),
+                ElevatedButton(
+                  onPressed: _loadData,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF6366F1),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    'Retry',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       );
@@ -228,30 +293,64 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Scaffold(
       appBar: _currentIndex == 0 
           ? AppBar(
+              elevation: 0,
+              backgroundColor: Colors.transparent,
+              flexibleSpace: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.topRight,
+                    colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+                  ),
+                ),
+              ),
               title: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Construction Dashboard'),
+                  const Text(
+                    'Construction Dashboard',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
                   if (widget.companyName != null)
                     Text(
                       widget.companyName!,
                       style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.normal,
+                        color: Colors.white70,
                       ),
                     ),
                 ],
               ),
               centerTitle: false,
               actions: [
-                IconButton(
-                  icon: const Icon(Icons.add_business_rounded),
-                  onPressed: _showSitesModal,
-                  tooltip: 'Manage Sites',
+                Container(
+                  margin: const EdgeInsets.only(right: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: IconButton(
+                    icon: const Icon(Icons.add_business_rounded, color: Colors.white),
+                    onPressed: _showSitesModal,
+                    tooltip: 'Manage Sites',
+                  ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.notifications_outlined),
-                  onPressed: _showNotifications,
+                Container(
+                  margin: const EdgeInsets.only(right: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: IconButton(
+                    icon: const Icon(Icons.notifications_outlined, color: Colors.white),
+                    onPressed: _showNotifications,
+                  ),
                 ),
               ],
             )
@@ -350,14 +449,18 @@ class _SitesManagementModalState extends State<SitesManagementModal> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Site "${newSite.name}" added successfully!'),
-            backgroundColor: Colors.green,
+            backgroundColor: const Color(0xFF10B981),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Site "${newSite.name}" already exists!'),
-            backgroundColor: Colors.orange,
+            backgroundColor: const Color(0xFFF59E0B),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
         );
       }
@@ -368,14 +471,24 @@ class _SitesManagementModalState extends State<SitesManagementModal> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Site'),
-        content: Text('Are you sure you want to delete "${site.name}"?'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          'Delete Site',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        content: Text(
+          'Are you sure you want to delete "${site.name}"?\n\nThis action cannot be undone.',
+          style: const TextStyle(fontSize: 16),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.grey[600],
+            ),
             child: const Text('Cancel'),
           ),
-          TextButton(
+          ElevatedButton(
             onPressed: () async {
               // Delete from API service
               final success = await ApiService().deleteSite(site.id);
@@ -388,7 +501,9 @@ class _SitesManagementModalState extends State<SitesManagementModal> {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text('Site "${site.name}" deleted successfully!'),
-                    backgroundColor: Colors.red,
+                    backgroundColor: const Color(0xFFEF4444),
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                 );
               } else {
@@ -396,11 +511,18 @@ class _SitesManagementModalState extends State<SitesManagementModal> {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text('Failed to delete site "${site.name}"!'),
-                    backgroundColor: Colors.red,
+                    backgroundColor: const Color(0xFFEF4444),
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                 );
               }
             },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFEF4444),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
             child: const Text('Delete'),
           ),
         ],
@@ -412,130 +534,275 @@ class _SitesManagementModalState extends State<SitesManagementModal> {
   Widget build(BuildContext context) {
     return Dialog(
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(24),
       ),
+      backgroundColor: Colors.transparent,
       child: Container(
         width: MediaQuery.of(context).size.width * 0.9,
         height: MediaQuery.of(context).size.height * 0.8,
-        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Colors.white, Color(0xFFF8FAFC)],
+          ),
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 30,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'Manage Construction Sites',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
+                const Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Manage Sites',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF1F2937),
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      'Add and manage construction sites',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Color(0xFF6B7280),
+                      ),
+                    ),
+                  ],
                 ),
-                IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close),
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close, color: Color(0xFF6B7280)),
+                  ),
                 ),
               ],
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 32),
             
             // Add new site form
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Add New Site',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
+            Container(
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+                ),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF667EEA).withOpacity(0.3),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              padding: const EdgeInsets.all(24),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Add New Site',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
                       ),
-                      const SizedBox(height: 12),
-                      TextFormField(
-                        controller: _siteNameController,
-                        decoration: const InputDecoration(
-                          labelText: 'Site Name',
-                          border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.location_on),
+                    ),
+                    const SizedBox(height: 20),
+                    TextFormField(
+                      controller: _siteNameController,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: InputDecoration(
+                        labelText: 'Site Name',
+                        labelStyle: const TextStyle(color: Colors.white70),
+                        prefixIcon: const Icon(Icons.location_on, color: Colors.white70),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Colors.white30),
                         ),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Please enter site name';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 12),
-                      TextFormField(
-                        controller: _siteAddressController,
-                        decoration: const InputDecoration(
-                          labelText: 'Site Address',
-                          border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.home),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Colors.white, width: 2),
                         ),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Please enter site address';
-                          }
-                          return null;
-                        },
+                        errorBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Colors.redAccent),
+                        ),
+                        focusedErrorBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Colors.redAccent, width: 2),
+                        ),
+                        filled: true,
+                        fillColor: Colors.white.withOpacity(0.1),
                       ),
-                      const SizedBox(height: 16),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          onPressed: _addNewSite,
-                          icon: const Icon(Icons.add),
-                          label: const Text('Add Site'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue,
-                            foregroundColor: Colors.white,
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Please enter site name';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _siteAddressController,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: InputDecoration(
+                        labelText: 'Site Address',
+                        labelStyle: const TextStyle(color: Colors.white70),
+                        prefixIcon: const Icon(Icons.home, color: Colors.white70),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Colors.white30),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Colors.white, width: 2),
+                        ),
+                        errorBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Colors.redAccent),
+                        ),
+                        focusedErrorBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Colors.redAccent, width: 2),
+                        ),
+                        filled: true,
+                        fillColor: Colors.white.withOpacity(0.1),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Please enter site address';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: _addNewSite,
+                        icon: const Icon(Icons.add, color: Color(0xFF667EEA)),
+                        label: const Text(
+                          'Add Site',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 16,
                           ),
                         ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: const Color(0xFF667EEA),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 0,
+                        ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ),
             
-            const SizedBox(height: 20),
+            const SizedBox(height: 32),
             
             // Existing sites list
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Existing Sites',
-                    style: TextStyle(
-                      fontSize: 16,
+                  Text(
+                    'Existing Sites (${widget.sites.length})',
+                    style: const TextStyle(
+                      fontSize: 18,
                       fontWeight: FontWeight.bold,
+                      color: Color(0xFF1F2937),
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 16),
                   Expanded(
                     child: ListView.builder(
                       itemCount: widget.sites.length,
                       itemBuilder: (context, index) {
                         final site = widget.sites[index];
-                        return Card(
-                          margin: const EdgeInsets.only(bottom: 8),
-                          child: ListTile(
-                            leading: const CircleAvatar(
-                              backgroundColor: Colors.blue,
-                              child: Icon(Icons.location_on, color: Colors.white),
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.centerLeft,
+                              end: Alignment.centerRight,
+                              colors: [
+                                Colors.white,
+                                Colors.grey[50]!,
+                              ],
                             ),
-                            title: Text(site.name),
-                            subtitle: Text(site.address),
-                            trailing: IconButton(
-                              icon: const Icon(Icons.delete, color: Colors.red),
-                              onPressed: () => _deleteSite(site),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: Colors.grey[200]!),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 10,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: ListTile(
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                            leading: Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+                                ),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(Icons.location_on, color: Colors.white, size: 20),
+                            ),
+                            title: Text(
+                              site.name,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 16,
+                                color: Color(0xFF1F2937),
+                              ),
+                            ),
+                            subtitle: Text(
+                              site.address,
+                              style: const TextStyle(
+                                color: Color(0xFF6B7280),
+                                fontSize: 14,
+                              ),
+                            ),
+                            trailing: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.red[50],
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: IconButton(
+                                icon: Icon(Icons.delete_outline, color: Colors.red[600]),
+                                onPressed: () => _deleteSite(site),
+                              ),
                             ),
                           ),
                         );
@@ -570,51 +837,80 @@ class DashboardContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        _buildSiteSelector(),
-        Expanded(
-          child: dashboardData == null
-              ? const Center(child: CircularProgressIndicator())
-              : _buildDashboardContent(context),
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFFF8FAFC), Color(0xFFE2E8F0)],
         ),
-      ],
+      ),
+      child: Column(
+        children: [
+          _buildSiteSelector(),
+          Expanded(
+            child: dashboardData == null
+                ? const Center(child: CircularProgressIndicator())
+                : _buildDashboardContent(context),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildSiteSelector() {
     return Container(
-      margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      margin: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Colors.white, Color(0xFFF8FAFC)],
+        ),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
           ),
         ],
+        border: Border.all(color: Colors.white.withOpacity(0.2)),
       ),
-      child: DropdownButtonFormField<String>(
-        value: selectedSiteId?.isNotEmpty == true ? selectedSiteId : null,
-        decoration: const InputDecoration(
-          labelText: 'Select Construction Site',
-          border: InputBorder.none,
-          prefixIcon: Icon(Icons.location_on, color: Colors.blue),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+        child: DropdownButtonFormField<String>(
+          value: selectedSiteId?.isNotEmpty == true ? selectedSiteId : null,
+          decoration: const InputDecoration(
+            labelText: 'Select Construction Site',
+            labelStyle: TextStyle(
+              color: Color(0xFF6B7280),
+              fontWeight: FontWeight.w500,
+            ),
+            border: InputBorder.none,
+            prefixIcon: Icon(
+              Icons.location_on,
+              color: Color(0xFF667EEA),
+            ),
+          ),
+          dropdownColor: Colors.white,
+          style: const TextStyle(
+            color: Color(0xFF1F2937),
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+          ),
+          items: sites.map((site) {
+            return DropdownMenuItem<String>(
+              value: site.id,
+              child: Text(site.name),
+            );
+          }).toList(),
+          onChanged: (String? newValue) {
+            if (newValue != null) {
+              onSiteChanged(newValue);
+            }
+          },
         ),
-        items: sites.map((site) {
-          return DropdownMenuItem<String>(
-            value: site.id,
-            child: Text(site.name),
-          );
-        }).toList(),
-        onChanged: (String? newValue) {
-          if (newValue != null) {
-            onSiteChanged(newValue);
-          }
-        },
       ),
     );
   }
@@ -625,14 +921,17 @@ class DashboardContent extends StatelessWidget {
     }
     return RefreshIndicator(
       onRefresh: () async {}, // Parent handles refresh
+      color: const Color(0xFF667EEA),
+      backgroundColor: Colors.white,
       child: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 20),
         child: Column(
           children: [
             const SizedBox(height: 8),
             _buildSummaryGrid(dashboardData!),
-            const SizedBox(height: 24),
+            const SizedBox(height: 32),
             _buildRecentActivities(),
+            const SizedBox(height: 20),
           ],
         ),
       ),
@@ -640,84 +939,289 @@ class DashboardContent extends StatelessWidget {
   }
 
   Widget _buildSummaryGrid(DashboardData data) {
-    return GridView.count(
-      crossAxisCount: 2,
+    final summaryItems = [
+      {
+        'icon': Icons.inventory_2_outlined,
+        'title': 'Inventory Count',
+        'value': data.totalPicking.toString(),
+        'colors': [const Color(0xFF3B82F6), const Color(0xFF1D4ED8)],
+        'bgColors': [const Color(0xFFDBEAFE), const Color(0xFFBFDBFE)],
+      },
+      {
+        'icon': Icons.groups_outlined,
+        'title': 'Total Workers',
+        'value': data.totalWorkers.toString(),
+        'colors': [const Color(0xFF10B981), const Color(0xFF059669)],
+        'bgColors': [const Color(0xFFD1FAE5), const Color(0xFFA7F3D0)],
+      },
+      {
+        'icon': Icons.fact_check_outlined,
+        'title': 'Total Inspections',
+        'value': data.totalInspection.toString(),
+        'colors': [const Color(0xFFF59E0B), const Color(0xFFD97706)],
+        'bgColors': [const Color(0xFFFEF3C7), const Color(0xFFFDE68A)],
+      },
+      {
+        'icon': Icons.shopping_cart_outlined,
+        'title': 'Total Pickings',
+        'value': data.totalPicking.toString(),
+        'colors': [const Color(0xFF8B5CF6), const Color(0xFF7C3AED)],
+        'bgColors': [const Color(0xFFEDE9FE), const Color(0xFFDDD6FE)],
+      },
+    ];
+
+    return GridView.builder(
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        mainAxisSpacing: 16,
+        crossAxisSpacing: 16,
+        childAspectRatio: 1.1,
+      ),
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      mainAxisSpacing: 16,
-      crossAxisSpacing: 16,
-      childAspectRatio: 1.2,
-      children: [
-        SummaryCard(
-          icon: Icons.inventory,
-          title: 'Inventory Count',
-          value: data.totalPicking,
-          cardColor: const Color.fromARGB(255, 198, 228, 250),
-        ),
-        SummaryCard(
-          icon: Icons.people,
-          title: 'Total Workers',
-          value: data.totalWorkers,
-          cardColor: const Color.fromARGB(255, 199, 252, 203),
-        ),
-        SummaryCard(
-          icon: Icons.checklist,
-          title: 'Total Inspections',
-          value: data.totalInspection,
-          cardColor: const Color.fromARGB(255, 250, 228, 192),
-        ),
-        SummaryCard(
-          icon: Icons.shopping_cart,
-          title: 'Total Pickings',
-          value: data.totalPicking,
-          cardColor: const Color.fromARGB(255, 243, 209, 248),
-        ),
-      ],
+      itemCount: summaryItems.length,
+      itemBuilder: (context, index) {
+        final item = summaryItems[index];
+        return Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: item['bgColors'] as List<Color>,
+            ),
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: (item['colors'] as List<Color>)[0].withOpacity(0.2),
+                blurRadius: 15,
+                offset: const Offset(0, 8),
+              ),
+            ],
+            border: Border.all(
+              color: Colors.white.withOpacity(0.3),
+              width: 1,
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: item['colors'] as List<Color>,
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: (item['colors'] as List<Color>)[0].withOpacity(0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Icon(
+                    item['icon'] as IconData,
+                    color: Colors.white,
+                    size: 24,
+                  ),
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item['value'] as String,
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        color: (item['colors'] as List<Color>)[1],
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      item['title'] as String,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: (item['colors'] as List<Color>)[1].withOpacity(0.8),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
   Widget _buildRecentActivities() {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+    final activities = [
+      {
+        'icon': Icons.update,
+        'title': 'Foundation Progress',
+        'subtitle': 'Foundation work 85% completed',
+        'time': '2h ago',
+        'color': const Color(0xFF10B981),
+      },
+      {
+        'icon': Icons.engineering,
+        'title': 'Safety Inspection',
+        'subtitle': 'Monthly safety check completed',
+        'time': '4h ago',
+        'color': const Color(0xFF3B82F6),
+      },
+      {
+        'icon': Icons.local_shipping,
+        'title': 'Material Delivery',
+        'subtitle': 'Steel beams delivered to site',
+        'time': '6h ago',
+        'color': const Color(0xFFF59E0B),
+      },
+      {
+        'icon': Icons.assignment_turned_in,
+        'title': 'Task Completed',
+        'subtitle': 'Concrete pouring finished',
+        'time': '1d ago',
+        'color': const Color(0xFF8B5CF6),
+      },
+    ];
+
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Colors.white, Color(0xFFFAFAFA)],
+        ),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+        border: Border.all(color: Colors.grey[200]!),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'Recent Activities',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                const Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Recent Activities',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF1F2937),
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      'Latest updates from your site',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Color(0xFF6B7280),
+                      ),
+                    ),
+                  ],
                 ),
-                Text(
-                  'Site: ${sites.firstWhere((site) => site.id == selectedSiteId, orElse: () => Site(id: '', name: 'Unknown', address: '')).name}',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey,
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+                    ),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    sites.firstWhere(
+                      (site) => site.id == selectedSiteId, 
+                      orElse: () => Site(id: '', name: 'All Sites', address: '')
+                    ).name,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 24),
             ListView.separated(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              itemCount: 3,
-              separatorBuilder: (context, index) => const Divider(),
+              itemCount: activities.length,
+              separatorBuilder: (context, index) => const SizedBox(height: 16),
               itemBuilder: (context, index) {
-                return const ListTile(
-                  leading: Icon(Icons.update, color: Colors.blue),
-                  title: Text('Project update'),
-                  subtitle: Text('Foundation completed'),
-                  trailing: Text('2h ago'),
+                final activity = activities[index];
+                return Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[50],
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.grey[200]!),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: (activity['color'] as Color).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          activity['icon'] as IconData,
+                          color: activity['color'] as Color,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              activity['title'] as String,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 16,
+                                color: Color(0xFF1F2937),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              activity['subtitle'] as String,
+                              style: const TextStyle(
+                                color: Color(0xFF6B7280),
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Text(
+                        activity['time'] as String,
+                        style: const TextStyle(
+                          color: Color(0xFF9CA3AF),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
                 );
               },
             ),
@@ -728,14 +1232,45 @@ class DashboardContent extends StatelessWidget {
   }
 
   Widget _buildEmptyState() {
-    return const Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.hourglass_empty, size: 48),
-          SizedBox(height: 16),
-          Text('No data available'),
-        ],
+    return Center(
+      child: Container(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+                ),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Icon(
+                Icons.hourglass_empty,
+                size: 48,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'No data available',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF1F2937),
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Data will appear here once available',
+              style: TextStyle(
+                color: Color(0xFF6B7280),
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

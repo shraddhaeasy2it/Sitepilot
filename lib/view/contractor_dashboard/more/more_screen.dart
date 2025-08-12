@@ -162,7 +162,7 @@ class _MoreScreenState extends State<MoreScreen> {
   String _getSiteName() {
     return widget.sites.firstWhere(
       (site) => site.id == _selectedSiteId,
-      orElse: () => Site(id: '', name: 'Unknown', address: ''),
+      orElse: () => Site(id: '', name: 'Unknown', address: '', companyId: ''),
     ).name;
   }
 
@@ -171,11 +171,21 @@ class _MoreScreenState extends State<MoreScreen> {
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        toolbarHeight: 90,
+        backgroundColor: Colors.transparent,
+              flexibleSpace: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.topRight,
+                    colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+                  ),
+                ),
+              ),
         elevation: 1,
         title: const Text(
-          'Construction Hub',
-          style: TextStyle(fontWeight: FontWeight.w600),
+          'Construction Hub'
+          ,style: TextStyle(color:Colors.white ,fontWeight: FontWeight.w600,fontSize: 30),
         ),
       ),
       body: ListView(

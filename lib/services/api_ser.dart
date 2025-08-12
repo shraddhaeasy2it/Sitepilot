@@ -1,28 +1,46 @@
 import 'package:ecoteam_app/models/dashboard/dashboard_model.dart';
 import 'package:ecoteam_app/models/dashboard/site_model.dart';
+import 'package:flutter/material.dart';
 
 
 class ApiService {
-  // Static list to maintain sites across the app
+  // Static list to maintain sites across the app with company association
   static List<Site> _sites = [
-    Site(id: 'site1', name: 'Site A', address: '123 Main St'),
-    Site(id: 'site2', name: 'Site B', address: '456 Oak Ave'),
-    Site(id: 'site3', name: 'Site C', address: '789 Pine Blvd'),
+    Site(id: 'site1', name: 'Site A', address: '123 Main St', companyId: 'ABC Construction'),
+    Site(id: 'site2', name: 'Site B', address: '456 Oak Ave', companyId: 'ABC Construction'),
+    Site(id: 'site3', name: 'Site C', address: '789 Pine Blvd', companyId: 'XYZ Builders'),
   ];
-List<String> _companies = [];
+  
+  // Static list to maintain companies
+  static List<String> _companies = [
+    'ABC Construction',
+    'XYZ Builders',
+    'Urban Developers',
+    'Infra Projects',
+  ];
+  
   // Getter for sites
   static List<Site> get sites => List.unmodifiable(_sites);
+  
+  // Getter for companies
+  static List<String> get companies => List.unmodifiable(_companies);
 
   // Method to update sites
   static void updateSites(List<Site> newSites) {
     _sites = List.from(newSites);
   }
 
-  Future<DashboardData> fetchDashboardData() async {
+  Future<DashboardData> fetchDashboardData({String? companyId}) async {
     await Future.delayed(const Duration(milliseconds: 300));
+    
+    // Filter sites by company if companyId is provided
+    List<Site> filteredSites = companyId != null
+        ? _sites.where((site) => site.companyId == companyId).toList()
+        : _sites;
+    
     return DashboardData(
-      selectedSiteId: _sites.isNotEmpty ? _sites.first.id : '',
-      sites: _sites,
+      selectedSiteId: filteredSites.isNotEmpty ? filteredSites.first.id : '',
+      sites: filteredSites,
       totalProjects: 5,
       totalWorkers: 42,
       totalPicking: 18,
@@ -30,9 +48,20 @@ List<String> _companies = [];
     );
   }
 
-  Future<List<Site>> fetchSites() async {
+  Future<List<Site>> fetchSites({String? companyId}) async {
     await Future.delayed(const Duration(milliseconds: 200));
+    
+    // If companyId is provided, filter sites by company
+    if (companyId != null) {
+      return _sites.where((site) => site.companyId == companyId).toList();
+    }
+    
     return _sites;
+  }
+  
+  Future<List<String>> fetchCompanies() async {
+    await Future.delayed(const Duration(milliseconds: 200));
+    return _companies;
   }
 
   Future<bool> addSite(Site site) async {
@@ -50,6 +79,16 @@ List<String> _companies = [];
     final initialLength = _sites.length;
     _sites.removeWhere((site) => site.id == siteId);
     return _sites.length < initialLength; // Return true if site was actually deleted
+  }
+  
+  Future<bool> updateSite(Site updatedSite) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    final index = _sites.indexWhere((site) => site.id == updatedSite.id);
+    if (index != -1) {
+      _sites[index] = updatedSite;
+      return true;
+    }
+    return false; // Site not found
   }
 
   Future<List<Map<String, dynamic>>> fetchWorkersForSite(String siteId) async {
@@ -145,9 +184,6 @@ List<String> _companies = [];
     ];
   }
 
-  // Method to fetch companies
-  Future<List<String>> fetchCompanies() async {
-    await Future.delayed(const Duration(milliseconds: 500));
-    return _companies;
-  }
+  // This method is already defined above
+  // Removed duplicate fetchCompanies() method
 }

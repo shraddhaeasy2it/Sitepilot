@@ -119,6 +119,21 @@ class _WorkersScreenState extends State<WorkersScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        toolbarHeight: 90,
+        title: const Text('Worker',style: TextStyle(color:Colors.white ,fontWeight: FontWeight.w600,fontSize: 30),),
+        backgroundColor: Colors.transparent,
+              flexibleSpace: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.topRight,
+                    colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+                  ),
+                ),
+              ),
+      ),
       body: Column(
         children: [
           _buildSiteSelector(),
@@ -187,6 +202,7 @@ class _WorkersScreenState extends State<WorkersScreen> {
   }
 
   Widget _buildWorkerContent() {
+    
     return Column(
       children: [
         _buildSummaryCards(),
@@ -347,6 +363,7 @@ class _WorkersScreenState extends State<WorkersScreen> {
 
   Widget _buildWorkerCard(Map<String, dynamic> worker) {
     return Card(
+      color: const Color.fromARGB(255, 241, 241, 241),
       margin: const EdgeInsets.only(bottom: 12),
       elevation: 2,
       shape: RoundedRectangleBorder(

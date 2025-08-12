@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:file_selector/file_selector.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 
 class PaymentsDetailScreen extends StatefulWidget {
   final String siteId;
@@ -25,7 +26,8 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
 
   String _selectedCategory = 'Material';
   final List<String> _categories = ['Material', 'Rental', 'Manpower', 'Misc'];
-  XFile? _selectedFile; // for file_selector
+  File? _selectedFile;
+
   bool _isUploading = false;
   bool _showUploadError = false;
 
@@ -37,8 +39,7 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
     super.dispose();
   }
 
-  String _getFormattedDate() =>
-      DateFormat('yyyy-MM-dd').format(DateTime.now());
+  String _getFormattedDate() => DateFormat('yyyy-MM-dd').format(DateTime.now());
 
   @override
   Widget build(BuildContext context) {
@@ -52,15 +53,14 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
       child: Scaffold(
         appBar: AppBar(
           title: Text('Payment Requests - ${widget.siteName}'),
-          backgroundColor: Colors.lightBlue.shade600,
+          backgroundColor: Colors.white,
         ),
         body: _requests.isEmpty
             ? Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.payment,
-                        size: 48, color: Colors.grey.shade400),
+                    Icon(Icons.payment, size: 48, color: Colors.grey.shade400),
                     const SizedBox(height: 16),
                     Text(
                       "No payment requests yet",
@@ -87,11 +87,15 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
                       leading: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: _getStatusColor(req['status']).withOpacity(0.2),
+                          color: _getStatusColor(
+                            req['status'],
+                          ).withOpacity(0.2),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: Icon(Icons.payment,
-                            color: _getStatusColor(req['status'])),
+                        child: Icon(
+                          Icons.payment,
+                          color: _getStatusColor(req['status']),
+                        ),
                       ),
                       title: Text(
                         '₹${req['amount'].toStringAsFixed(2)} - ${req['category']}',
@@ -126,7 +130,7 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
               ),
         floatingActionButton: FloatingActionButton(
           onPressed: _showAddRequestDialog,
-          backgroundColor: Colors.lightBlue.shade600,
+          backgroundColor: const Color.fromARGB(255, 54, 134, 238),
           child: const Icon(Icons.add, color: Colors.white),
         ),
       ),
@@ -205,10 +209,7 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
                 DropdownButtonFormField<String>(
                   value: _selectedCategory,
                   items: _categories.map((cat) {
-                    return DropdownMenuItem(
-                      value: cat,
-                      child: Text(cat),
-                    );
+                    return DropdownMenuItem(value: cat, child: Text(cat));
                   }).toList(),
                   decoration: const InputDecoration(
                     labelText: 'Category *',
@@ -243,7 +244,7 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
                 const SizedBox(height: 16),
                 ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.lightBlue.shade600,
+                    backgroundColor: const Color.fromARGB(255, 102, 135, 245),
                     minimumSize: const Size(double.infinity, 50),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
@@ -276,7 +277,10 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
             children: const [
               TextSpan(
                 text: '*',
-                style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  color: Colors.red,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ],
           ),
@@ -300,11 +304,10 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
                 const SizedBox(width: 16),
                 Expanded(
                   child: Text(
-                    _selectedFile?.name ?? 'Tap to upload document (PDF/Image)',
+                    _selectedFile?.path.split('/').last ??
+                        'Tap to upload document (PDF/Image)',
                     style: TextStyle(
-                      color: _selectedFile == null
-                          ? Colors.grey
-                          : Colors.black,
+                      color: _selectedFile == null ? Colors.grey : Colors.black,
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -323,7 +326,6 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
                     icon: const Icon(Icons.close, size: 18),
                     onPressed: () {
                       setState(() {
-                        _selectedFile = null;
                         _showUploadError = true;
                       });
                     },
@@ -337,10 +339,7 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
             padding: const EdgeInsets.only(top: 4),
             child: Text(
               'Document proof is required',
-              style: TextStyle(
-                color: Colors.red.shade600,
-                fontSize: 12,
-              ),
+              style: TextStyle(color: Colors.red.shade600, fontSize: 12),
             ),
           ),
       ],
@@ -348,7 +347,6 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
   }
 
   Future<void> _pickDocument() async {
-    // Request storage permission before picking file
     final status = await Permission.storage.request();
     if (!status.isGranted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -359,21 +357,24 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
       );
       return;
     }
+
     setState(() {
       _isUploading = true;
       _showUploadError = false;
     });
 
     try {
-      final typeGroup = XTypeGroup(
-        label: 'documents',
-        extensions: ['pdf', 'jpg', 'jpeg', 'png'],
+      final picker = ImagePicker();
+      final pickedFile = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1920,
+        maxHeight: 1080,
+        imageQuality: 85,
       );
-      final XFile? file = await openFile(acceptedTypeGroups: [typeGroup]);
 
-      if (file != null) {
+      if (pickedFile != null) {
         setState(() {
-          _selectedFile = file;
+          _selectedFile = File(pickedFile.path);
           _showUploadError = false;
         });
       }
@@ -412,7 +413,7 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
         'description': description,
         'date': _getFormattedDate(),
         'status': 'Pending',
-        'document': _selectedFile?.name ?? 'document',
+        'document': _selectedFile?.path.split('/').last ?? 'document',
         'file': _selectedFile,
         'utr': null,
       });
@@ -432,7 +433,9 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
       builder: (_) => StatefulBuilder(
         builder: (context, setState) {
           return AlertDialog(
-            title: Text('Payment Request - ₹${req['amount'].toStringAsFixed(2)}'),
+            title: Text(
+              'Payment Request - ₹${req['amount'].toStringAsFixed(2)}',
+            ),
             content: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -450,13 +453,22 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
                       _buildStatusTag(req['status']),
                     ],
                   ),
+
                   if (req['document'] != null) ...[
                     const SizedBox(height: 8),
                     InkWell(
                       onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Opening ${req['document']}')),
-                        );
+                        if (req['file'] != null) {
+                          showDialog(
+                            context: context,
+                            builder: (_) =>
+                                Dialog(child: Image.file(req['file'])),
+                          );
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('File not available')),
+                          );
+                        }
                       },
                       child: Row(
                         children: [
@@ -499,7 +511,10 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
                       ),
                     );
                   },
-                  child: const Text('Reject', style: TextStyle(color: Colors.red)),
+                  child: const Text(
+                    'Reject',
+                    style: TextStyle(color: Colors.red),
+                  ),
                 ),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
@@ -517,7 +532,10 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
                       ),
                     );
                   },
-                  child: const Text('Approve', style: TextStyle(color: Colors.white)),
+                  child: const Text(
+                    'Approve',
+                    style: TextStyle(color: Colors.white),
+                  ),
                 ),
               ],
               if (req['status'] == 'Approved') ...[
@@ -529,7 +547,10 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
                     Navigator.pop(context);
                     _showUploadUTRDialog(req, index);
                   },
-                  child: const Text('Mark as Paid', style: TextStyle(color: Colors.white)),
+                  child: const Text(
+                    'Mark as Paid',
+                    style: TextStyle(color: Colors.white),
+                  ),
                 ),
               ],
             ],
@@ -574,11 +595,15 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.upload_file, color: Colors.lightBlue.shade600),
+                          Icon(
+                            Icons.upload_file,
+                            color: Colors.lightBlue.shade600,
+                          ),
                           const SizedBox(width: 16),
                           Expanded(
                             child: Text(
-                              _selectedFile?.name ?? 'Tap to upload receipt (PDF/Image)',
+                              _selectedFile?.path.split('/').last ??
+                                  'Tap to upload receipt (PDF/Image)',
                               style: TextStyle(color: Colors.grey.shade600),
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -623,7 +648,9 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
                     _requests[index]['utr'] = _utrController.text;
                     _requests[index]['status'] = 'Paid';
                     if (_selectedFile != null) {
-                      _requests[index]['document'] = _selectedFile!.name;
+                      _requests[index]['document'] = _selectedFile!.path
+                          .split('/')
+                          .last;
                       _requests[index]['file'] = _selectedFile;
                     }
                   });
@@ -637,7 +664,10 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
                     ),
                   );
                 },
-                child: const Text('Confirm Payment', style: TextStyle(color: Colors.white)),
+                child: const Text(
+                  'Confirm Payment',
+                  style: TextStyle(color: Colors.white),
+                ),
               ),
             ],
           );
@@ -646,7 +676,3 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
     );
   }
 }
-
-
-
-

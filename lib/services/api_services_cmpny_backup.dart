@@ -2,10 +2,9 @@ import 'package:ecoteam_app/models/dashboard/dashboard_model.dart';
 import 'package:ecoteam_app/models/dashboard/site_model.dart';
 import 'package:flutter/material.dart';
 
-
 class ApiService {
   // Static list to maintain companies across the app
-  static List<String> _companies = [
+  static final List<String> _companies = [
     'ABC Construction',
     'XYZ Builders',
     'Urban Developers',
@@ -23,9 +22,9 @@ class ApiService {
 
   // Static list to maintain sites across the app
   static List<Site> _sites = [
-    Site(id: 'site1', name: 'Site A', address: '123 Main St'),
-    Site(id: 'site2', name: 'Site B', address: '456 Oak Ave'),
-    Site(id: 'site3', name: 'Site C', address: '789 Pine Blvd'),
+    Site(id: 'site1', name: 'Site A', address: '123 Main St', companyId: ''),
+    Site(id: 'site2', name: 'Site B', address: '456 Oak Ave', companyId: ''),
+    Site(id: 'site3', name: 'Site C', address: '789 Pine Blvd', companyId: ''),
   ];
 
   // Getter for sites
@@ -56,7 +55,10 @@ class ApiService {
   Future<bool> addSite(Site site) async {
     await Future.delayed(const Duration(milliseconds: 300));
     // Check if site with same name already exists
-    if (_sites.any((existingSite) => existingSite.name.toLowerCase() == site.name.toLowerCase())) {
+    if (_sites.any(
+      (existingSite) =>
+          existingSite.name.toLowerCase() == site.name.toLowerCase(),
+    )) {
       return false; // Site already exists
     }
     _sites.add(site);
@@ -67,7 +69,8 @@ class ApiService {
     await Future.delayed(const Duration(milliseconds: 300));
     final initialLength = _sites.length;
     _sites.removeWhere((site) => site.id == siteId);
-    return _sites.length < initialLength; // Return true if site was actually deleted
+    return _sites.length <
+        initialLength; // Return true if site was actually deleted
   }
 
   Future<List<Map<String, dynamic>>> fetchWorkersForSite(String siteId) async {
@@ -103,7 +106,9 @@ class ApiService {
     ];
   }
 
-  Future<List<Map<String, dynamic>>> fetchMaterialsForSite(String siteId) async {
+  Future<List<Map<String, dynamic>>> fetchMaterialsForSite(
+    String siteId,
+  ) async {
     await Future.delayed(const Duration(milliseconds: 500));
     return [
       {

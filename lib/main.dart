@@ -4,7 +4,6 @@ import 'package:ecoteam_app/view/contractor_dashboard/home_page.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-
 void main() {
   runApp(const MyApp());
 }
@@ -25,9 +24,70 @@ class MyApp extends StatelessWidget {
           ),
           useMaterial3: true,
         ),
-        home:HomePageApp(),
         debugShowCheckedModeBanner: false,
+        home: const ResponsiveWrapper(),
       ),
+    );
+  }
+}
+
+class ResponsiveWrapper extends StatelessWidget {
+  const ResponsiveWrapper({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Breakpoints
+        if (constraints.maxWidth >= 900) {
+          // Desktop
+          return const DesktopHomePage();
+        } else if (constraints.maxWidth >= 600) {
+          // Tablet
+          return const TabletHomePage();
+        } else {
+          // Mobile
+          return LoginScreen();
+        }
+      },
+    );
+  }
+}
+
+// Example Pages
+class DesktopHomePage extends StatelessWidget {
+  const DesktopHomePage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Row(
+        children: [
+          Expanded(
+            flex: 2,
+            child: Container(
+              color: Colors.blue.shade100,
+              child: const Center(child: Text("Sidebar / Menu")),
+            ),
+          ),
+          Expanded(
+            flex: 5,
+            child: HomePageApp(), // Your contractor dashboard home
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class TabletHomePage extends StatelessWidget {
+  const TabletHomePage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text("Tablet View")),
+      body: HomePageApp(),
     );
   }
 }

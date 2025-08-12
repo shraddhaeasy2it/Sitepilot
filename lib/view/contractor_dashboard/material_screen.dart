@@ -1,6 +1,9 @@
 import 'package:ecoteam_app/models/dashboard/site_model.dart';
 import 'package:flutter/material.dart';
 
+// This file is deprecated. Use the MaterialsScreen from the 'more' directory instead.
+import 'package:ecoteam_app/view/contractor_dashboard/more/material_screen.dart' as more_materials;
+
 
 class MaterialsScreen extends StatefulWidget {
   final String? selectedSiteId;
@@ -11,7 +14,7 @@ class MaterialsScreen extends StatefulWidget {
     super.key,
     required this.selectedSiteId,
     required this.onSiteChanged,
-    required this.sites, required String siteId, required String siteName,
+    required this.sites,
   });
 
   @override
@@ -19,7 +22,7 @@ class MaterialsScreen extends StatefulWidget {
 }
 
 class _MaterialsScreenState extends State<MaterialsScreen> {
-  List<Material> materials = [];
+  List<more_materials.Material> materials = [];
   bool isLoading = false;
   String searchQuery = '';
 
@@ -38,7 +41,7 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
     Future.delayed(const Duration(milliseconds: 500), () {
       setState(() {
         materials = [
-          Material(
+          more_materials.Material(
             id: '1',
             name: 'Cement',
             category: 'Construction',
@@ -49,7 +52,7 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
             status: 'In Stock',
             lastUpdated: DateTime.now().subtract(const Duration(days: 2)),
           ),
-          Material(
+          more_materials.Material(
             id: '2',
             name: 'Steel Bars',
             category: 'Reinforcement',
@@ -60,7 +63,7 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
             status: 'Low Stock',
             lastUpdated: DateTime.now().subtract(const Duration(days: 1)),
           ),
-          Material(
+          more_materials.Material(
             id: '3',
             name: 'Bricks',
             category: 'Masonry',
@@ -71,7 +74,7 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
             status: 'In Stock',
             lastUpdated: DateTime.now().subtract(const Duration(hours: 6)),
           ),
-          Material(
+          more_materials.Material(
             id: '4',
             name: 'Sand',
             category: 'Aggregates',
@@ -88,7 +91,7 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
     });
   }
 
-  List<Material> get filteredMaterials {
+  List<more_materials.Material> get filteredMaterials {
     if (searchQuery.isEmpty) return materials;
     return materials.where((material) =>
         material.name.toLowerCase().contains(searchQuery.toLowerCase()) ||
@@ -205,7 +208,7 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
                   unitController.text.isNotEmpty &&
                   supplierController.text.isNotEmpty &&
                   costController.text.isNotEmpty) {
-                final newMaterial = Material(
+                final newMaterial = more_materials.Material(
                   id: DateTime.now().millisecondsSinceEpoch.toString(),
                   name: nameController.text,
                   category: categoryController.text,
@@ -235,7 +238,7 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
     );
   }
 
-  void _showEditMaterialDialog(Material material) {
+  void _showEditMaterialDialog(more_materials.Material material) {
     final TextEditingController nameController = TextEditingController(text: material.name);
     final TextEditingController categoryController = TextEditingController(text: material.category);
     final TextEditingController quantityController = TextEditingController(text: material.quantity.toString());
@@ -347,7 +350,7 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
                 setState(() {
                   final index = materials.indexWhere((m) => m.id == material.id);
                   if (index != -1) {
-                    materials[index] = Material(
+                    materials[index] = more_materials.Material(
                       id: material.id,
                       name: nameController.text,
                       category: categoryController.text,
@@ -376,7 +379,7 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
     );
   }
 
-  void _showDeleteMaterialDialog(Material material) {
+  void _showDeleteMaterialDialog(more_materials.Material material) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -640,26 +643,4 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
   }
 }
 
-class Material {
-  final String id;
-  final String name;
-  final String category;
-  final double quantity;
-  final String unit;
-  final String supplier;
-  final double cost;
-  final String status;
-  final DateTime lastUpdated;
-
-  Material({
-    required this.id,
-    required this.name,
-    required this.category,
-    required this.quantity,
-    required this.unit,
-    required this.supplier,
-    required this.cost,
-    required this.status,
-    required this.lastUpdated,
-  });
-}
+// Using Material class from more/material_screen.dart

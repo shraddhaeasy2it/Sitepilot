@@ -333,10 +333,11 @@ class _TaskPageState extends State<TaskPage> {
   Widget _buildTaskItem(Task task) {
   final site = widget.sites.firstWhere(
     (s) => s.id == task.siteId,
-    orElse: () => Site(id: '', name: 'Unknown Site', address: ''),
+    orElse: () => Site(id: '', name: 'Unknown Site', address: '', companyId: ''),
   );
 
   return Card(
+    color: const Color.fromARGB(213, 255, 255, 255),
     margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
     child: Padding(
       padding: const EdgeInsets.all(16),
@@ -438,8 +439,20 @@ class _TaskPageState extends State<TaskPage> {
         : _tasks.where((task) => task.siteId == _selectedSiteId).toList();
 
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Tasks'),
+        toolbarHeight: 90,
+        title: const Text('Tasks',style: TextStyle(color:Colors.white ,fontWeight: FontWeight.w600,fontSize: 30),),
+        backgroundColor: Colors.transparent,
+              flexibleSpace: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.topRight,
+                    colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+                  ),
+                ),
+              ),
       ),
       body: Column(
         children: [
@@ -494,6 +507,7 @@ class _TaskPageState extends State<TaskPage> {
         ],
       ),
       child: Material(
+        color: const Color.fromARGB(255, 255, 255, 255),
         child: DropdownButtonFormField<String>(
           value: _selectedSiteId.isNotEmpty ? _selectedSiteId : null,
           decoration: const InputDecoration(

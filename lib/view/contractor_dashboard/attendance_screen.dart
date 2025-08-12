@@ -111,7 +111,25 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
+
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        toolbarHeight: 90,
+        title: const Text('Attendence',style: TextStyle(color:Colors.white ,fontWeight: FontWeight.w600,fontSize: 30),),
+        backgroundColor: Colors.transparent,
+              flexibleSpace: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.topRight,
+                    colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+                  ),
+                ),
+              ),
+      ),
+   body: 
+   Column(
       children: [
         _buildSiteSelector(),
         _buildDateSelector(),
@@ -120,6 +138,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           child: _buildAttendanceList(),
         ),
       ],
+   ),
     );
   }
 
@@ -203,6 +222,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     final totalHours = filteredAttendanceData.fold<double>(0, (sum, record) => sum + (record['hours'] is int ? (record['hours'] as int).toDouble() : record['hours'] as double));
 
     return Container(
+      color: Colors.white,
       padding: const EdgeInsets.all(16),
       child: Row(
         children: [
@@ -296,6 +316,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     final statusColor = _getStatusColor(record['status']);
     
     return Card(
+      color: const Color.fromARGB(255, 247, 247, 247),
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
         leading: CircleAvatar(

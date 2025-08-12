@@ -1,11 +1,12 @@
 import 'dart:typed_data';
 import 'package:ecoteam_app/models/dashboard/site_model.dart';
+import 'package:ecoteam_app/services/company_site_provider.dart';
 import 'package:ecoteam_app/view/contractor_dashboard/chat_screen.dart';
 import 'package:ecoteam_app/view/contractor_dashboard/dashboard_page.dart';
 import 'package:ecoteam_app/view/contractor_dashboard/profilepage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-
+import 'package:provider/provider.dart';
 
 class HomePageApp extends StatelessWidget {
   const HomePageApp({super.key});
@@ -38,63 +39,51 @@ class HomePagescreen extends StatefulWidget {
 }
 
 class _ContractorDashboardPageState extends State<HomePagescreen> {
-  List<String> companies = [
-    'ABC Construction',
-    'XYZ Builders',
-    'Urban Developers',
-    'Infra Projects',
-  ];
+  late CompanySiteProvider _companyProvider;
+
+  // Use companies from provider
+  List<String> get companies => _companyProvider.companies;
   String? currentCompany;
 
-  List<SiteData> sites = [
-    SiteData(
-      id: 'site1',
-      name: 'Downtown Highrise',
-      imageUrl: 'https://images.unsplash.com/photo-1487958449943-2429e8be8625?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60',
-      status: 'In Progress',
-      progress: 0.65,
-      startDate: '2023-05-10',
-      endDate: '2023-11-30',
-      address: '123 Main Street, Downtown',
-    ),
-    SiteData(
-      id: 'site2',
-      name: 'Suburban Mall',
-      imageUrl: 'https://images.unsplash.com/photo-1517502884422-41eaead166d4?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60',
-      status: 'Delayed',
-      progress: 0.35,
-      startDate: '2023-06-15',
-      endDate: '2024-02-20',
-      address: '456 Oak Avenue, Suburbia',
-    ),
-    SiteData(
-      id: 'site3',
-      name: 'Residential Complex',
-      imageUrl: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60',
-      status: 'On Schedule',
-      progress: 0.78,
-      startDate: '2023-04-01',
-      endDate: '2023-10-15',
-      address: '789 Pine Road, Residential Area',
-    ),
-    SiteData(
-      id: 'site4',
-      name: 'Hospital Renovation',
-      imageUrl: 'https://images.unsplash.com/photo-1581093450021-4a7360e9a7d3?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60',
-      status: 'Planning',
-      progress: 0.1,
-      startDate: '2023-07-01',
-      endDate: '2024-05-01',
-      address: '321 Health Street, Medical District',
-    ),
-  ];
+  // Convert provider sites to SiteData objects for UI display
+  List<SiteData> get sites {
+    final providerSites = _companyProvider.sites;
+    return providerSites
+        .map(
+          (site) => SiteData(
+            id: site.id,
+            name: site.name,
+            imageUrl:
+                'https://images.unsplash.com/photo-1487958449943-2429e8be8625?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60', // Default image
+            status: 'In Progress',
+            progress: 0.65,
+            startDate: '2023-05-10',
+            endDate: '2023-11-30',
+            address: site.address,
+            companyId: site.companyId,
+          ),
+        )
+        .toList();
+  }
 
   @override
   void initState() {
     super.initState();
-    if (companies.isNotEmpty) {
-      currentCompany = companies.first;
-    }
+    _companyProvider = Provider.of<CompanySiteProvider>(context, listen: false);
+    // Initialize after provider is loaded
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      // Ensure companies are loaded
+      if (_companyProvider.companies.isEmpty) {
+        await _companyProvider.loadCompanies();
+      }
+      
+      if (_companyProvider.companies.isNotEmpty) {
+        setState(() {
+          currentCompany = _companyProvider.companies.first;
+          _companyProvider.selectCompany(currentCompany!);
+        });
+      }
+    });
   }
 
   void _navigateToDashboard(SiteData selectedSite) {
@@ -107,6 +96,7 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
         id: selectedSite.id,
         name: selectedSite.name,
         address: selectedSite.address,
+        companyId: selectedSite.companyId.isEmpty ? currentCompany ?? '' : selectedSite.companyId,
       );
 
       Navigator.push(
@@ -120,18 +110,17 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error navigating to dashboard: ${e.toString()}')),
+        SnackBar(
+          content: Text('Error navigating to dashboard: ${e.toString()}'),
+        ),
       );
       debugPrint('Navigation error: ${e.toString()}');
     }
   }
 
   void _navigateToChatScreen() {
-    final siteList = sites
-        .map(
-          (site) => Site(id: site.id, name: site.name, address: site.address),
-        )
-        .toList();
+    // Use provider's sites directly
+    final siteList = _companyProvider.sites;
 
     Navigator.push(
       context,
@@ -140,6 +129,7 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
           selectedSiteId: siteList.isNotEmpty ? siteList.first.id : null,
           onSiteChanged: (String siteId) {
             // Handle site change if needed
+            debugPrint('Site changed to: $siteId');
           },
           sites: siteList,
         ),
@@ -148,72 +138,114 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
   }
 
   @override
-Widget build(BuildContext context) {
-  return Scaffold(
-    appBar: PreferredSize(
-      preferredSize: Size.fromHeight(70), // Optional: custom height
-      child: AppBar(
-        title: Padding(
-          padding: EdgeInsets.only(top: 12), // 👈 Add top padding here
-          child: Row(
-            children: [
-              Icon(Icons.business, color: Colors.blue.shade700, size: 24),
-              const SizedBox(width: 12),
-              DropdownButton<String>(
-                value: currentCompany,
-                icon: const Icon(Icons.arrow_drop_down),
-                elevation: 16,
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.blue.shade800,
+  Widget build(BuildContext context) {
+    // Listen to the provider for changes
+    final companyProvider = Provider.of<CompanySiteProvider>(context);
+    final isLoading = companyProvider.companies.isEmpty;
+    
+    return Scaffold(
+      appBar: PreferredSize(
+        preferredSize: Size.fromHeight(70), // Optional: custom height
+        child: AppBar(
+          title: Padding(
+            padding: EdgeInsets.only(top: 12), // 👈 Add top padding here
+            child: Row(
+              children: [
+                Icon(Icons.business, color: Colors.blue.shade700, size: 24),
+                const SizedBox(width: 12),
+                if (isLoading)
+                  Container(
+                    width: 150,
+                    child: Row(
+                      children: [
+                        Text(
+                          'Loading...',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.blue.shade800,
+                          ),
+                        ),
+                        SizedBox(width: 10),
+                        SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      ],
+                    ),
+                  )
+                else
+                DropdownButton<String>(
+                  value: currentCompany,
+                  hint: Text(
+                    'Select Company',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.blue.shade800,
+                    ),
+                  ),
+                  icon: const Icon(Icons.arrow_drop_down),
+                  elevation: 16,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.blue.shade800,
+                  ),
+                  underline: Container(height: 2, color: Colors.transparent),
+                  onChanged: (String? newValue) {
+                    if (newValue != null) {
+                      setState(() {
+                        currentCompany = newValue;
+                        _companyProvider.selectCompany(newValue);
+                      });
+                    }
+                  },
+                  items: companies.isEmpty
+                      ? []
+                      : companies.map<DropdownMenuItem<String>>((
+                    String value,
+                  ) {
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(value),
+                    );
+                  }).toList(),
                 ),
-                underline: Container(height: 2, color: Colors.transparent),
-                onChanged: (String? newValue) {
-                  setState(() {
-                    currentCompany = newValue;
-                  });
-                },
-                items: companies.map<DropdownMenuItem<String>>((String value) {
-                  return DropdownMenuItem<String>(
-                    value: value,
-                    child: Text(value),
-                  );
-                }).toList(),
-              ),
-            ],
-          ),
-        ),
-        
-        actions: [
-          IconButton(icon: const Icon(Icons.notifications), onPressed: () {}),
-          const SizedBox(width: 8),
-          IconButton(
-            onPressed: _navigateToChatScreen,
-            icon: const Icon(Icons.chat_rounded),
-          ),
-          const SizedBox(width: 8),
-          GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => ProfileScreen()),
-              );
-            },
-            child: CircleAvatar(
-              backgroundImage: NetworkImage(
-                'https://randomuser.me/api/portraits/men/1.jpg',
-              ),
-              radius: 18,
+              ],
             ),
           ),
-          const SizedBox(width: 16),
-        ],
-        backgroundColor: Colors.white,
-        elevation: 1,
-        iconTheme: IconThemeData(color: Colors.blue.shade800),
+
+          actions: [
+            IconButton(icon: const Icon(Icons.notifications), onPressed: () {}),
+            const SizedBox(width: 8),
+            IconButton(
+              onPressed: _navigateToChatScreen,
+              icon: const Icon(Icons.chat_rounded),
+            ),
+            const SizedBox(width: 8),
+            GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => ProfileScreen()),
+                );
+              },
+              child: CircleAvatar(
+                backgroundImage: NetworkImage(
+                  'https://randomuser.me/api/portraits/men/1.jpg',
+                ),
+                radius: 18,
+              ),
+            ),
+            const SizedBox(width: 16),
+          ],
+          backgroundColor: Colors.white,
+          elevation: 1,
+          iconTheme: IconThemeData(color: Colors.blue.shade800),
+        ),
       ),
-    ),
       body: Column(
         children: [
           Padding(
@@ -269,159 +301,121 @@ Widget build(BuildContext context) {
   }
 
   void _showAddSiteBottomSheet() {
-    final TextEditingController nameController = TextEditingController();
-    final TextEditingController addressController = TextEditingController();
-    final TextEditingController startDateController = TextEditingController();
-    final TextEditingController endDateController = TextEditingController();
-    String selectedStatus = 'Planning';
-    Uint8List? imageBytes;
+  final TextEditingController nameController = TextEditingController();
+  final TextEditingController addressController = TextEditingController();
+  final TextEditingController startDateController = TextEditingController();
+  final TextEditingController endDateController = TextEditingController();
+  String selectedStatus = 'Planning';
 
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (context) => Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: Container(
         height: MediaQuery.of(context).size.height * 0.85,
         decoration: const BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
         padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Add New Site',
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.blue.shade900,
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Add New Site',
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blue.shade900,
+                    ),
                   ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.close),
-                  onPressed: () => Navigator.pop(context),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Expanded(
-              child: SingleChildScrollView(
-                child: Column(
-                  children: [
-                    GestureDetector(
-                      onTap: () async {
-                        final bytes = await _pickImage();
-                        if (bytes != null) {
-                          setState(() {
-                            imageBytes = bytes;
-                          });
-                        }
-                      },
-                      child: CircleAvatar(
-                        radius: 50,
-                        backgroundImage: imageBytes != null
-                            ? MemoryImage(imageBytes!)
-                            : null,
-                        child: imageBytes == null
-                            ? const Icon(Icons.add_a_photo, size: 30)
-                            : null,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Tap to add photo',
-                      style: TextStyle(color: Colors.grey.shade600),
-                    ),
-                    const SizedBox(height: 16),
-                    _buildInputField(
-                      controller: nameController,
-                      label: 'Site Name',
-                      icon: Icons.construction,
-                    ),
-                    const SizedBox(height: 16),
-                    _buildInputField(
-                      controller: addressController,
-                      label: 'Address',
-                      icon: Icons.location_on,
-                    ),
-                    const SizedBox(height: 16),
-                    _buildInputField(
-                      controller: startDateController,
-                      label: 'Start Date (YYYY-MM-DD)',
-                      icon: Icons.calendar_today,
-                    ),
-                    const SizedBox(height: 16),
-                    _buildInputField(
-                      controller: endDateController,
-                      label: 'End Date (YYYY-MM-DD)',
-                      icon: Icons.calendar_today,
-                    ),
-                    const SizedBox(height: 16),
-                    _buildStatusDropdown(
-                      value: selectedStatus,
-                      onChanged: (value) => selectedStatus = value!,
-                    ),
-                    const SizedBox(height: 24),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          if (nameController.text.isNotEmpty &&
-                              addressController.text.isNotEmpty) {
-                            final newSite = SiteData(
-                              id: 'site${sites.length + 1}',
-                              name: nameController.text,
-                              imageUrl: imageBytes != null 
-                                  ? null 
-                                  : 'https://images.unsplash.com/photo-1487958449943-2429e8be8625?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60',
-                              imageBytes: imageBytes,
-                              status: selectedStatus,
-                              progress: 0.0,
-                              startDate: startDateController.text,
-                              endDate: endDateController.text,
-                              address: addressController.text,
-                            );
-                            setState(() {
-                              sites.add(newSite);
-                            });
-                            Navigator.pop(context);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  'Site "${newSite.name}" added successfully!',
-                                ),
-                                behavior: SnackBarBehavior.floating,
-                              ),
-                            );
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue[600],
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              _buildInputField(
+                controller: nameController,
+                label: 'Site Name',
+                icon: Icons.construction,
+              ),
+              const SizedBox(height: 16),
+              _buildInputField(
+                controller: addressController,
+                label: 'Address',
+                icon: Icons.location_on,
+              ),
+              const SizedBox(height: 16),
+              _buildInputField(
+                controller: startDateController,
+                label: 'Start Date (YYYY-MM-DD)',
+                icon: Icons.calendar_today,
+              ),
+              const SizedBox(height: 16),
+              _buildInputField(
+                controller: endDateController,
+                label: 'End Date (YYYY-MM-DD)',
+                icon: Icons.calendar_today,
+              ),
+              const SizedBox(height: 16),
+              _buildStatusDropdown(
+                value: selectedStatus,
+                onChanged: (value) => selectedStatus = value!,
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  onPressed: () async {
+                    if (nameController.text.isNotEmpty &&
+                        addressController.text.isNotEmpty) {
+                      final newSite = Site(
+                        id: '',
+                        name: nameController.text,
+                        address: addressController.text,
+                        companyId:
+                            _companyProvider.selectedCompanyId ?? '',
+                      );
+                      await _companyProvider.addSite(newSite);
+                      Navigator.pop(context);
+                      setState(() {});
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Site "${nameController.text}" added successfully!',
                           ),
+                          behavior: SnackBarBehavior.floating,
                         ),
-                        child: const Text(
-                          'Add Site',
-                          style: TextStyle(fontSize: 16),
-                        ),
-                      ),
+                      );
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue[600],
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                  ],
+                  ),
+                  child: const Text('Add Site', style: TextStyle(fontSize: 16)),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
-    );
-  }
-
+    ),
+  );
+}
   void _showEditSiteDialog(SiteData site) {
     final TextEditingController nameController = TextEditingController(
       text: site.name,
@@ -524,33 +518,29 @@ Widget build(BuildContext context) {
                     onPressed: () {
                       if (nameController.text.isNotEmpty &&
                           addressController.text.isNotEmpty) {
-                        setState(() {
-                          final index = sites.indexWhere(
-                            (s) => s.id == site.id,
-                          );
-                          if (index != -1) {
-                            sites[index] = SiteData(
-                              id: site.id,
-                              name: nameController.text,
-                              imageUrl: imageBytes != null ? null : imageUrl,
-                              imageBytes: imageBytes,
-                              status: selectedStatus,
-                              progress: site.progress,
-                              startDate: startDateController.text,
-                              endDate: endDateController.text,
-                              address: addressController.text,
-                            );
-                          }
-                        });
-                        Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              'Site "${nameController.text}" updated successfully!',
-                            ),
-                            behavior: SnackBarBehavior.floating,
-                          ),
+                        // Update site using provider
+                        final updatedSite = Site(
+                          id: site.id,
+                          name: nameController.text,
+                          address: addressController.text,
+                          companyId: currentCompany ?? '',
                         );
+                        
+                        // Update the site through the provider
+                        _companyProvider.updateSite(updatedSite).then((_) {
+                          // Force UI refresh
+                          setState(() {});
+                          
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'Site "${nameController.text}" updated successfully!',
+                              ),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        });
                       }
                     },
                     style: ElevatedButton.styleFrom(
@@ -647,18 +637,21 @@ Widget build(BuildContext context) {
                   const SizedBox(width: 8),
                   ElevatedButton(
                     onPressed: () {
-                      setState(() {
-                        sites.removeWhere((s) => s.id == site.id);
-                      });
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            'Site "${site.name}" deleted successfully!',
+                      // Delete the site using the provider
+                      _companyProvider.deleteSite(site.id).then((_) {
+                        // Force UI refresh
+                        setState(() {});
+                        
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Site "${site.name}" deleted successfully!',
+                            ),
+                            behavior: SnackBarBehavior.floating,
                           ),
-                          behavior: SnackBarBehavior.floating,
-                        ),
-                      );
+                        );
+                      });
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.red.shade600,
@@ -685,6 +678,7 @@ class SiteData {
   final String startDate;
   final String endDate;
   final String address;
+  final String companyId; // Added company identifier
 
   SiteData({
     required this.id,
@@ -696,6 +690,7 @@ class SiteData {
     required this.startDate,
     required this.endDate,
     required this.address,
+    this.companyId = '', // Default empty string for backward compatibility
   });
 }
 
@@ -762,7 +757,8 @@ class SiteCard extends StatelessWidget {
                             width: 120,
                             child: Center(
                               child: CircularProgressIndicator(
-                                value: loadingProgress.expectedTotalBytes != null
+                                value:
+                                    loadingProgress.expectedTotalBytes != null
                                     ? loadingProgress.cumulativeBytesLoaded /
                                           loadingProgress.expectedTotalBytes!
                                     : null,
@@ -808,15 +804,15 @@ class SiteCard extends StatelessWidget {
                             icon: const Icon(Icons.more_vert, size: 20),
                             itemBuilder: (context) => [
                               PopupMenuItem(
-                                child: const Text('Edit'),
                                 onTap: onEdit,
+                                child: const Text('Edit'),
                               ),
                               PopupMenuItem(
+                                onTap: onDelete,
                                 child: const Text(
                                   'Delete',
                                   style: TextStyle(color: Colors.red),
                                 ),
-                                onTap: onDelete,
                               ),
                             ],
                           ),

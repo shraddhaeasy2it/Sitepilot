@@ -1,14 +1,15 @@
 import 'package:ecoteam_app/models/dashboard/dashboard_model.dart';
 import 'package:ecoteam_app/models/dashboard/site_model.dart';
 import 'package:ecoteam_app/services/api_ser.dart';
+import 'package:ecoteam_app/services/company_site_provider.dart';
 import 'package:ecoteam_app/view/contractor_dashboard/attendance_screen.dart';
 import 'package:ecoteam_app/view/contractor_dashboard/more/material_screen.dart';
 import 'package:ecoteam_app/view/contractor_dashboard/more/more_screen.dart';
 import 'package:ecoteam_app/view/contractor_dashboard/task.dart';
 import 'package:ecoteam_app/view/contractor_dashboard/worker_screen.dart';
 import 'package:ecoteam_app/widgets/bottom_navbar.dart';
-import 'package:ecoteam_app/widgets/summary_card.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class DashboardScreen extends StatefulWidget {
   final Site? selectedSite;
@@ -60,18 +61,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
     setState(() => _isLoading = true);
     try {
       print('Loading dashboard data...');
-      _dashboardData = await ApiService().fetchDashboardData().timeout(
+      
+      // Get the company provider
+      final companyProvider = Provider.of<CompanySiteProvider>(context, listen: false);
+      
+      // Get dashboard data for the selected company
+      _dashboardData = await ApiService().fetchDashboardData(
+        companyId: companyProvider.selectedCompanyId
+      ).timeout(
         const Duration(seconds: 10),
         onTimeout: () {
           throw Exception('Loading timeout - please check your connection');
         },
       );
+      
       print('Dashboard data loaded: \n  sites: ${_dashboardData?.sites.length}, selectedSiteId: ${_dashboardData?.selectedSiteId}');
-      _sites = _dashboardData!.sites;
+      
+      // Use sites from the provider instead of dashboard data
+      _sites = companyProvider.sites;
+      
       if (widget.selectedSite != null) {
         _selectedSiteId = widget.selectedSite!.id;
+      } else if (_sites.isNotEmpty) {
+        _selectedSiteId = _sites.first.id;
       } else {
-        _selectedSiteId = _dashboardData!.selectedSiteId;
+        _selectedSiteId = null;
       }
       _screens = [
         DashboardContent(
@@ -239,7 +253,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.white.withOpacity(0.2)),
+                    border: Border.all(color: Colors.grey.shade300),
                   ),
                   child: const Icon(
                     Icons.error_outline,
@@ -293,6 +307,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Scaffold(
       appBar: _currentIndex == 0 
           ? AppBar(
+            toolbarHeight: 90,
               elevation: 0,
               backgroundColor: Colors.transparent,
               flexibleSpace: Container(
@@ -308,39 +323,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Construction Dashboard',
+                    'Construction',
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: 20,
+                      fontSize: 30,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 0.5,
                     ),
                   ),
                   if (widget.companyName != null)
+                  SizedBox(height: 10,),
                     Text(
                       widget.companyName!,
                       style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.normal,
-                        color: Colors.white70,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                        color: Color.fromARGB(214, 255, 255, 255),
                       ),
                     ),
                 ],
               ),
               centerTitle: false,
               actions: [
-                Container(
-                  margin: const EdgeInsets.only(right: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: IconButton(
-                    icon: const Icon(Icons.add_business_rounded, color: Colors.white),
-                    onPressed: _showSitesModal,
-                    tooltip: 'Manage Sites',
-                  ),
-                ),
                 Container(
                   margin: const EdgeInsets.only(right: 16),
                   decoration: BoxDecoration(
@@ -353,6 +357,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                 ),
               ],
+              
             )
           : null,
       body: IndexedStack(
@@ -385,15 +390,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     // Notification logic here
   }
 
-  void _showSitesModal() {
-    showDialog(
-      context: context,
-      builder: (context) => SitesManagementModal(
-        sites: _sites,
-        onSitesUpdated: _onSitesUpdated,
-      ),
-    );
-  }
+  // Removed site management modal as it's now handled by the company site provider
 }
 
 class SitesManagementModal extends StatefulWidget {
@@ -958,7 +955,7 @@ class DashboardContent extends StatelessWidget {
         'icon': Icons.fact_check_outlined,
         'title': 'Total Inspections',
         'value': data.totalInspection.toString(),
-        'colors': [const Color(0xFFF59E0B), const Color(0xFFD97706)],
+        'colors': [const Color.fromARGB(255, 245, 165, 26), const Color.fromARGB(255, 226, 137, 36)],
         'bgColors': [const Color(0xFFFEF3C7), const Color(0xFFFDE68A)],
       },
       {
@@ -975,7 +972,7 @@ class DashboardContent extends StatelessWidget {
         crossAxisCount: 2,
         mainAxisSpacing: 16,
         crossAxisSpacing: 16,
-        childAspectRatio: 1.1,
+        childAspectRatio: 1.30,
       ),
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -998,7 +995,7 @@ class DashboardContent extends StatelessWidget {
               ),
             ],
             border: Border.all(
-              color: Colors.white.withOpacity(0.3),
+              color: Colors.grey.shade400,
               width: 1,
             ),
           ),
@@ -1009,7 +1006,7 @@ class DashboardContent extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: item['colors'] as List<Color>,
@@ -1026,7 +1023,7 @@ class DashboardContent extends StatelessWidget {
                   child: Icon(
                     item['icon'] as IconData,
                     color: Colors.white,
-                    size: 24,
+                    size: 18,
                   ),
                 ),
                 Column(
@@ -1035,7 +1032,7 @@ class DashboardContent extends StatelessWidget {
                     Text(
                       item['value'] as String,
                       style: TextStyle(
-                        fontSize: 28,
+                        fontSize: 24,
                         fontWeight: FontWeight.bold,
                         color: (item['colors'] as List<Color>)[1],
                       ),

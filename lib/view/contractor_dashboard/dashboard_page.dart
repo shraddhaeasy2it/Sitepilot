@@ -204,17 +204,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     if (_isLoading) {
   return Scaffold(
+    backgroundColor: const Color(0xFFf4f4f4),
     body: Container(
       // Added constraints to ensure full screen coverage
-      width: double.infinity,
-      height: double.infinity,
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color.fromARGB(255, 246, 247, 248), Color.fromARGB(255, 209, 195, 223)],
-        ),
-      ),
+      // width: double.infinity,
+      // height: double.infinity,
+      // decoration: const BoxDecoration(
+      //   gradient: LinearGradient(
+      //     begin: Alignment.topLeft,
+      //     end: Alignment.bottomRight,
+      //     colors: [Color.fromARGB(255, 246, 247, 248), Color.fromARGB(255, 209, 195, 223)],
+      //   ),
+      // ),
       child: Center(
         child: SingleChildScrollView( // Prevents overflow issues
           child: Column(
@@ -236,6 +237,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     // Fallback: If data is still missing after loading, show error
     if (_dashboardData == null || _screens.isEmpty) {
       return Scaffold(
+        backgroundColor: const Color(0xFFf4f4f4),
         body: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
@@ -305,6 +307,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
 
     return Scaffold(
+      backgroundColor: const Color(0xFFf4f4f4),
       appBar: _currentIndex == 0 
           ? AppBar(
             toolbarHeight: 90,
@@ -313,10 +316,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
               flexibleSpace: Container(
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.topRight,
-                    colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
-                  ),
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFF6f88e2),
+              Color(0xFF5a73d1),
+              Color(0xFF4a63c0),
+            ],
+          ),
                 ),
               ),
               title: Column(
@@ -533,7 +540,7 @@ class _SitesManagementModalState extends State<SitesManagementModal> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(24),
       ),
-      backgroundColor: Colors.transparent,
+      backgroundColor: const Color(0xFFf4f4f4),
       child: Container(
         width: MediaQuery.of(context).size.width * 0.9,
         height: MediaQuery.of(context).size.height * 0.8,
@@ -835,13 +842,14 @@ class DashboardContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color(0xFFF8FAFC), Color(0xFFE2E8F0)],
-        ),
-      ),
+      // decoration: const BoxDecoration(
+      //   gradient: LinearGradient(
+      //     begin: Alignment.topCenter,
+      //     end: Alignment.bottomCenter,
+      //     colors: [Color(0xFFF8FAFC), Color(0xFFE2E8F0)],
+      //   ),
+      // ),
+      color: const Color(0xFFf4f4f4),
       child: Column(
         children: [
           _buildSiteSelector(),
@@ -1090,11 +1098,7 @@ class DashboardContent extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Colors.white, Color(0xFFFAFAFA)],
-        ),
+        color: const Color(0xFFf4f4f4),
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
@@ -1231,6 +1235,7 @@ class DashboardContent extends StatelessWidget {
   Widget _buildEmptyState() {
     return Center(
       child: Container(
+        
         padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

@@ -1,6 +1,9 @@
 import 'package:ecoteam_app/services/company_site_provider.dart';
 import 'package:ecoteam_app/view/auth/login.dart';
+import 'package:ecoteam_app/view/auth/login_selector.dart';
+import 'package:ecoteam_app/view/auth/otp.dart';
 import 'package:ecoteam_app/view/contractor_dashboard/home_page.dart';
+import 'package:ecoteam_app/view/landing_page/splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -47,7 +50,7 @@ class ResponsiveWrapper extends StatelessWidget {
           return const TabletHomePage();
         } else {
           // Mobile
-          return LoginScreen();
+          return SplashScreen();
         }
       },
     );

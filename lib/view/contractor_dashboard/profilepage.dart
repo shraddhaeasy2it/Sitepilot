@@ -12,15 +12,15 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
   String _currentOrg = 'Future Build Contracting';
   final List<String> _organizations = [
     'Future Build Contracting',
-    'Al-Hidaya Construction',
-    'Al-Majd Engineering'
+    'ACD Construction',
+    'Al Engineering'
   ];
   bool _notificationsEnabled = true;
   String _language = 'English';
   final _formKey = GlobalKey<FormState>();
-  final TextEditingController _nameController = TextEditingController(text: 'Ahmed Mohamed Ali');
+  final TextEditingController _nameController = TextEditingController(text: 'John Deo');
   final TextEditingController _positionController = TextEditingController(text: 'Construction Site Manager');
-  final TextEditingController _emailController = TextEditingController(text: 'ahmed@example.com');
+  final TextEditingController _emailController = TextEditingController(text: 'John@example.com');
   final TextEditingController _phoneController = TextEditingController(text: '+966501234567');
   final TextEditingController _departmentController = TextEditingController(text: 'Project Management');
   final TextEditingController _projectsController = TextEditingController(text: 'Site A');

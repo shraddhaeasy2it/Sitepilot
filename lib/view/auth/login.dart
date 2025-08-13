@@ -6,14 +6,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ecoteam_app/services/api_service_login.dart' show ApiService;
 import 'package:ecoteam_app/view/contractor_dashboard/home_page.dart'; // Verify this import path
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({Key? key}) : super(key: key);
+class LoginScreenemail extends StatefulWidget {
+  const LoginScreenemail({Key? key}) : super(key: key);
 
   @override
   _LoginScreenState createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends State<LoginScreenemail> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
@@ -93,55 +93,34 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: backgroundColor,
+      backgroundColor: const Color.fromARGB(255, 250, 249, 249),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
+          padding: const EdgeInsets.all(10.0),
           child: Form(
             key: _formKey,
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const SizedBox(height: 40),
-                // Logo
-                CircleAvatar(
-                  radius: 50,
-                  backgroundColor: primaryColor,
-                  child: const Icon(
-                    Icons.construction,
-                    size: 50,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                // Title
-                Text(
-                  'Construction Manager',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
-                      ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Sign in to continue',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: Colors.grey[600],
-                      ),
-                ),
-                const SizedBox(height: 40),
+                
                 // Email Field
                 TextFormField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Email',
-                    prefixIcon: Icon(Icons.email_outlined),
-                    border: OutlineInputBorder(),
+                    prefixIcon: const Icon(Icons.email_outlined),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    filled: true,
+                    fillColor: isDarkMode
+                        ? theme.colorScheme.surfaceVariant
+                        : Colors.grey[100],
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -173,7 +152,13 @@ class _LoginScreenState extends State<LoginScreen> {
                         });
                       },
                     ),
-                    border: const OutlineInputBorder(),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    filled: true,
+                    fillColor: isDarkMode
+                        ? theme.colorScheme.surfaceVariant
+                        : Colors.grey[100],
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -212,10 +197,10 @@ class _LoginScreenState extends State<LoginScreen> {
                 ElevatedButton(
                   onPressed: _isLoading ? null : _login,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: primaryColor,
+                    backgroundColor:  Color(0xFF6F88E2),
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(30),
                     ),
                   ),
                   child: _isLoading
@@ -228,14 +213,15 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         )
                       : const Text(
-                          'SIGN IN',
+                          'Sign In',
                           style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
                           ),
                         ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 13),
                 // Forgot Password
                 TextButton(
                   onPressed: () {
@@ -243,7 +229,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   },
                   child: const Text(
                     'Forgot Password?',
-                    style: TextStyle(color: primaryColor),
+                    style: TextStyle(color: Color(0xFF6F88E2),fontSize: 15,fontWeight: FontWeight.w500),
                   ),
                 ),
               ],

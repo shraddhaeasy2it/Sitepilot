@@ -12,9 +12,9 @@ class CustomBottomNavBar extends StatelessWidget {
     super.key,
     required this.currentIndex,
     required this.onTap,
-    this.selectedItemColor = const Color.fromARGB(255, 26, 68, 158),
-    this.unselectedItemColor =const Color.fromARGB(255, 49, 49, 49),
-    this.backgroundColor = const Color.fromARGB(255, 243, 242, 242),
+    this.selectedItemColor = const Color.fromARGB(255, 143, 161, 243),
+    this.unselectedItemColor =const Color.fromARGB(255, 157, 161, 175),
+    this.backgroundColor = const Color(0xFFfcfcfc),
     this.labelFontSize = 14.5,
   });
 
@@ -30,9 +30,9 @@ class CustomBottomNavBar extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color.fromARGB(255, 94, 92, 92).withValues(alpha: 0.1),
-            blurRadius: 10,
-            spreadRadius: 2,
+            color: const Color.fromARGB(255, 24, 24, 24).withValues(alpha: 0.1),
+            blurRadius: 15,
+            spreadRadius: 4,
           ),
         ],
       ),
@@ -92,7 +92,7 @@ class CustomBottomNavBar extends StatelessWidget {
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: isSelected ? selectedItemColor.withValues(alpha: 0.1) : const Color.fromARGB(235, 219, 219, 219),
+          color: isSelected ? selectedItemColor.withValues(alpha: 0.1) : const Color(0xEBededed),
         ),
         child: Icon(icon, color: unselectedItemColor, size: 26),
       ),
@@ -100,7 +100,7 @@ class CustomBottomNavBar extends StatelessWidget {
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: const Color.fromARGB(255, 126, 158, 245),
+          color: const Color.fromARGB(255, 87, 115, 218),
         ),
         child: Icon(selectedIcon, color: selectedItemColor, size: 28),
       ),

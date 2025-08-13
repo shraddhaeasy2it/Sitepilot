@@ -447,10 +447,14 @@ class _TaskPageState extends State<TaskPage> {
               flexibleSpace: Container(
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.topRight,
-                    colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
-                  ),
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFF6f88e2),
+              Color(0xFF5a73d1),
+              Color(0xFF4a63c0),
+            ],
+          ),
                 ),
               ),
       ),

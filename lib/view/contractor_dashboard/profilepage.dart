@@ -100,38 +100,45 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
   }
 
   Widget _buildSliverAppBar() {
-    return SliverAppBar(
-      expandedHeight: 90,
-      floating: false,
-      pinned: true,
-      elevation: 0,
-      backgroundColor: Colors.transparent,
-      systemOverlayStyle: SystemUiOverlayStyle.dark,
-      flexibleSpace: FlexibleSpaceBar(
-        background: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Colors.blue.shade800,
-                const Color.fromARGB(255, 74, 136, 207),
-              ],
-            ),
-          ),
+  return SliverAppBar(
+    expandedHeight: 90,
+    floating: false,
+    pinned: true,
+    elevation: 0,
+    backgroundColor: Colors.transparent,
+    systemOverlayStyle: SystemUiOverlayStyle.light,
+    flexibleSpace: FlexibleSpaceBar(
+      background: ClipRRect(
+        borderRadius: const BorderRadius.vertical(
+          bottom: Radius.circular(22),
         ),
-        title: Text(
-          'Profile',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-            fontSize: 24,
-          ),
+        child: Container(
+           decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Color(0xFF6f88e2),
+                        Color(0xFF5a73d1),
+                        Color(0xFF4a63c0),
+                      ],
+                    ),
+                  ),
         ),
-        centerTitle: true,
       ),
-    );
-  }
+      title: const Text(
+        'Profile',
+        style: TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
+          fontSize: 24,
+        ),
+      ),
+      centerTitle: true,
+    ),
+  );
+}
+
 
   Widget _buildUserCard() {
     return Container(
@@ -711,8 +718,8 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
 
   // Dialog methods remain largely the same but with updated styling
  void _showEditProfileDialog() {
-  final primaryColor = Colors.blue.shade700;
-  final accentColor = Colors.blue.shade100;
+  final primaryColor = Color(0xFF4a63c0);
+  final accentColor = Color.fromARGB(255, 106, 130, 218);
   final cardColor = Colors.white;
   final borderColor = Colors.grey.shade200;
 

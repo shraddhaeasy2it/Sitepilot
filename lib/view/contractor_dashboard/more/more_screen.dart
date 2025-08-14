@@ -55,15 +55,15 @@ class _MoreScreenState extends State<MoreScreen> {
         'color': Colors.orange[50]!,
         'accentColor': Colors.orange,
         'onTap': () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => MaterialsScreen(
-                  selectedSiteId: _selectedSiteId,
-                  onSiteChanged: widget.onSiteChanged,
-                  sites: widget.sites,
-                ),
-              ),
+          context,
+          MaterialPageRoute(
+            builder: (context) => MaterialScreen(
+              selectedSiteId: _selectedSiteId,
+              onSiteChanged: widget.onSiteChanged,
+              sites: widget.sites,
             ),
+          ),
+        ),
       },
       {
         'title': 'Machinery',
@@ -71,14 +71,14 @@ class _MoreScreenState extends State<MoreScreen> {
         'color': Colors.purple[50]!,
         'accentColor': Colors.purple,
         'onTap': () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => MachineryDetailScreen(
-                  siteId: _selectedSiteId,
-                  siteName: _getSiteName(),
-                ),
-              ),
+          context,
+          MaterialPageRoute(
+            builder: (context) => MachineryDetailScreen(
+              siteId: _selectedSiteId,
+              siteName: _getSiteName(),
             ),
+          ),
+        ),
       },
       {
         'title': 'Inventory',
@@ -86,14 +86,14 @@ class _MoreScreenState extends State<MoreScreen> {
         'color': Colors.blue[50]!,
         'accentColor': Colors.blue,
         'onTap': () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => InventoryDetailScreen(
-                  siteId: _selectedSiteId,
-                  siteName: _getSiteName(),
-                ),
-              ),
+          context,
+          MaterialPageRoute(
+            builder: (context) => InventoryDetailScreen(
+              siteId: _selectedSiteId,
+              siteName: _getSiteName(),
             ),
+          ),
+        ),
       },
       {
         'title': 'Payments',
@@ -101,14 +101,14 @@ class _MoreScreenState extends State<MoreScreen> {
         'color': Colors.lightBlue[50]!,
         'accentColor': Colors.lightBlue[700]!,
         'onTap': () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => PaymentsDetailScreen(
-                  siteId: _selectedSiteId,
-                  siteName: _getSiteName(),
-                ),
-              ),
+          context,
+          MaterialPageRoute(
+            builder: (context) => PaymentsDetailScreen(
+              siteId: _selectedSiteId,
+              siteName: _getSiteName(),
             ),
+          ),
+        ),
       },
       {
         'title': 'Manpower',
@@ -116,14 +116,14 @@ class _MoreScreenState extends State<MoreScreen> {
         'color': Colors.green[50]!,
         'accentColor': Colors.green,
         'onTap': () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => ManpowerCountScreen(
-                  siteId: _selectedSiteId,
-                  siteName: _getSiteName(),
-                ),
-              ),
+          context,
+          MaterialPageRoute(
+            builder: (context) => ManpowerCountScreen(
+              siteId: _selectedSiteId,
+              siteName: _getSiteName(),
             ),
+          ),
+        ),
       },
       {
         'title': 'Inspection',
@@ -131,15 +131,15 @@ class _MoreScreenState extends State<MoreScreen> {
         'color': Colors.pink[50]!,
         'accentColor': Colors.pink[800]!,
         'onTap': () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => InspectionPage(
-                  siteId: _selectedSiteId,
-                  siteName: _getSiteName(),
-                  onTotalUpdate: (int _) {},
-                ),
-              ),
+          context,
+          MaterialPageRoute(
+            builder: (context) => InspectionPage(
+              siteId: _selectedSiteId,
+              siteName: _getSiteName(),
+              onTotalUpdate: (int _) {},
             ),
+          ),
+        ),
       },
       {
         'title': 'Picking',
@@ -147,23 +147,24 @@ class _MoreScreenState extends State<MoreScreen> {
         'color': Colors.brown[50]!,
         'accentColor': Colors.brown[900],
         'onTap': () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => PickingPage(
-                  siteId: _selectedSiteId,
-                  siteName: _getSiteName(),
-                ),
-              ),
-            ),
+          context,
+          MaterialPageRoute(
+            builder: (context) =>
+                PickingPage(siteId: _selectedSiteId, siteName: _getSiteName()),
+          ),
+        ),
       },
     ]);
   }
 
   String _getSiteName() {
-    return widget.sites.firstWhere(
-      (site) => site.id == _selectedSiteId,
-      orElse: () => Site(id: '', name: 'Unknown', address: '', companyId: ''),
-    ).name;
+    return widget.sites
+        .firstWhere(
+          (site) => site.id == _selectedSiteId,
+          orElse: () =>
+              Site(id: '', name: 'Unknown', address: '', companyId: ''),
+        )
+        .name;
   }
 
   @override
@@ -171,27 +172,55 @@ class _MoreScreenState extends State<MoreScreen> {
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        toolbarHeight: 90,
-        backgroundColor: Colors.transparent,
-              flexibleSpace: Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF6f88e2),
-              Color(0xFF5a73d1),
-              Color(0xFF4a63c0),
-            ],
-          ),
-                ),
-              ),
-        elevation: 1,
-        title: const Text(
-          'Construction Hub'
-          ,style: TextStyle(color:Colors.white ,fontWeight: FontWeight.w600,fontSize: 30),
+        iconTheme: const IconThemeData(
+          color: Colors.white, // Back arrow white
+        ),
+  toolbarHeight: 90,
+  elevation: 1,
+  backgroundColor: Colors.transparent,
+  flexibleSpace: ClipRRect(
+    borderRadius: const BorderRadius.vertical(
+      bottom: Radius.circular(25),
+    ),
+    child: Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Color(0xFF6f88e2),
+            Color(0xFF5a73d1),
+            Color(0xFF4a63c0),
+          ],
         ),
       ),
+    ),
+  ),
+  title: const Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        'Construction Hub',
+        style: TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
+          fontSize: 30,
+        ),
+      ),
+      SizedBox(height: 4),
+      Text(
+        'Track resources and workforce',
+        style: TextStyle(
+          color: Colors.white70,
+          fontSize: 16,
+          fontWeight: FontWeight.w400,
+        ),
+      ),
+    ],
+  ),
+),
+
+
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -227,10 +256,10 @@ class _MoreScreenState extends State<MoreScreen> {
 
   Widget _buildSiteDropdown() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
@@ -241,18 +270,21 @@ class _MoreScreenState extends State<MoreScreen> {
       ),
       child: Row(
         children: [
-          Icon(Icons.location_on_outlined, color: Colors.blue[600], size: 20),
+          Icon(Icons.location_on, color: const Color.fromARGB(255, 79, 109, 219), size: 22),
           const SizedBox(width: 12),
           Expanded(
             child: DropdownButtonHideUnderline(
               child: DropdownButton<String>(
                 isExpanded: true,
                 value: _selectedSiteId.isNotEmpty ? _selectedSiteId : null,
-                hint: const Text('Select Site', style: TextStyle(fontSize: 14)),
+                hint: const Text('Select Site', style: TextStyle(fontSize: 18)),
                 items: widget.sites.map((site) {
                   return DropdownMenuItem<String>(
                     value: site.id,
-                    child: Text(site.name, style: const TextStyle(fontSize: 14)),
+                    child: Text(
+                      site.name,
+                      style: const TextStyle(fontSize: 17),
+                    ),
                   );
                 }).toList(),
                 onChanged: (String? newValue) {

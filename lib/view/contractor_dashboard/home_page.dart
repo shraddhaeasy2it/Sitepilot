@@ -148,138 +148,175 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFf4f4f4),
       appBar: PreferredSize(
-        preferredSize: Size.fromHeight(70),
-        child: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [Color(0xFF6f88e2), Color(0xFF5a73d1), Color(0xFF4a63c0)],
+        preferredSize: const Size.fromHeight(90),
+        child: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          
+          flexibleSpace: ClipRRect(
+            borderRadius: const BorderRadius.vertical(
+              bottom: Radius.circular(16),
             ),
-          ),
-          child: AppBar(
-            backgroundColor: Colors.transparent, // Make AppBar transparent
-            elevation: 0, // Remove shadow to see the gradient clearly
-            title: Padding(
-              padding: EdgeInsets.only(top: 12),
-              child: Row(
-                children: [
-                  Icon(Icons.business, color: Colors.white, size: 24),
-                  const SizedBox(width: 12),
-                  if (isLoading)
-                    Container(
-                      width: 150,
-                      child: Row(
-                        children: [
-                          Text(
-                            'Loading...',
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Color(0xFF6f88e2),
+                    Color(0xFF5a73d1),
+                    Color(0xFF4a63c0),
+                  ],
+                ),
+              ),
+              child: AppBar(
+                toolbarHeight: 90,
+                backgroundColor: Colors.transparent, // Make AppBar transparent
+                elevation: 0,
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.vertical(
+                    bottom: Radius.circular(25),
+                  ),
+                ), // Remove shadow to see the gradient clearly
+                title: Padding(
+                  padding: EdgeInsets.only(top: 12),
+                  child: Row(
+                    children: [
+                      Icon(Icons.business, color: Colors.white, size: 24),
+                      const SizedBox(width: 12),
+                      if (isLoading)
+                        Container(
+                          width: 150,
+                          child: Row(
+                            children: [
+                              Text(
+                                'Loading...',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors
+                                      .white, // Changed to white for better contrast
+                                ),
+                              ),
+                              SizedBox(width: 10),
+                              SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white, // Changed to white
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      else
+                        DropdownButton<String>(
+                          value: currentCompany,
+                          hint: Text(
+                            'Select Company',
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w600,
-                              color: Colors
-                                  .white, // Changed to white for better contrast
+                              color: const Color(0xFF6f88e2),
                             ),
                           ),
-                          SizedBox(width: 10),
-                          SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white, // Changed to white
-                            ),
+                          icon: const Icon(
+                            Icons.arrow_drop_down,
+                            color: Color.fromARGB(255, 255, 255, 255),
                           ),
-                        ],
-                      ),
-                    )
-                  else
-                    DropdownButton<String>(
-                      value: currentCompany,
-                      hint: Text(
-                        'Select Company',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                          color: const Color(0xFF6f88e2),
+                          elevation: 16,
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: const Color.fromARGB(
+                              255,
+                              221,
+                              203,
+                              203,
+                            ), // 👈 Text color when an item is selected (shown in the button)
+                          ),
+                          underline: Container(
+                            height: 0,
+                            color: const Color.fromARGB(0, 219, 218, 218),
+                          ),
+                          dropdownColor: const Color.fromARGB(
+                            255,
+                            125,
+                            141,
+                            199,
+                          ), // Background color of dropdown items
+                          onChanged: (String? newValue) {
+                            if (newValue != null) {
+                              setState(() {
+                                currentCompany = newValue;
+                                _companyProvider.selectCompany(newValue);
+                              });
+                            }
+                          },
+                          items: companies.isEmpty
+                              ? []
+                              : companies.map<DropdownMenuItem<String>>((
+                                  String value,
+                                ) {
+                                  return DropdownMenuItem<String>(
+                                    value: value,
+                                    child: Text(
+                                      value,
+                                      style: TextStyle(
+                                        color: const Color.fromARGB(
+                                          255,
+                                          253,
+                                          251,
+                                          251,
+                                        ), // 👈 Text color of dropdown items
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  );
+                                }).toList(),
                         ),
-                      ),
-                      icon: const Icon(
-                        Icons.arrow_drop_down,
-                        color: Color.fromARGB(255, 255, 255, 255),
-                      ),
-                      elevation: 16,
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: const Color.fromARGB(255, 221, 203, 203), // 👈 Text color when an item is selected (shown in the button)
-                      ),
-                      underline: Container(
-                        height: 2,
-                        color: const Color.fromARGB(0, 219, 218, 218),
-                      ),
-                      dropdownColor: const Color.fromARGB(255, 125, 141, 199), // Background color of dropdown items
-                      onChanged: (String? newValue) {
-                        if (newValue != null) {
-                          setState(() {
-                            currentCompany = newValue;
-                            _companyProvider.selectCompany(newValue);
-                          });
-                        }
-                      },
-                      items: companies.isEmpty
-                          ? []
-                          : companies.map<DropdownMenuItem<String>>((
-                              String value,
-                            ) {
-                              return DropdownMenuItem<String>(
-                                value: value,
-                                child: Text(
-                                  value,
-                                  style: TextStyle(
-                                    color: const Color.fromARGB(255, 253, 251, 251), // 👈 Text color of dropdown items
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              );
-                            }).toList(),
-                    ),
-                ],
-              ),
-            ),
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.notifications),
-                onPressed: () {},
-                color: Colors.white, // Added white color
-              ),
-              const SizedBox(width: 8),
-              IconButton(
-                onPressed: _navigateToChatScreen,
-                icon: const Icon(Icons.chat_rounded),
-                color: Colors.white, // Added white color
-              ),
-              const SizedBox(width: 8),
-              GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => ProfileScreen()),
-                  );
-                },
-                child: CircleAvatar(
-                  backgroundColor:
-                      Colors.white, // Added background for contrast
-                  backgroundImage: NetworkImage(
-                    'https://randomuser.me/api/portraits/men/1.jpg',
+                    ],
                   ),
-                  radius: 18,
+                ),
+                actions: [
+                  IconButton(
+                    icon: const Icon(Icons.notifications),
+                    onPressed: () {},
+                    color: Colors.white, // Added white color
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    onPressed: _navigateToChatScreen,
+                    icon: const Icon(Icons.chat_rounded),
+                    color: Colors.white, // Added white color
+                  ),
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ProfileScreen(),
+                        ),
+                      );
+                    },
+                    child: CircleAvatar(
+                      backgroundColor:
+                          Colors.white, // Added background for contrast
+                      backgroundImage: NetworkImage(
+                        'https://randomuser.me/api/portraits/men/1.jpg',
+                      ),
+                      radius: 18,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                ],
+                iconTheme: IconThemeData(
+                  color: Colors.white, // Simplified color definition
                 ),
               ),
-              const SizedBox(width: 16),
-            ],
-            iconTheme: IconThemeData(
-              color: Colors.white, // Simplified color definition
             ),
           ),
         ),
@@ -323,8 +360,9 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
+        backgroundColor: Color(0xFF4a63c0),
         onPressed: () => _showAddSiteBottomSheet(),
-        child: const Icon(Icons.add, size: 28),
+        child: const Icon(Icons.add, size: 28,color: Colors.white,),
       ),
     );
   }
@@ -438,14 +476,14 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                       }
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue[600],
+                      backgroundColor: Color(0xFF4a63c0),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
                     child: const Text(
                       'Add Site',
-                      style: TextStyle(fontSize: 16),
+                      style: TextStyle(fontSize: 16,color: Colors.white),
                     ),
                   ),
                 ),
@@ -488,7 +526,7 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: Colors.blue.shade900,
+                  color: Color(0xFF4a63c0),
                 ),
               ),
               const SizedBox(height: 24),
@@ -585,7 +623,7 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                       }
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue[600],
+                      backgroundColor: Color(0xFF4a63c0),
                     ),
                     child: const Text('Update'),
                   ),
@@ -608,11 +646,11 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
       decoration: InputDecoration(
         labelText: label,
         labelStyle: TextStyle(color: Colors.grey.shade600),
-        prefixIcon: Icon(icon, color: Colors.blue.shade600),
+        prefixIcon: Icon(icon, color: Color(0xFF4a63c0),),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.blue.shade600, width: 2),
+          borderSide: BorderSide(color: Color(0xFF4a63c0), width: 2),
         ),
       ),
     );
@@ -627,11 +665,11 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
       decoration: InputDecoration(
         labelText: 'Status',
         labelStyle: TextStyle(color: Colors.grey.shade600),
-        prefixIcon: Icon(Icons.timeline, color: Colors.blue.shade600),
+        prefixIcon: Icon(Icons.timeline, color:Color(0xFF4a63c0),),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.blue.shade600, width: 2),
+          borderSide: BorderSide(color: Color(0xFF4a63c0), width: 2),
         ),
       ),
       items: ['Planning', 'In Progress', 'On Schedule', 'Delayed', 'Completed']
@@ -658,7 +696,7 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: Colors.blue.shade900,
+                  color: Color(0xFF4a63c0),
                 ),
               ),
               const SizedBox(height: 8),
@@ -758,7 +796,7 @@ class SiteCard extends StatelessWidget {
       case 'on schedule':
         return Colors.green;
       case 'planning':
-        return Colors.blue;
+        return Color(0xFF4a63c0);
       case 'completed':
         return Colors.purple;
       default:

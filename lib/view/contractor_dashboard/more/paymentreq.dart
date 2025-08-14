@@ -51,9 +51,29 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
         ),
       ),
       child: Scaffold(
-        appBar: AppBar(
-          title: Text('Payment Requests - ${widget.siteName}'),
-          backgroundColor: Colors.white,
+         appBar: AppBar(
+          toolbarHeight: 90,
+          title: Text('Payment Requests - ${widget.siteName}',style: TextStyle(color: Colors.white),),
+           iconTheme: const IconThemeData(
+          color: Colors.white, // Back arrow white
+        ),
+          backgroundColor: Colors.transparent,
+          flexibleSpace: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Color(0xFF6f88e2),
+                  Color(0xFF5a73d1),
+                  Color(0xFF4a63c0),
+                ],
+              ),
+              borderRadius: BorderRadius.vertical(
+                bottom: Radius.circular(16),
+              ),
+            ),
+          ),
         ),
         body: _requests.isEmpty
             ? Center(

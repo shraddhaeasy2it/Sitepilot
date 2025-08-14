@@ -3,7 +3,6 @@ import 'package:ecoteam_app/view/contractor_dashboard/worker_chat_screen.dart';
 import 'package:ecoteam_app/view/contractor_dashboard/worker_edit_screen.dart';
 import 'package:flutter/material.dart';
 
-
 class WorkersScreen extends StatefulWidget {
   final String? selectedSiteId;
   final Function(String) onSiteChanged;
@@ -20,11 +19,12 @@ class WorkersScreen extends StatefulWidget {
   State<WorkersScreen> createState() => _WorkersScreenState();
 }
 
-class _WorkersScreenState extends State<WorkersScreen> {
+class _WorkersScreenState extends State<WorkersScreen> with TickerProviderStateMixin {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   String _selectedFilter = 'All';
   late String _selectedSiteId;
+  AnimationController? _animationController;
 
   // Worker data
   List<Map<String, dynamic>> workers = [
@@ -86,6 +86,18 @@ class _WorkersScreenState extends State<WorkersScreen> {
   void initState() {
     super.initState();
     _selectedSiteId = widget.selectedSiteId ?? '';
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+    _animationController?.forward();
+  }
+
+  @override
+  void dispose() {
+    _animationController?.dispose();
+    _searchController.dispose();
+    super.dispose();
   }
 
   @override
@@ -119,141 +131,179 @@ class _WorkersScreenState extends State<WorkersScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        toolbarHeight: 90,
-        title: const Text('Worker',style: TextStyle(color:Colors.white ,fontWeight: FontWeight.w600,fontSize: 30),),
-        backgroundColor: Colors.transparent,
-              flexibleSpace: Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF6f88e2),
-              Color(0xFF5a73d1),
-              Color(0xFF4a63c0),
-            ],
-          ),
-                ),
-              ),
+        iconTheme: const IconThemeData(
+          color: Colors.white, // Back arrow white
+        ),
+  toolbarHeight: 90,
+  elevation: 0,
+  backgroundColor: Colors.transparent,
+  title: const Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        'Worker',
+        style: TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
+          fontSize: 30,
+        ),
       ),
-      body: Column(
-        children: [
-          _buildSiteSelector(),
-          Expanded(
-            child: _buildWorkerContent(),
-          ),
-        ],
+      SizedBox(height: 4),
+      Text(
+        'Manage worker details',
+        style: TextStyle(
+          color: Colors.white70,
+          fontWeight: FontWeight.w400,
+          fontSize: 16,
+        ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _addNewWorker,
-        
-        backgroundColor: Colors.blue,
-        foregroundColor: Colors.white,
-        child: const Icon(Icons.add),
-        tooltip: 'Add New Worker',
+    ],
+  ),
+  flexibleSpace: ClipRRect(
+    borderRadius: const BorderRadius.vertical(
+      bottom: Radius.circular(25),
+    ),
+    child: Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Color(0xFF6f88e2),
+            Color(0xFF5a73d1),
+            Color(0xFF4a63c0),
+          ],
+        ),
       ),
+    ),
+  ),
+),
+
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            _buildSiteSelector(),
+            _buildSummaryCards(),
+            _buildSearchAndFilters(),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: _buildWorkerList(),
+            ),
+          ],
+        ),
+      ),
+      floatingActionButton: _buildFloatingActionButton(),
     );
   }
 
   Widget _buildSiteSelector() {
     return Container(
-      margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
       decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 20,
+            spreadRadius: 0,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
-      child: DropdownButtonFormField<String>(
-        value: _selectedSiteId.isNotEmpty ? _selectedSiteId : null,
-        decoration: const InputDecoration(
-          labelText: 'Select Site for Workers',
-          border: InputBorder.none,
-          prefixIcon: Icon(Icons.people, color: Colors.blue),
-        ),
-        items: [
-          const DropdownMenuItem<String>(
-            value: '',
-            child: Text('All Sites'),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+        child: DropdownButtonFormField<String>(
+          value: _selectedSiteId.isNotEmpty ? _selectedSiteId : null,
+          decoration: const InputDecoration(
+            labelText: 'Filter by Site',
+            labelStyle: TextStyle(
+              color: Color(0xFF64748B),
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+            border: InputBorder.none,
+            prefixIcon: Icon(
+              Icons.location_on,
+              color: Color(0xFF667EEA),
+              size: 20,
+            ),
           ),
-          ...widget.sites.map((site) {
-            return DropdownMenuItem<String>(
-              value: site.id,
-              child: Text(site.name),
-            );
-          }).toList(),
-        ],
-        onChanged: (String? newValue) {
-          if (newValue != null) {
-            setState(() {
-              _selectedSiteId = newValue;
-            });
-            widget.onSiteChanged(newValue);
-          }
-        },
-      ),
-    );
-  }
-
-  Widget _buildWorkerContent() {
-    
-    return Column(
-      children: [
-        _buildSummaryCards(),
-        _buildSearchAndFilters(),
-        Expanded(
-          child: _buildWorkerList(),
+          items: [
+            const DropdownMenuItem<String>(
+              value: '',
+              child: Text('All Sites'),
+            ),
+            ...widget.sites.map((site) {
+              return DropdownMenuItem<String>(
+                value: site.id,
+                child: Text(site.name),
+              );
+            }).toList(),
+          ],
+          onChanged: (String? newValue) {
+            if (newValue != null) {
+              setState(() {
+                _selectedSiteId = newValue;
+              });
+              widget.onSiteChanged(newValue);
+            }
+          },
+          dropdownColor: Colors.white,
+          
+          style: const TextStyle(
+            color: Color(0xFF1E293B),
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+          ),
         ),
-      ],
+      ),
     );
   }
 
   Widget _buildSummaryCards() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
         children: [
           Expanded(
             child: _buildSummaryCard(
               title: 'Total',
               value: totalWorkers.toString(),
-              color: Colors.blue,
-              icon: Icons.people,
+              icon: Icons.people_outline_rounded,
+              color: const Color.fromARGB(255, 43, 84, 196),
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 12),
           Expanded(
             child: _buildSummaryCard(
               title: 'Present',
               value: presentToday.toString(),
-              color: Colors.green,
-              icon: Icons.check_circle,
+              icon: Icons.check_circle_outline_rounded,
+              color: const Color.fromARGB(255, 10, 161, 55),
+              
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 12),
           Expanded(
             child: _buildSummaryCard(
               title: 'Absent',
               value: absentToday.toString(),
-              color: Colors.red,
-              icon: Icons.cancel,
+              icon: Icons.cancel_outlined,
+              color: const Color.fromARGB(255, 233, 75, 27),
+              
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 12),
           Expanded(
             child: _buildSummaryCard(
               title: 'Late',
               value: lateToday.toString(),
-              color: Colors.orange,
-              icon: Icons.schedule,
+              icon: Icons.schedule_rounded,
+              color: const Color.fromARGB(255, 231, 147, 21),
+              
             ),
           ),
         ],
@@ -264,16 +314,28 @@ class _WorkersScreenState extends State<WorkersScreen> {
   Widget _buildSummaryCard({
     required String title,
     required String value,
-    required Color color,
     required IconData icon,
+    required Color color,
+    
   }) {
-    return Card(
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          children: [
-            Icon(icon, color: color, size: 24),
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 20,
+            spreadRadius: 0,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: color, size: 24),
             const SizedBox(height: 4),
             Text(
               value,
@@ -283,48 +345,94 @@ class _WorkersScreenState extends State<WorkersScreen> {
                 color: color,
               ),
             ),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 12,
-                color: Colors.grey,
-              ),
+          const SizedBox(height: 12),
+          
+          const SizedBox(height: 4),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 12,
+              color: Color(0xFF64748B),
+              fontWeight: FontWeight.w500,
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildSearchAndFilters() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Column(
         children: [
-          TextField(
-            controller: _searchController,
-            decoration: InputDecoration(
-              hintText: 'Search workers...',
-              prefixIcon: const Icon(Icons.search),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
+          Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.04),
+                  blurRadius: 20,
+                  spreadRadius: 0,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
-            onChanged: (value) {
-              setState(() {
-                _searchQuery = value;
-              });
-            },
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Search workers by name or role...',
+                hintStyle: const TextStyle(
+                  color: Color(0xFF94A3B8),
+                  fontSize: 16,
+                ),
+                prefixIcon: const Icon(
+                  Icons.search_rounded,
+                  color: Color(0xFF667EEA),
+                  size: 20,
+                ),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(
+                          Icons.clear_rounded,
+                          color: Color(0xFF94A3B8),
+                          size: 20,
+                        ),
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() {
+                            _searchQuery = '';
+                          });
+                        },
+                      )
+                    : null,
+                border: InputBorder.none,
+                filled: false,
+                contentPadding: const EdgeInsets.symmetric(
+                  vertical: 16,
+                  horizontal: 20,
+                ),
+              ),
+              onChanged: (value) {
+                setState(() {
+                  _searchQuery = value;
+                });
+              },
+            ),
           ),
-          const SizedBox(height: 12),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
+          const SizedBox(height: 16),
+          SizedBox(
+            height: 36,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
               children: [
+                const SizedBox(width: 4),
                 _buildFilterChip('All'),
                 _buildFilterChip('Present'),
                 _buildFilterChip('Absent'),
                 _buildFilterChip('Late'),
+                const SizedBox(width: 4),
               ],
             ),
           ),
@@ -337,88 +445,191 @@ class _WorkersScreenState extends State<WorkersScreen> {
     final isSelected = _selectedFilter == filter;
     return Padding(
       padding: const EdgeInsets.only(right: 8),
-      child: FilterChip(
-        label: Text(filter),
-        selected: isSelected,
-        onSelected: (selected) {
-          setState(() {
-            _selectedFilter = filter;
-          });
-        },
-        backgroundColor: Colors.grey[200],
-        selectedColor: Colors.blue[100],
-        checkmarkColor: Colors.blue,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        decoration: BoxDecoration(
+          gradient: isSelected
+              ? const LinearGradient(
+                  colors: [Color(0xFF667EEA), Color(0xFF4a63c0),],
+                )
+              : null,
+          color: isSelected ? null : Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [
+            if (isSelected)
+              BoxShadow(
+                color: const Color(0xFF667EEA).withOpacity(0.3),
+                blurRadius: 8,
+                spreadRadius: 0,
+                offset: const Offset(0, 2),
+              ),
+          ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(18),
+            onTap: () {
+              setState(() {
+                _selectedFilter = filter;
+              });
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Text(
+                filter,
+                style: TextStyle(
+                  color: isSelected ? Colors.white : const Color(0xFF64748B),
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
 
   Widget _buildWorkerList() {
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
       itemCount: filteredWorkers.length,
       itemBuilder: (context, index) {
         final worker = filteredWorkers[index];
-        return _buildWorkerCard(worker);
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: AnimatedContainer(
+            duration: Duration(milliseconds: 300 + (index * 50)),
+            curve: Curves.easeOutCubic,
+            child: _buildWorkerCard(worker),
+          ),
+        );
       },
     );
   }
 
   Widget _buildWorkerCard(Map<String, dynamic> worker) {
-    return Card(
-      color: const Color.fromARGB(255, 241, 241, 241),
-      margin: const EdgeInsets.only(bottom: 12),
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+    return Container(
+      height: 150,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 24,
+            spreadRadius: 0,
+            offset: const Offset(0, 8),
+          ),
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 12,
+            spreadRadius: 0,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Row(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _editWorker(worker),
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
               children: [
-                CircleAvatar(
-                  radius: 25,
-                  backgroundColor: _getStatusColor(worker['status']),
-                  child: Text(
-                    worker['avatar'],
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                // Avatar Section
+                Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: _getStatusGradient(worker['status']),
+                    ),
+                    shape: BoxShape.circle,
+                    // boxShadow: [
+                    //   BoxShadow(
+                    //     color: _getStatusColor(worker['status']).withOpacity(0.4),
+                    //     blurRadius: 12,
+                    //     spreadRadius: 0,
+                    //     offset: const Offset(0, 4),
+                    //   ),
+                    // ],
+                  ),
+                  child: Center(
+                    child: Text(
+                      worker['avatar'],
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 20,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 16),
+                
+                // Info Section
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(
-                        worker['name'],
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              worker['name'],
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF1E293B),
+                                letterSpacing: -0.4,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          _buildStatusIndicator(worker['status']),
+                        ],
                       ),
                       const SizedBox(height: 4),
+                      
                       Text(
                         worker['role'],
                         style: const TextStyle(
                           fontSize: 14,
-                          color: Colors.grey,
+                          color: Color(0xFF64748B),
+                          fontWeight: FontWeight.w600,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 6),
+                      
                       Row(
                         children: [
                           Icon(
-                            Icons.location_on,
+                            Icons.location_on_rounded,
                             size: 16,
-                            color: Colors.blue,
+                            color: const Color(0xFF94A3B8),
                           ),
                           const SizedBox(width: 4),
-                          Text(
-                            worker['site'],
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey,
+                          Expanded(
+                            child: Text(
+                              worker['site'],
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: Color(0xFF64748B),
+                                fontWeight: FontWeight.w500,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ],
@@ -426,142 +637,208 @@ class _WorkersScreenState extends State<WorkersScreen> {
                     ],
                   ),
                 ),
-                _buildStatusChip(worker['status']),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                if (worker['timeIn'].isNotEmpty) ...[
-                  Icon(
-                    Icons.access_time,
-                    size: 16,
-                    color: worker['late'] ? Colors.orange : Colors.green,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    'Time In: ${worker['timeIn']}',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: worker['late'] ? Colors.orange : Colors.green,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-                const Spacer(),
-                Row(
+                const SizedBox(width: 16),
+                
+                // Right Section - Time & Actions
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    IconButton(
-                      icon: const Icon(Icons.chat, color: Colors.blue),
-                      onPressed: () => _startChat(worker),
-                      tooltip: 'Chat with ${worker['name']}',
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.edit, color: Colors.orange),
-                      onPressed: () => _editWorker(worker),
-                      tooltip: 'Edit ${worker['name']}',
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.delete, color: Colors.red),
-                      onPressed: () => _deleteWorker(worker),
-                      tooltip: 'Delete ${worker['name']}',
+                    // Time Info
+                    if (worker['timeIn'].isNotEmpty) ...[
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.access_time_rounded,
+                            size: 14,
+                            color: worker['late'] 
+                                ? const Color(0xFFF59E0B) 
+                                : const Color(0xFF10B981),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            worker['timeIn'],
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: worker['late'] 
+                                  ? const Color(0xFFF59E0B) 
+                                  : const Color(0xFF10B981),
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ] else ...[
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF1F5F9),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.access_time_rounded,
+                              size: 14,
+                              color: const Color(0xFF94A3B8),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Not checked in',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: Color(0xFF64748B),
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                    
+                    const SizedBox(height: 8),
+                    
+                    // Action Buttons
+                    Row(
+                      children: [
+                        _buildActionButton(
+                          icon: Icons.chat_bubble_outline_rounded,
+                          onPressed: () => _startChat(worker),
+                          color: const Color.fromARGB(255, 54, 54, 54),
+                        ),
+                        const SizedBox(width: 17),
+                        _buildActionButton(
+                          icon: Icons.edit_outlined,
+                          onPressed: () => _editWorker(worker),
+                          color: const Color.fromARGB(255, 56, 56, 56),
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ],
             ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Icon(
-                  Icons.phone,
-                  size: 14,
-                  color: Colors.grey[600],
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  worker['phone'],
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Icon(
-                  Icons.email,
-                  size: 14,
-                  color: Colors.grey[600],
-                ),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: Text(
-                    worker['email'],
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[600],
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
-          ],
+          ),
         ),
       ),
     );
+  }
+
+  Widget _buildActionButton({
+    required IconData icon,
+    required VoidCallback onPressed,
+    required Color color,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(10),
+        child: Icon(
+          icon,
+          size: 22,
+          color: color,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatusIndicator(String status) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(
+            color: _getStatusColor(status),
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: _getStatusColor(status).withOpacity(0.5),
+                blurRadius: 3,
+                spreadRadius: 0,
+                offset: const Offset(0, 1),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          status,
+          style: TextStyle(
+            color: _getStatusColor(status),
+            fontSize: 15,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.2,
+          ),
+        ),
+      ],
+    );
+  }
+
+  List<Color> _getStatusGradient(String status) {
+    switch (status) {
+      case 'Present':
+        return [const Color(0xFF10B981), const Color(0xFF059669)];
+      case 'Absent':
+        return [const Color(0xFFEF4444), const Color(0xFFDC2626)];
+      case 'Late':
+        return [const Color(0xFFF59E0B), const Color(0xFFD97706)];
+      default:
+        return [const Color(0xFF64748B), const Color(0xFF475569)];
+    }
   }
 
   Color _getStatusColor(String status) {
     switch (status) {
       case 'Present':
-        return Colors.green;
+        return const Color(0xFF10B981);
       case 'Absent':
-        return Colors.red;
+        return const Color(0xFFEF4444);
       case 'Late':
-        return Colors.orange;
+        return const Color(0xFFF59E0B);
       default:
-        return Colors.grey;
+        return const Color(0xFF64748B);
     }
   }
 
-  Widget _buildStatusChip(String status) {
-    Color chipColor;
-    switch (status) {
-      case 'Present':
-        chipColor = Colors.green;
-        break;
-      case 'Absent':
-        chipColor = Colors.red;
-        break;
-      case 'Late':
-        chipColor = Colors.orange;
-        break;
-      default:
-        chipColor = Colors.grey;
-    }
-
+  Widget _buildFloatingActionButton() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      width: 56,
+      height: 56,
       decoration: BoxDecoration(
-        color: chipColor.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: chipColor),
+        gradient: const LinearGradient(
+          colors: [Color(0xFF667EEA), Color(0xFF4a63c0),],
+        ),
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF667EEA).withOpacity(0.4),
+            blurRadius: 16,
+            spreadRadius: 0,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
-      child: Text(
-        status,
-        style: TextStyle(
-          color: chipColor,
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: _addNewWorker,
+          borderRadius: BorderRadius.circular(28),
+          child: const Icon(
+            Icons.add_rounded,
+            color: Colors.white,
+            size: 24,
+          ),
         ),
       ),
     );
   }
 
-
-
   void _startChat(Map<String, dynamic> worker) {
-    // Navigate to worker chat screen
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -571,7 +848,6 @@ class _WorkersScreenState extends State<WorkersScreen> {
   }
 
   void _editWorker(Map<String, dynamic> worker) {
-    // Navigate to worker edit screen
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -594,7 +870,6 @@ class _WorkersScreenState extends State<WorkersScreen> {
   }
 
   void _addNewWorker() {
-    // Generate unique worker ID
     final existingIds = workers.map((w) => int.tryParse(w['id']) ?? 0).toList();
     final nextId = existingIds.isEmpty ? 1 : existingIds.reduce((a, b) => a > b ? a : b) + 1;
     
@@ -639,7 +914,7 @@ class _WorkersScreenState extends State<WorkersScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
           ),
           TextButton(
             onPressed: () {
@@ -648,9 +923,12 @@ class _WorkersScreenState extends State<WorkersScreen> {
               });
               Navigator.pop(context);
             },
-            child: const Text('Delete'),
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
           ),
         ],
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
       ),
     );
   }

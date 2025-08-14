@@ -113,25 +113,57 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   Widget build(BuildContext context) {
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color.fromARGB(192, 255, 254, 254),
       appBar: AppBar(
-        toolbarHeight: 90,
-        title: const Text('Attendence',style: TextStyle(color:Colors.white ,fontWeight: FontWeight.w600,fontSize: 30),),
-        backgroundColor: Colors.transparent,
-              flexibleSpace: Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF6f88e2),
-              Color(0xFF5a73d1),
-              Color(0xFF4a63c0),
-            ],
-          ),
-                ),
-              ),
+        iconTheme: const IconThemeData(
+          color: Colors.white, // Back arrow white
+        ),
+  toolbarHeight: 90,
+  elevation: 0,
+  backgroundColor: Colors.transparent,
+  title: const Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        'Attendance',
+        style: TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
+          fontSize: 30,
+        ),
       ),
+      SizedBox(height: 4),
+      Text(
+        'Track daily attendance records',
+        style: TextStyle(
+          color: Colors.white70,
+          fontWeight: FontWeight.w400,
+          fontSize: 16,
+        ),
+      ),
+    ],
+  ),
+  flexibleSpace: ClipRRect(
+    borderRadius: const BorderRadius.vertical(
+      bottom: Radius.circular(25),
+    ),
+    child: Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Color(0xFF6f88e2),
+            Color(0xFF5a73d1),
+            Color(0xFF4a63c0),
+          ],
+        ),
+      ),
+    ),
+  ),
+),
+
+
    body: 
    Column(
       children: [
@@ -166,7 +198,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
         decoration: const InputDecoration(
           labelText: 'Select Site for Attendance',
           border: InputBorder.none,
-          prefixIcon: Icon(Icons.location_on, color: Colors.blue),
+          prefixIcon: Icon(Icons.location_on, color: Color.fromARGB(255, 75, 106, 218)),
         ),
         items: [
           const DropdownMenuItem<String>(
@@ -226,7 +258,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     final totalHours = filteredAttendanceData.fold<double>(0, (sum, record) => sum + (record['hours'] is int ? (record['hours'] as int).toDouble() : record['hours'] as double));
 
     return Container(
-      color: Colors.white,
+      
       padding: const EdgeInsets.all(16),
       child: Row(
         children: [
@@ -259,7 +291,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           const SizedBox(width: 8),
           Expanded(
             child: _buildSummaryCard(
-              title: 'Total Hours',
+              title: 'Hours',
               value: '${totalHours.toStringAsFixed(1)}h',
               color: Colors.blue,
               icon: Icons.access_time,
@@ -277,6 +309,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     required IconData icon,
   }) {
     return Card(
+      color: const Color.fromARGB(221, 253, 253, 253),
       elevation: 2,
       child: Padding(
         padding: const EdgeInsets.all(12),
@@ -320,7 +353,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     final statusColor = _getStatusColor(record['status']);
     
     return Card(
-      color: const Color.fromARGB(255, 247, 247, 247),
+      color: const Color.fromARGB(255, 255, 255, 255),
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
         leading: CircleAvatar(

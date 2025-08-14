@@ -117,7 +117,7 @@ class _TaskPageState extends State<TaskPage> {
                   style: TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
-                    color: Colors.blue.shade900,
+                    color: Color(0xFF4a63c0),
                   ),
                 ),
                 IconButton(
@@ -189,14 +189,14 @@ class _TaskPageState extends State<TaskPage> {
                           }
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue[600],
+                          backgroundColor: Color(0xFF4a63c0),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
                         child: const Text(
                           'Add Task',
-                          style: TextStyle(fontSize: 16),
+                          style: TextStyle(fontSize: 16,color: Colors.white),
                         ),
                       ),
                     ),
@@ -222,13 +222,13 @@ class _TaskPageState extends State<TaskPage> {
       decoration: InputDecoration(
         labelText: label,
         labelStyle: TextStyle(color: Colors.grey.shade600),
-        prefixIcon: Icon(icon, color: Colors.blue.shade600),
+        prefixIcon: Icon(icon, color: Color(0xFF4a63c0),),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.blue.shade600, width: 2),
+          borderSide: BorderSide(color: Color(0xFF4a63c0), width: 2),
         ),
       ),
     );
@@ -243,13 +243,13 @@ class _TaskPageState extends State<TaskPage> {
       decoration: InputDecoration(
         labelText: 'Assign To',
         labelStyle: TextStyle(color: Colors.grey.shade600),
-        prefixIcon: Icon(Icons.person, color: Colors.blue.shade600),
+        prefixIcon: Icon(Icons.person, color: Color(0xFF4a63c0),),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.blue.shade600, width: 2),
+          borderSide: BorderSide(color:Color(0xFF4a63c0), width: 2),
         ),
       ),
       items: widget.contractors.map((contractor) {
@@ -283,7 +283,7 @@ class _TaskPageState extends State<TaskPage> {
         decoration: InputDecoration(
           labelText: 'Due Date',
           labelStyle: TextStyle(color: Colors.grey.shade600),
-          prefixIcon: Icon(Icons.calendar_today, color: Colors.blue.shade600),
+          prefixIcon: Icon(Icons.calendar_today, color: Color(0xFF4a63c0),),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
           ),
@@ -311,13 +311,13 @@ class _TaskPageState extends State<TaskPage> {
       decoration: InputDecoration(
         labelText: 'Status',
         labelStyle: TextStyle(color: Colors.grey.shade600),
-        prefixIcon: Icon(Icons.timeline, color: Colors.blue.shade600),
+        prefixIcon: Icon(Icons.timeline, color: Color(0xFF4a63c0)),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.blue.shade600, width: 2),
+          borderSide: BorderSide(color: Color(0xFF4a63c0), width: 2),
         ),
       ),
       items: ['Pending', 'In Progress', 'Completed', 'On Hold']
@@ -337,7 +337,7 @@ class _TaskPageState extends State<TaskPage> {
   );
 
   return Card(
-    color: const Color.fromARGB(213, 255, 255, 255),
+    color: const Color.fromARGB(248, 255, 255, 255),
     margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
     child: Padding(
       padding: const EdgeInsets.all(16),
@@ -438,26 +438,58 @@ class _TaskPageState extends State<TaskPage> {
         ? _tasks
         : _tasks.where((task) => task.siteId == _selectedSiteId).toList();
 
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        toolbarHeight: 90,
-        title: const Text('Tasks',style: TextStyle(color:Colors.white ,fontWeight: FontWeight.w600,fontSize: 30),),
-        backgroundColor: Colors.transparent,
-              flexibleSpace: Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF6f88e2),
-              Color(0xFF5a73d1),
-              Color(0xFF4a63c0),
-            ],
-          ),
-                ),
-              ),
+   return Scaffold(
+  backgroundColor: const Color.fromARGB(255, 247, 246, 246),
+  appBar: AppBar(
+    iconTheme: const IconThemeData(
+          color: Colors.white, // Back arrow white
+        ),
+  elevation: 0,
+  toolbarHeight: 90,
+  backgroundColor: Colors.transparent,
+  title: const Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        'Tasks',
+        style: TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
+          fontSize: 30,
+        ),
       ),
+      SizedBox(height: 4),
+      Text(
+        'Site Overview',
+        style: TextStyle(
+          color: Colors.white70,
+          fontWeight: FontWeight.w400,
+          fontSize: 16,
+        ),
+      ),
+    ],
+  ),
+  flexibleSpace: ClipRRect(
+    borderRadius: const BorderRadius.vertical(
+      bottom: Radius.circular(25),
+    ),
+    child: Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Color(0xFF6f88e2),
+            Color(0xFF5a73d1),
+            Color(0xFF4a63c0),
+          ],
+        ),
+      ),
+    ),
+  ),
+),
+
+
       body: Column(
         children: [
           _buildSiteSelector(),
@@ -471,6 +503,7 @@ class _TaskPageState extends State<TaskPage> {
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
+                focusColor: Colors.white
               ),
               onChanged: (value) {
                 setState(() {});
@@ -490,7 +523,8 @@ class _TaskPageState extends State<TaskPage> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _showAddTaskBottomSheet,
-        child: const Icon(Icons.add),
+        child: const Icon(Icons.add,color: Colors.white,),
+        backgroundColor: Color(0xFF4a63c0),
       ),
     );
   }
@@ -517,7 +551,7 @@ class _TaskPageState extends State<TaskPage> {
           decoration: const InputDecoration(
             labelText: 'Filter by Site',
             border: InputBorder.none,
-            prefixIcon: Icon(Icons.construction, color: Colors.blue),
+            prefixIcon: Icon(Icons.location_on, color: Color(0xFF4a63c0)),
           ),
           items: [
             const DropdownMenuItem<String>(

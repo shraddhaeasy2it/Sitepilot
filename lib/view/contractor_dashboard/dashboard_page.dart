@@ -9,17 +9,14 @@ import 'package:ecoteam_app/view/contractor_dashboard/task.dart';
 import 'package:ecoteam_app/view/contractor_dashboard/worker_screen.dart';
 import 'package:ecoteam_app/widgets/bottom_navbar.dart';
 import 'package:flutter/material.dart';
+import 'package:lottie/lottie.dart';
 import 'package:provider/provider.dart';
 
 class DashboardScreen extends StatefulWidget {
   final Site? selectedSite;
   final String? companyName;
 
-  const DashboardScreen({
-    super.key,
-    this.selectedSite,
-    this.companyName,
-  });
+  const DashboardScreen({super.key, this.selectedSite, this.companyName});
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -61,25 +58,30 @@ class _DashboardScreenState extends State<DashboardScreen> {
     setState(() => _isLoading = true);
     try {
       print('Loading dashboard data...');
-      
+
       // Get the company provider
-      final companyProvider = Provider.of<CompanySiteProvider>(context, listen: false);
-      
-      // Get dashboard data for the selected company
-      _dashboardData = await ApiService().fetchDashboardData(
-        companyId: companyProvider.selectedCompanyId
-      ).timeout(
-        const Duration(seconds: 10),
-        onTimeout: () {
-          throw Exception('Loading timeout - please check your connection');
-        },
+      final companyProvider = Provider.of<CompanySiteProvider>(
+        context,
+        listen: false,
       );
-      
-      print('Dashboard data loaded: \n  sites: ${_dashboardData?.sites.length}, selectedSiteId: ${_dashboardData?.selectedSiteId}');
-      
+
+      // Get dashboard data for the selected company
+      _dashboardData = await ApiService()
+          .fetchDashboardData(companyId: companyProvider.selectedCompanyId)
+          .timeout(
+            const Duration(seconds: 10),
+            onTimeout: () {
+              throw Exception('Loading timeout - please check your connection');
+            },
+          );
+
+      print(
+        'Dashboard data loaded: \n  sites: ${_dashboardData?.sites.length}, selectedSiteId: ${_dashboardData?.selectedSiteId}',
+      );
+
       // Use sites from the provider instead of dashboard data
       _sites = companyProvider.sites;
-      
+
       if (widget.selectedSite != null) {
         _selectedSiteId = widget.selectedSite!.id;
       } else if (_sites.isNotEmpty) {
@@ -107,7 +109,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
           selectedSiteId: _selectedSiteId,
           onSiteChanged: _onSiteChanged,
           sites: _sites,
-          contractors: const ['John Doe', 'Supplier Team', 'Safety Officer', 'Electrician Team'],
+          contractors: const [
+            'John Doe',
+            'Supplier Team',
+            'Safety Officer',
+            'Electrician Team',
+          ],
         ),
         AttendanceScreen(
           key: const PageStorageKey('attendance'),
@@ -130,7 +137,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
             content: Text('Failed to load dashboard data: ${e.toString()}'),
             backgroundColor: const Color(0xFF1A1A2E),
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
             action: SnackBarAction(
               label: 'Retry',
               textColor: const Color(0xFF6366F1),
@@ -176,9 +185,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
           selectedSiteId: _selectedSiteId,
           onSiteChanged: _onSiteChanged,
           sites: _sites,
-          contractors: const ['John Doe', 'Supplier Team', 'Safety Officer', 'Electrician Team'],
+          contractors: const [
+            'John Doe',
+            'Supplier Team',
+            'Safety Officer',
+            'Electrician Team',
+          ],
         ),
-        MaterialsScreen(
+        MaterialScreen(
           key: const PageStorageKey('materials'),
           selectedSiteId: _selectedSiteId,
           onSiteChanged: _onSiteChanged,
@@ -205,30 +219,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
     if (_isLoading) {
   return Scaffold(
     backgroundColor: const Color(0xFFf4f4f4),
-    body: Container(
-      // Added constraints to ensure full screen coverage
-      // width: double.infinity,
-      // height: double.infinity,
-      // decoration: const BoxDecoration(
-      //   gradient: LinearGradient(
-      //     begin: Alignment.topLeft,
-      //     end: Alignment.bottomRight,
-      //     colors: [Color.fromARGB(255, 246, 247, 248), Color.fromARGB(255, 209, 195, 223)],
-      //   ),
-      // ),
-      child: Center(
-        child: SingleChildScrollView( // Prevents overflow issues
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                strokeWidth: 3,
-              ),
-              
-            ],
+    body: Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          SizedBox(
+            height: 150,
+            child: Lottie.asset(
+              'assets/helmet.json', // Your loading animation path
+              repeat: true,
+              animate: true,
+            ),
           ),
-        ),
+          const SizedBox(height: 10),
+          const Text(
+            'Loading dashboard...',
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.grey,
+            ),
+          ),
+        ],
       ),
     ),
   );
@@ -275,10 +286,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 const SizedBox(height: 8),
                 const Text(
                   'Please check your connection and try again',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 14,
-                  ),
+                  style: TextStyle(color: Colors.white70, fontSize: 14),
                 ),
                 const SizedBox(height: 32),
                 ElevatedButton(
@@ -286,17 +294,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF6366F1),
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 32,
+                      vertical: 16,
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                   child: const Text(
                     'Retry',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                   ),
                 ),
               ],
@@ -308,22 +316,30 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFf4f4f4),
-      appBar: _currentIndex == 0 
+      appBar: _currentIndex == 0
           ? AppBar(
-            toolbarHeight: 90,
+            iconTheme: const IconThemeData(
+          color: Colors.white, // Back arrow white
+        ),
+              toolbarHeight: 90,
               elevation: 0,
               backgroundColor: Colors.transparent,
-              flexibleSpace: Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF6f88e2),
-              Color(0xFF5a73d1),
-              Color(0xFF4a63c0),
-            ],
-          ),
+              flexibleSpace: ClipRRect(
+                borderRadius: const BorderRadius.vertical(
+                  bottom: Radius.circular(25),
+                ),
+                child: Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Color(0xFF6f88e2),
+                        Color(0xFF5a73d1),
+                        Color(0xFF4a63c0),
+                      ],
+                    ),
+                  ),
                 ),
               ),
               title: Column(
@@ -338,8 +354,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       letterSpacing: 0.5,
                     ),
                   ),
+                  if (widget.companyName != null) const SizedBox(height: 10),
                   if (widget.companyName != null)
-                  SizedBox(height: 10,),
                     Text(
                       widget.companyName!,
                       style: const TextStyle(
@@ -359,18 +375,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: IconButton(
-                    icon: const Icon(Icons.notifications_outlined, color: Colors.white),
+                    icon: const Icon(
+                      Icons.notifications_outlined,
+                      color: Colors.white,
+                    ),
                     onPressed: _showNotifications,
                   ),
                 ),
               ],
-              
             )
           : null,
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _screens,
-      ),
+
+      body: IndexedStack(index: _currentIndex, children: _screens),
       bottomNavigationBar: CustomBottomNavBar(
         currentIndex: _currentIndex,
         onTap: _handleNavigation,
@@ -429,9 +445,13 @@ class _SitesManagementModalState extends State<SitesManagementModal> {
   void _addNewSite() async {
     if (_formKey.currentState!.validate()) {
       // Generate unique site ID
-      final existingIds = widget.sites.map((site) => int.tryParse(site.id.replaceAll('site', '')) ?? 0).toList();
-      final nextId = existingIds.isEmpty ? 1 : existingIds.reduce((a, b) => a > b ? a : b) + 1;
-      
+      final existingIds = widget.sites
+          .map((site) => int.tryParse(site.id.replaceAll('site', '')) ?? 0)
+          .toList();
+      final nextId = existingIds.isEmpty
+          ? 1
+          : existingIds.reduce((a, b) => a > b ? a : b) + 1;
+
       final newSite = Site(
         id: 'site$nextId',
         name: _siteNameController.text.trim(),
@@ -440,7 +460,7 @@ class _SitesManagementModalState extends State<SitesManagementModal> {
 
       // Add to API service
       final success = await ApiService().addSite(newSite);
-      
+
       if (success) {
         // Get updated sites from API service to avoid duplication
         final updatedSites = ApiService.sites;
@@ -455,7 +475,9 @@ class _SitesManagementModalState extends State<SitesManagementModal> {
             content: Text('Site "${newSite.name}" added successfully!'),
             backgroundColor: const Color(0xFF10B981),
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
         );
       } else {
@@ -464,7 +486,9 @@ class _SitesManagementModalState extends State<SitesManagementModal> {
             content: Text('Site "${newSite.name}" already exists!'),
             backgroundColor: const Color(0xFFF59E0B),
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
         );
       }
@@ -487,16 +511,14 @@ class _SitesManagementModalState extends State<SitesManagementModal> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.grey[600],
-            ),
+            style: TextButton.styleFrom(foregroundColor: Colors.grey[600]),
             child: const Text('Cancel'),
           ),
           ElevatedButton(
             onPressed: () async {
               // Delete from API service
               final success = await ApiService().deleteSite(site.id);
-              
+
               if (success) {
                 // Get updated sites from API service to avoid duplication
                 final updatedSites = ApiService.sites;
@@ -507,7 +529,9 @@ class _SitesManagementModalState extends State<SitesManagementModal> {
                     content: Text('Site "${site.name}" deleted successfully!'),
                     backgroundColor: const Color(0xFFEF4444),
                     behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                 );
               } else {
@@ -517,7 +541,9 @@ class _SitesManagementModalState extends State<SitesManagementModal> {
                     content: Text('Failed to delete site "${site.name}"!'),
                     backgroundColor: const Color(0xFFEF4444),
                     behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                 );
               }
@@ -525,7 +551,9 @@ class _SitesManagementModalState extends State<SitesManagementModal> {
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFEF4444),
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
             child: const Text('Delete'),
           ),
@@ -537,9 +565,7 @@ class _SitesManagementModalState extends State<SitesManagementModal> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(24),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       backgroundColor: const Color(0xFFf4f4f4),
       child: Container(
         width: MediaQuery.of(context).size.width * 0.9,
@@ -580,10 +606,7 @@ class _SitesManagementModalState extends State<SitesManagementModal> {
                     SizedBox(height: 4),
                     Text(
                       'Add and manage construction sites',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Color(0xFF6B7280),
-                      ),
+                      style: TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
                     ),
                   ],
                 ),
@@ -600,7 +623,7 @@ class _SitesManagementModalState extends State<SitesManagementModal> {
               ],
             ),
             const SizedBox(height: 32),
-            
+
             // Add new site form
             Container(
               decoration: BoxDecoration(
@@ -639,14 +662,20 @@ class _SitesManagementModalState extends State<SitesManagementModal> {
                       decoration: InputDecoration(
                         labelText: 'Site Name',
                         labelStyle: const TextStyle(color: Colors.white70),
-                        prefixIcon: const Icon(Icons.location_on, color: Colors.white70),
+                        prefixIcon: const Icon(
+                          Icons.location_on,
+                          color: Colors.white70,
+                        ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: const BorderSide(color: Colors.white30),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Colors.white, width: 2),
+                          borderSide: const BorderSide(
+                            color: Colors.white,
+                            width: 2,
+                          ),
                         ),
                         errorBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -654,7 +683,10 @@ class _SitesManagementModalState extends State<SitesManagementModal> {
                         ),
                         focusedErrorBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Colors.redAccent, width: 2),
+                          borderSide: const BorderSide(
+                            color: Colors.redAccent,
+                            width: 2,
+                          ),
                         ),
                         filled: true,
                         fillColor: Colors.white.withOpacity(0.1),
@@ -673,14 +705,20 @@ class _SitesManagementModalState extends State<SitesManagementModal> {
                       decoration: InputDecoration(
                         labelText: 'Site Address',
                         labelStyle: const TextStyle(color: Colors.white70),
-                        prefixIcon: const Icon(Icons.home, color: Colors.white70),
+                        prefixIcon: const Icon(
+                          Icons.home,
+                          color: Colors.white70,
+                        ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: const BorderSide(color: Colors.white30),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Colors.white, width: 2),
+                          borderSide: const BorderSide(
+                            color: Colors.white,
+                            width: 2,
+                          ),
                         ),
                         errorBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -688,7 +726,10 @@ class _SitesManagementModalState extends State<SitesManagementModal> {
                         ),
                         focusedErrorBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Colors.redAccent, width: 2),
+                          borderSide: const BorderSide(
+                            color: Colors.redAccent,
+                            width: 2,
+                          ),
                         ),
                         filled: true,
                         fillColor: Colors.white.withOpacity(0.1),
@@ -705,17 +746,18 @@ class _SitesManagementModalState extends State<SitesManagementModal> {
                       width: double.infinity,
                       child: ElevatedButton.icon(
                         onPressed: _addNewSite,
-                        icon: const Icon(Icons.add, color: Color(0xFF667EEA)),
+                        icon: const Icon(Icons.add, color:  Color(0xFF4a63c0),),
                         label: const Text(
                           'Add Site',
                           style: TextStyle(
                             fontWeight: FontWeight.w600,
                             fontSize: 16,
+                            color: Colors.white,
                           ),
                         ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.white,
-                          foregroundColor: const Color(0xFF667EEA),
+                          foregroundColor:  Color(0xFF4a63c0),
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
@@ -728,9 +770,9 @@ class _SitesManagementModalState extends State<SitesManagementModal> {
                 ),
               ),
             ),
-            
+
             const SizedBox(height: 32),
-            
+
             // Existing sites list
             Expanded(
               child: Column(
@@ -756,10 +798,7 @@ class _SitesManagementModalState extends State<SitesManagementModal> {
                             gradient: LinearGradient(
                               begin: Alignment.centerLeft,
                               end: Alignment.centerRight,
-                              colors: [
-                                Colors.white,
-                                Colors.grey[50]!,
-                              ],
+                              colors: [Colors.white, Colors.grey[50]!],
                             ),
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(color: Colors.grey[200]!),
@@ -772,16 +811,26 @@ class _SitesManagementModalState extends State<SitesManagementModal> {
                             ],
                           ),
                           child: ListTile(
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 8,
+                            ),
                             leading: Container(
                               padding: const EdgeInsets.all(10),
                               decoration: BoxDecoration(
                                 gradient: const LinearGradient(
-                                  colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+                                  colors: [
+                                     Color(0xFF4a63c0),
+                                     Color(0xFF4a63c0),
+                                  ],
                                 ),
                                 borderRadius: BorderRadius.circular(12),
                               ),
-                              child: const Icon(Icons.location_on, color: Colors.white, size: 20),
+                              child: const Icon(
+                                Icons.location_on,
+                                color: Colors.white,
+                                size: 20,
+                              ),
                             ),
                             title: Text(
                               site.name,
@@ -804,7 +853,10 @@ class _SitesManagementModalState extends State<SitesManagementModal> {
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: IconButton(
-                                icon: Icon(Icons.delete_outline, color: Colors.red[600]),
+                                icon: Icon(
+                                  Icons.delete_outline,
+                                  color: Colors.red[600],
+                                ),
                                 onPressed: () => _deleteSite(site),
                               ),
                             ),
@@ -887,16 +939,13 @@ class DashboardContent extends StatelessWidget {
         child: DropdownButtonFormField<String>(
           value: selectedSiteId?.isNotEmpty == true ? selectedSiteId : null,
           decoration: const InputDecoration(
-            labelText: 'Select Construction Site',
+            labelText: 'Filter By Site',
             labelStyle: TextStyle(
               color: Color(0xFF6B7280),
               fontWeight: FontWeight.w500,
             ),
             border: InputBorder.none,
-            prefixIcon: Icon(
-              Icons.location_on,
-              color: Color(0xFF667EEA),
-            ),
+            prefixIcon: Icon(Icons.location_on, color: Color(0xFF667EEA)),
           ),
           dropdownColor: Colors.white,
           style: const TextStyle(
@@ -963,7 +1012,10 @@ class DashboardContent extends StatelessWidget {
         'icon': Icons.fact_check_outlined,
         'title': 'Total Inspections',
         'value': data.totalInspection.toString(),
-        'colors': [const Color.fromARGB(255, 245, 165, 26), const Color.fromARGB(255, 226, 137, 36)],
+        'colors': [
+          const Color.fromARGB(255, 245, 165, 26),
+          const Color.fromARGB(255, 226, 137, 36),
+        ],
         'bgColors': [const Color(0xFFFEF3C7), const Color(0xFFFDE68A)],
       },
       {
@@ -1002,10 +1054,7 @@ class DashboardContent extends StatelessWidget {
                 offset: const Offset(0, 8),
               ),
             ],
-            border: Border.all(
-              color: Colors.grey.shade400,
-              width: 1,
-            ),
+            border: Border.all(color: Colors.grey.shade400, width: 1),
           ),
           child: Padding(
             padding: const EdgeInsets.all(20),
@@ -1022,7 +1071,9 @@ class DashboardContent extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: [
                       BoxShadow(
-                        color: (item['colors'] as List<Color>)[0].withOpacity(0.3),
+                        color: (item['colors'] as List<Color>)[0].withOpacity(
+                          0.3,
+                        ),
                         blurRadius: 8,
                         offset: const Offset(0, 4),
                       ),
@@ -1051,7 +1102,9 @@ class DashboardContent extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
-                        color: (item['colors'] as List<Color>)[1].withOpacity(0.8),
+                        color: (item['colors'] as List<Color>)[1].withOpacity(
+                          0.8,
+                        ),
                       ),
                     ),
                   ],
@@ -1131,15 +1184,15 @@ class DashboardContent extends StatelessWidget {
                     SizedBox(height: 4),
                     Text(
                       'Latest updates from your site',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Color(0xFF6B7280),
-                      ),
+                      style: TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
                     ),
                   ],
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
                       colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
@@ -1147,10 +1200,13 @@ class DashboardContent extends StatelessWidget {
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
-                    sites.firstWhere(
-                      (site) => site.id == selectedSiteId, 
-                      orElse: () => Site(id: '', name: 'All Sites', address: '')
-                    ).name,
+                    sites
+                        .firstWhere(
+                          (site) => site.id == selectedSiteId,
+                          orElse: () =>
+                              Site(id: '', name: 'All Sites', address: ''),
+                        )
+                        .name,
                     style: const TextStyle(
                       fontSize: 12,
                       color: Colors.white,
@@ -1235,7 +1291,6 @@ class DashboardContent extends StatelessWidget {
   Widget _buildEmptyState() {
     return Center(
       child: Container(
-        
         padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -1266,10 +1321,7 @@ class DashboardContent extends StatelessWidget {
             const SizedBox(height: 8),
             const Text(
               'Data will appear here once available',
-              style: TextStyle(
-                color: Color(0xFF6B7280),
-                fontSize: 14,
-              ),
+              style: TextStyle(color: Color(0xFF6B7280), fontSize: 14),
             ),
           ],
         ),

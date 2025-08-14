@@ -1,7 +1,6 @@
 import 'package:ecoteam_app/models/dashboard/site_model.dart';
 import 'package:flutter/material.dart';
 
-
 class WorkerEditScreen extends StatefulWidget {
   final Map<String, dynamic> worker;
   final List<Site> sites;
@@ -40,12 +39,7 @@ class _WorkerEditScreenState extends State<WorkerEditScreen> {
     'Engineer',
   ];
 
-  final List<String> _statuses = [
-    'Present',
-    'Absent',
-    'Late',
-    'On Leave',
-  ];
+  final List<String> _statuses = ['Present', 'Absent', 'Late', 'On Leave'];
 
   @override
   void initState() {
@@ -75,17 +69,25 @@ class _WorkerEditScreenState extends State<WorkerEditScreen> {
       updatedWorker['phone'] = _phoneController.text.trim();
       updatedWorker['email'] = _emailController.text.trim();
       updatedWorker['siteId'] = _selectedSiteId;
-      updatedWorker['site'] = widget.sites.firstWhere((site) => site.id == _selectedSiteId).name;
+      updatedWorker['site'] = widget.sites
+          .firstWhere((site) => site.id == _selectedSiteId)
+          .name;
       updatedWorker['status'] = _selectedStatus;
       updatedWorker['avatar'] = _generateAvatar(_nameController.text.trim());
 
       widget.onWorkerUpdated(updatedWorker);
       Navigator.pop(context);
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Worker ${updatedWorker['name']} updated successfully!'),
+          content: Text(
+            'Worker ${updatedWorker['name']} updated successfully!',
+          ),
           backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
         ),
       );
     }
@@ -104,19 +106,44 @@ class _WorkerEditScreenState extends State<WorkerEditScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Edit Worker - ${widget.worker['name']}'),
-        backgroundColor: Colors.blue,
-        foregroundColor: Colors.white,
+        toolbarHeight: 90,
+        title: Text('Edit Worker - ${widget.worker['name']}',style: TextStyle(
+        color: Colors.white,
+        fontWeight: FontWeight.w600,
+        fontSize: 25,
+      ),),
+        centerTitle: true,
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        flexibleSpace: ClipRRect(
+          borderRadius: const BorderRadius.vertical(
+            bottom: Radius.circular(25),
+          ),
+          child: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Color(0xFF6f88e2),
+                  Color(0xFF5a73d1),
+                  Color(0xFF4a63c0),
+                ],
+              ),
+            ),
+          ),
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.save),
+            icon: const Icon(Icons.save, size: 26, color: Colors.white),
             onPressed: _saveWorker,
             tooltip: 'Save Changes',
           ),
         ],
       ),
+
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Form(
           key: _formKey,
           child: Column(
@@ -138,36 +165,76 @@ class _WorkerEditScreenState extends State<WorkerEditScreen> {
 
   Widget _buildProfileSection() {
     return Card(
-      elevation: 2,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: Colors.grey.shade200, width: 1),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Column(
+        child: Row(
           children: [
-            CircleAvatar(
-              radius: 50,
-              backgroundColor: _getStatusColor(_selectedStatus),
-              child: Text(
-                widget.worker['avatar'],
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
+            Container(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: _getStatusColor(_selectedStatus),
+                  width: 3,
+                ),
+              ),
+              child: CircleAvatar(
+                radius: 36,
+                backgroundColor: _getStatusColor(
+                  _selectedStatus,
+                ).withOpacity(0.2),
+                child: Text(
+                  widget.worker['avatar'],
+                  style: TextStyle(
+                    color: _getStatusColor(_selectedStatus),
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),
-            const SizedBox(height: 16),
-            Text(
-              widget.worker['name'],
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            Text(
-              widget.worker['role'],
-              style: const TextStyle(
-                fontSize: 16,
-                color: Colors.grey,
+            SizedBox(width: 20),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.worker['name'],
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    widget.worker['role'],
+                    style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _getStatusColor(_selectedStatus).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      _selectedStatus,
+                      style: TextStyle(
+                        color: _getStatusColor(_selectedStatus),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -178,26 +245,48 @@ class _WorkerEditScreenState extends State<WorkerEditScreen> {
 
   Widget _buildPersonalInfoSection() {
     return Card(
-      elevation: 2,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: Colors.grey.shade200, width: 1),
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Personal Information',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+            Row(
+              children: [
+                Icon(Icons.person_outline, color: Colors.blue.shade800),
+                const SizedBox(width: 8),
+                Text(
+                  'Personal Information',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blue.shade800,
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 16),
             TextFormField(
               controller: _nameController,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Full Name',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.person),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+                prefixIcon: Icon(Icons.person, color: Colors.grey.shade600),
+                contentPadding: const EdgeInsets.symmetric(
+                  vertical: 16,
+                  horizontal: 16,
+                ),
               ),
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
@@ -209,10 +298,21 @@ class _WorkerEditScreenState extends State<WorkerEditScreen> {
             const SizedBox(height: 16),
             TextFormField(
               controller: _phoneController,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Phone Number',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.phone),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+                prefixIcon: Icon(Icons.phone, color: Colors.grey.shade600),
+                contentPadding: const EdgeInsets.symmetric(
+                  vertical: 16,
+                  horizontal: 16,
+                ),
               ),
               keyboardType: TextInputType.phone,
               validator: (value) {
@@ -225,17 +325,30 @@ class _WorkerEditScreenState extends State<WorkerEditScreen> {
             const SizedBox(height: 16),
             TextFormField(
               controller: _emailController,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Email Address',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.email),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+                prefixIcon: Icon(Icons.email, color: Colors.grey.shade600),
+                contentPadding: const EdgeInsets.symmetric(
+                  vertical: 16,
+                  horizontal: 16,
+                ),
               ),
               keyboardType: TextInputType.emailAddress,
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
                   return 'Please enter email address';
                 }
-                if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                if (!RegExp(
+                  r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                ).hasMatch(value)) {
                   return 'Please enter a valid email address';
                 }
                 return null;
@@ -249,32 +362,54 @@ class _WorkerEditScreenState extends State<WorkerEditScreen> {
 
   Widget _buildWorkInfoSection() {
     return Card(
-      elevation: 2,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: Colors.grey.shade200, width: 1),
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Work Information',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+            Row(
+              children: [
+                Icon(Icons.work_outline, color: Colors.blue.shade800),
+                const SizedBox(width: 8),
+                Text(
+                  'Work Information',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blue.shade800,
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
               value: _roleController.text,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Role',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.work),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+                prefixIcon: Icon(Icons.work, color: Colors.grey.shade600),
+                contentPadding: const EdgeInsets.symmetric(
+                  vertical: 4,
+                  horizontal: 8,
+                ),
               ),
+              dropdownColor: Colors.white,
+              icon: Icon(Icons.arrow_drop_down, color: Colors.grey.shade600),
+              borderRadius: BorderRadius.circular(12),
               items: _roles.map((role) {
-                return DropdownMenuItem<String>(
-                  value: role,
-                  child: Text(role),
-                );
+                return DropdownMenuItem<String>(value: role, child: Text(role));
               }).toList(),
               onChanged: (String? newValue) {
                 if (newValue != null) {
@@ -293,11 +428,28 @@ class _WorkerEditScreenState extends State<WorkerEditScreen> {
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
               value: _selectedSiteId,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Assigned Site',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.location_on),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+                prefixIcon: Icon(
+                  Icons.location_on,
+                  color: Colors.grey.shade600,
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  vertical: 4,
+                  horizontal: 8,
+                ),
               ),
+              dropdownColor: Colors.white,
+              icon: Icon(Icons.arrow_drop_down, color: Colors.grey.shade600),
+              borderRadius: BorderRadius.circular(12),
               items: widget.sites.map((site) {
                 return DropdownMenuItem<String>(
                   value: site.id,
@@ -321,11 +473,25 @@ class _WorkerEditScreenState extends State<WorkerEditScreen> {
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
               value: _selectedStatus,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Current Status',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.person_pin),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+                prefixIcon: Icon(Icons.person_pin, color: Colors.grey.shade600),
+                contentPadding: const EdgeInsets.symmetric(
+                  vertical: 4,
+                  horizontal: 8,
+                ),
               ),
+              dropdownColor: Colors.white,
+              icon: Icon(Icons.arrow_drop_down, color: Colors.grey.shade600),
+              borderRadius: BorderRadius.circular(12),
               items: _statuses.map((status) {
                 return DropdownMenuItem<String>(
                   value: status,
@@ -368,17 +534,28 @@ class _WorkerEditScreenState extends State<WorkerEditScreen> {
   Widget _buildSaveButton() {
     return SizedBox(
       width: double.infinity,
-      height: 50,
-      child: ElevatedButton.icon(
+      height: 52,
+      child: ElevatedButton(
         onPressed: _saveWorker,
-        icon: const Icon(Icons.save),
-        label: const Text('Save Changes'),
         style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.blue,
+          backgroundColor: Colors.blue.shade800,
           foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(12),
           ),
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(vertical: 14),
+        ),
+        child: const Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.save, size: 22),
+            SizedBox(width: 8),
+            Text(
+              'Save Changes',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            ),
+          ],
         ),
       ),
     );
@@ -387,15 +564,15 @@ class _WorkerEditScreenState extends State<WorkerEditScreen> {
   Color _getStatusColor(String status) {
     switch (status) {
       case 'Present':
-        return Colors.green;
+        return Colors.green.shade600;
       case 'Absent':
-        return Colors.red;
+        return Colors.red.shade600;
       case 'Late':
-        return Colors.orange;
+        return Colors.orange.shade600;
       case 'On Leave':
-        return Colors.purple;
+        return Colors.purple.shade600;
       default:
-        return Colors.grey;
+        return Colors.grey.shade600;
     }
   }
-} 
+}

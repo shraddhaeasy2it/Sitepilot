@@ -28,6 +28,7 @@ class MaterialItem {
   final double cost;
   final String status;
   final DateTime lastUpdated;
+  final String siteId; // Added site tracking
 
   MaterialItem({
     required this.id,
@@ -39,6 +40,7 @@ class MaterialItem {
     required this.cost,
     required this.status,
     required this.lastUpdated,
+    required this.siteId,
   });
 }
 
@@ -46,9 +48,9 @@ class _MaterialScreenState extends State<MaterialScreen> {
   List<MaterialItem> materials = [];
   bool isLoading = false;
   String searchQuery = '';
+  String? selectedSiteFilter; // For filtering materials by site
 
   static const Color primaryColor = Color(0xFF6f88e2);
-  static const Color primaryLight = Color(0xFF8fa4e8);
   static const Color primaryDark = Color(0xFF5a73d1);
   static const Color backgroundColor = Color(0xFFF8F9FF);
   static const Color cardColor = Colors.white;
@@ -74,11 +76,13 @@ class _MaterialScreenState extends State<MaterialScreen> {
   @override
   void initState() {
     super.initState();
+    selectedSiteFilter = widget.selectedSiteId;
     _loadMaterials();
   }
 
   void _loadMaterials() {
     setState(() => isLoading = true);
+
     Future.delayed(const Duration(milliseconds: 500), () {
       setState(() {
         materials = [
@@ -92,6 +96,7 @@ class _MaterialScreenState extends State<MaterialScreen> {
             cost: 25.0,
             status: 'In Stock',
             lastUpdated: DateTime.now().subtract(const Duration(days: 2)),
+            siteId: widget.sites.isNotEmpty ? widget.sites.first.id : '',
           ),
           MaterialItem(
             id: '2',
@@ -103,6 +108,7 @@ class _MaterialScreenState extends State<MaterialScreen> {
             cost: 1200.0,
             status: 'Low Stock',
             lastUpdated: DateTime.now().subtract(const Duration(days: 1)),
+            siteId: widget.sites.isNotEmpty ? widget.sites.first.id : '',
           ),
           MaterialItem(
             id: '3',
@@ -114,6 +120,7 @@ class _MaterialScreenState extends State<MaterialScreen> {
             cost: 8.0,
             status: 'In Stock',
             lastUpdated: DateTime.now().subtract(const Duration(days: 3)),
+            siteId: widget.sites.length > 1 ? widget.sites[1].id : '',
           ),
           MaterialItem(
             id: '4',
@@ -125,6 +132,7 @@ class _MaterialScreenState extends State<MaterialScreen> {
             cost: 45.0,
             status: 'Out of Stock',
             lastUpdated: DateTime.now().subtract(const Duration(days: 5)),
+            siteId: widget.sites.length > 1 ? widget.sites[1].id : '',
           ),
         ];
         isLoading = false;
@@ -133,42 +141,57 @@ class _MaterialScreenState extends State<MaterialScreen> {
   }
 
   List<MaterialItem> get filteredMaterials {
-    if (searchQuery.isEmpty) return materials;
-    return materials
-        .where((material) =>
-            material.name.toLowerCase().contains(searchQuery.toLowerCase()) ||
-            material.category
-                .toLowerCase()
-                .contains(searchQuery.toLowerCase()) ||
-            material.supplier
-                .toLowerCase()
-                .contains(searchQuery.toLowerCase()))
+    var filtered = materials;
+    
+    // Apply site filter if selected
+    if (selectedSiteFilter != null) {
+      filtered = filtered.where((material) => material.siteId == selectedSiteFilter).toList();
+    }
+    
+    // Apply search query
+    if (searchQuery.isNotEmpty) {
+      filtered = filtered.where((material) =>
+          material.name.toLowerCase().contains(searchQuery.toLowerCase()) ||
+          material.category.toLowerCase().contains(searchQuery.toLowerCase()) ||
+          material.supplier.toLowerCase().contains(searchQuery.toLowerCase()))
         .toList();
+    }
+    
+    return filtered;
   }
 
   void _showMaterialSheet({MaterialItem? existingMaterial}) {
     final isEditing = existingMaterial != null;
 
-    final nameController =
-        TextEditingController(text: isEditing ? existingMaterial!.name : '');
+    final nameController = TextEditingController(
+      text: isEditing ? existingMaterial.name : '',
+    );
     final quantityController = TextEditingController(
-        text: isEditing ? existingMaterial!.quantity.toString() : '');
-    final unitController =
-        TextEditingController(text: isEditing ? existingMaterial!.unit : '');
+      text: isEditing ? existingMaterial.quantity.toString() : '',
+    );
+    final unitController = TextEditingController(
+      text: isEditing ? existingMaterial.unit : '',
+    );
     final costController = TextEditingController(
-        text: isEditing ? existingMaterial!.cost.toString() : '');
+      text: isEditing ? existingMaterial.cost.toString() : '',
+    );
 
-    String selectedCategory =
-        isEditing ? existingMaterial!.category : categoryList.first;
-    String selectedSupplier =
-        isEditing ? existingMaterial!.supplier : supplierList.first;
-    String selectedStatus =
-        isEditing ? existingMaterial!.status : 'In Stock';
+    String selectedCategory = isEditing
+        ? existingMaterial.category
+        : categoryList.first;
+    String selectedSupplier = isEditing
+        ? existingMaterial.supplier
+        : supplierList.first;
+    String selectedStatus = isEditing ? existingMaterial.status : 'In Stock';
+    String? selectedSite = isEditing 
+        ? existingMaterial.siteId 
+        : (widget.sites.isNotEmpty ? widget.sites.first.id : null);
 
     bool nameError = false;
     bool quantityError = false;
     bool unitError = false;
     bool costError = false;
+    bool siteError = false;
 
     void validateForm(StateSetter setSheetState) {
       setSheetState(() {
@@ -176,6 +199,7 @@ class _MaterialScreenState extends State<MaterialScreen> {
         quantityError = quantityController.text.isEmpty;
         unitError = unitController.text.isEmpty;
         costError = costController.text.isEmpty;
+        siteError = selectedSite == null;
       });
     }
 
@@ -353,9 +377,23 @@ class _MaterialScreenState extends State<MaterialScreen> {
                         'In Stock',
                         'Low Stock',
                         'Out of Stock',
-                        'On Order'
+                        'On Order',
                       ],
                       onChanged: (val) => selectedStatus = val!,
+                    ),
+                    const SizedBox(height: 20),
+                    _buildSiteDropdown(
+                      value: selectedSite,
+                      label: 'Site',
+                      icon: Icons.construction,
+                      items: widget.sites,
+                      hasError: siteError,
+                      onChanged: (val) {
+                        selectedSite = val;
+                        if (val != null && siteError) {
+                          setSheetState(() => siteError = false);
+                        }
+                      },
                     ),
                     const SizedBox(height: 32),
                     Container(
@@ -389,9 +427,7 @@ class _MaterialScreenState extends State<MaterialScreen> {
                           size: 22,
                         ),
                         label: Text(
-                          isEditing
-                              ? 'Update Material'
-                              : 'Add Material',
+                          isEditing ? 'Update Material' : 'Add Material',
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 16,
@@ -400,16 +436,15 @@ class _MaterialScreenState extends State<MaterialScreen> {
                         ),
                         onPressed: () {
                           validateForm(setSheetState);
-                          if (nameError ||
-                              quantityError ||
-                              unitError ||
-                              costError) {
+                          if (nameError || quantityError || unitError || costError || siteError) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: const Row(
                                   children: [
-                                    Icon(Icons.error_outline,
-                                        color: Colors.white),
+                                    Icon(
+                                      Icons.error_outline,
+                                      color: Colors.white,
+                                    ),
                                     SizedBox(width: 12),
                                     Text('Please fill all required fields'),
                                   ],
@@ -423,29 +458,27 @@ class _MaterialScreenState extends State<MaterialScreen> {
                             );
                             return;
                           }
+                          
                           final material = MaterialItem(
                             id: isEditing
-                                ? existingMaterial!.id
-                                : DateTime.now()
-                                    .millisecondsSinceEpoch
-                                    .toString(),
+                                ? existingMaterial.id
+                                : DateTime.now().millisecondsSinceEpoch.toString(),
                             name: nameController.text,
                             category: selectedCategory,
-                            quantity: double.tryParse(
-                                    quantityController.text) ??
-                                0,
+                            quantity: double.tryParse(quantityController.text) ?? 0,
                             unit: unitController.text,
                             supplier: selectedSupplier,
-                            cost: double.tryParse(
-                                    costController.text) ??
-                                0,
+                            cost: double.tryParse(costController.text) ?? 0,
                             status: selectedStatus,
                             lastUpdated: DateTime.now(),
+                            siteId: selectedSite!,
                           );
+                          
                           setState(() {
                             if (isEditing) {
                               final index = materials.indexWhere(
-                                  (m) => m.id == existingMaterial!.id);
+                                (m) => m.id == existingMaterial.id,
+                              );
                               materials[index] = material;
                             } else {
                               materials.add(material);
@@ -457,13 +490,17 @@ class _MaterialScreenState extends State<MaterialScreen> {
                               content: Row(
                                 children: [
                                   Icon(
-                                    isEditing ? Icons.check_circle : Icons.add_circle,
+                                    isEditing
+                                        ? Icons.check_circle
+                                        : Icons.add_circle,
                                     color: Colors.white,
                                   ),
                                   const SizedBox(width: 12),
-                                  Text(isEditing
-                                      ? 'Material updated successfully'
-                                      : 'Material added successfully'),
+                                  Text(
+                                    isEditing
+                                        ? 'Material updated successfully'
+                                        : 'Material added successfully',
+                                  ),
                                 ],
                               ),
                               backgroundColor: Colors.green,
@@ -482,6 +519,73 @@ class _MaterialScreenState extends State<MaterialScreen> {
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildSiteDropdown({
+    required String? value,
+    required String label,
+    required IconData icon,
+    required List<Site> items,
+    required bool hasError,
+    required Function(String?) onChanged,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: DropdownButtonFormField<String>(
+        value: value,
+        decoration: InputDecoration(
+          labelText: label,
+          errorText: hasError ? 'Required' : null,
+          prefixIcon: Icon(icon, color: hasError ? Colors.red : primaryColor, size: 22),
+          filled: true,
+          fillColor: cardColor,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide.none,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(color: Colors.grey.withOpacity(0.1)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(color: primaryColor, width: 2),
+          ),
+          errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: const BorderSide(color: Colors.red, width: 1),
+          ),
+          labelStyle: TextStyle(
+            color: hasError ? Colors.red : textSecondary,
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        dropdownColor: cardColor,
+        style: const TextStyle(
+          color: textPrimary,
+          fontSize: 16,
+          fontWeight: FontWeight.w500,
+        ),
+        items: items
+            .map((site) => DropdownMenuItem(
+                  value: site.id,
+                  child: Text(site.name),
+                ))
+            .toList(),
+        onChanged: onChanged,
       ),
     );
   }
@@ -534,23 +638,15 @@ class _MaterialScreenState extends State<MaterialScreen> {
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(
-              color: Colors.grey.withOpacity(0.1),
-            ),
+            borderSide: BorderSide(color: Colors.grey.withOpacity(0.1)),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(
-              color: primaryColor,
-              width: 2,
-            ),
+            borderSide: BorderSide(color: primaryColor, width: 2),
           ),
           errorBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
-            borderSide: const BorderSide(
-              color: Colors.red,
-              width: 1,
-            ),
+            borderSide: const BorderSide(color: Colors.red, width: 1),
           ),
           labelStyle: TextStyle(
             color: hasError ? Colors.red : textSecondary,
@@ -589,11 +685,7 @@ class _MaterialScreenState extends State<MaterialScreen> {
         value: value,
         decoration: InputDecoration(
           labelText: label,
-          prefixIcon: Icon(
-            icon,
-            color: primaryColor,
-            size: 22,
-          ),
+          prefixIcon: Icon(icon, color: primaryColor, size: 22),
           filled: true,
           fillColor: cardColor,
           border: OutlineInputBorder(
@@ -602,16 +694,11 @@ class _MaterialScreenState extends State<MaterialScreen> {
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(
-              color: Colors.grey.withOpacity(0.1),
-            ),
+            borderSide: BorderSide(color: Colors.grey.withOpacity(0.1)),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(
-              color: primaryColor,
-              width: 2,
-            ),
+            borderSide: BorderSide(color: primaryColor, width: 2),
           ),
           labelStyle: TextStyle(
             color: textSecondary,
@@ -626,10 +713,7 @@ class _MaterialScreenState extends State<MaterialScreen> {
           fontWeight: FontWeight.w500,
         ),
         items: items
-            .map((item) => DropdownMenuItem(
-                  value: item,
-                  child: Text(item),
-                ))
+            .map((item) => DropdownMenuItem(value: item, child: Text(item)))
             .toList(),
         onChanged: onChanged,
       ),
@@ -670,6 +754,10 @@ class _MaterialScreenState extends State<MaterialScreen> {
     }
   }
 
+  String getSiteName(String siteId) {
+    return widget.sites.firstWhere((site) => site.id == siteId, orElse: () => Site(id: '', name: 'Unknown Site', address: '')).name;
+  }
+
   Widget _buildSearchBar() {
     return Container(
       margin: const EdgeInsets.all(16),
@@ -684,32 +772,69 @@ class _MaterialScreenState extends State<MaterialScreen> {
           ),
         ],
       ),
-      child: TextField(
-        onChanged: (value) => setState(() => searchQuery = value),
-        decoration: InputDecoration(
-          hintText: 'Search materials...',
-          prefixIcon: Icon(
-            Icons.search,
-            color: primaryColor,
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              onChanged: (value) => setState(() => searchQuery = value),
+              decoration: InputDecoration(
+                hintText: 'Search materials...',
+                prefixIcon: Icon(Icons.search, color: primaryColor),
+                suffixIcon: searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () => setState(() => searchQuery = ''),
+                        color: textSecondary,
+                      )
+                    : null,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide.none,
+                ),
+                filled: true,
+                fillColor: cardColor,
+                hintStyle: TextStyle(color: textSecondary, fontSize: 16),
+              ),
+            ),
           ),
-          suffixIcon: searchQuery.isNotEmpty
-              ? IconButton(
-                  icon: const Icon(Icons.clear),
-                  onPressed: () => setState(() => searchQuery = ''),
-                  color: textSecondary,
-                )
-              : null,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide.none,
-          ),
-          filled: true,
-          fillColor: cardColor,
-          hintStyle: TextStyle(
-            color: textSecondary,
-            fontSize: 16,
-          ),
-        ),
+          if (widget.sites.isNotEmpty) ...[
+            const SizedBox(width: 8),
+            Container(
+              decoration: BoxDecoration(
+                color: cardColor,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: primaryColor.withOpacity(0.1),
+                    blurRadius: 20,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: DropdownButton<String>(
+                value: selectedSiteFilter,
+                hint: const Text('All Sites'),
+                icon: Icon(Icons.filter_list, color: primaryColor),
+                underline: Container(),
+                items: [
+                  const DropdownMenuItem(
+                    value: null,
+                    child: Text('All Sites'),
+                  ),
+                  ...widget.sites.map((site) => DropdownMenuItem(
+                        value: site.id,
+                        child: Text(site.name),
+                      )),
+                ],
+                onChanged: (value) {
+                  setState(() {
+                    selectedSiteFilter = value;
+                  });
+                },
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -778,7 +903,10 @@ class _MaterialScreenState extends State<MaterialScreen> {
                       ),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
                         color: getStatusColor(material.status).withOpacity(0.1),
                         borderRadius: BorderRadius.circular(20),
@@ -797,7 +925,14 @@ class _MaterialScreenState extends State<MaterialScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 12),
+                _buildInfoChip(
+                  Icons.construction,
+                  'Site',
+                  getSiteName(material.siteId),
+                  fullWidth: true,
+                ),
+                const SizedBox(height: 12),
                 Row(
                   children: [
                     Expanded(
@@ -827,11 +962,7 @@ class _MaterialScreenState extends State<MaterialScreen> {
                 const SizedBox(height: 16),
                 Row(
                   children: [
-                    Icon(
-                      Icons.access_time,
-                      size: 16,
-                      color: textSecondary,
-                    ),
+                    Icon(Icons.access_time, size: 16, color: textSecondary),
                     const SizedBox(width: 6),
                     Text(
                       'Last updated ${DateFormat('MMM dd, yyyy').format(material.lastUpdated)}',
@@ -851,25 +982,24 @@ class _MaterialScreenState extends State<MaterialScreen> {
     );
   }
 
-  Widget _buildInfoChip(IconData icon, String label, String value, {bool fullWidth = false}) {
+  Widget _buildInfoChip(
+    IconData icon,
+    String label,
+    String value, {
+    bool fullWidth = false,
+  }) {
     return Container(
       width: fullWidth ? double.infinity : null,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: backgroundColor,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: primaryColor.withOpacity(0.1),
-        ),
+        border: Border.all(color: primaryColor.withOpacity(0.1)),
       ),
       child: Row(
         mainAxisSize: fullWidth ? MainAxisSize.max : MainAxisSize.min,
         children: [
-          Icon(
-            icon,
-            size: 16,
-            color: primaryColor,
-          ),
+          Icon(icon, size: 16, color: primaryColor),
           const SizedBox(width: 8),
           Expanded(
             child: Column(
@@ -932,13 +1062,10 @@ class _MaterialScreenState extends State<MaterialScreen> {
             ),
             const SizedBox(height: 12),
             Text(
-              searchQuery.isEmpty
+              searchQuery.isEmpty && selectedSiteFilter == null
                   ? 'Start by adding your first material'
                   : 'Try adjusting your search criteria',
-              style: TextStyle(
-                fontSize: 16,
-                color: textSecondary,
-              ),
+              style: TextStyle(fontSize: 16, color: textSecondary),
               textAlign: TextAlign.center,
             ),
           ],
@@ -987,7 +1114,137 @@ class _MaterialScreenState extends State<MaterialScreen> {
                           padding: const EdgeInsets.only(bottom: 100),
                           itemCount: filteredMaterials.length,
                           itemBuilder: (context, index) {
-                            return _buildMaterialCard(filteredMaterials[index]);
+                            final material = filteredMaterials[index];
+                            return Dismissible(
+                              key: Key(material.id),
+                              background: Container(
+                                margin: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 8,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.green,
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                alignment: Alignment.centerLeft,
+                                padding: const EdgeInsets.only(left: 20),
+                                child: const Row(
+                                  children: [
+                                    Icon(Icons.edit, color: Colors.white),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      'Edit',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              secondaryBackground: Container(
+                                margin: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 8,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.red,
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                alignment: Alignment.centerRight,
+                                padding: const EdgeInsets.only(right: 20),
+                                child: const Row(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  children: [
+                                    Text(
+                                      'Delete',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    SizedBox(width: 8),
+                                    Icon(Icons.delete, color: Colors.white),
+                                  ],
+                                ),
+                              ),
+                              confirmDismiss: (direction) async {
+                                if (direction == DismissDirection.endToStart) {
+                                  // Delete action
+                                  final confirmed = await showDialog(
+                                    context: context,
+                                    builder: (context) => AlertDialog(
+                                      title: const Text('Delete Material'),
+                                      content: Text(
+                                        'Are you sure you want to delete ${material.name}?',
+                                      ),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () =>
+                                              Navigator.pop(context, false),
+                                          child: const Text('Cancel'),
+                                        ),
+                                        TextButton(
+                                          onPressed: () =>
+                                              Navigator.pop(context, true),
+                                          child: const Text(
+                                            'Delete',
+                                            style: TextStyle(color: Colors.red),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                  return confirmed ?? false;
+                                } else {
+                                  // Edit action
+                                  _showMaterialSheet(
+                                    existingMaterial: material,
+                                  );
+                                  return false;
+                                }
+                              },
+                              onDismissed: (direction) {
+                                if (direction == DismissDirection.endToStart) {
+                                  setState(() {
+                                    materials.removeWhere(
+                                      (m) => m.id == material.id,
+                                    );
+                                  });
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Row(
+                                        children: [
+                                          const Icon(
+                                            Icons.delete,
+                                            color: Colors.white,
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Text(
+                                            '${material.name} deleted successfully',
+                                          ),
+                                        ],
+                                      ),
+                                      backgroundColor: Colors.green,
+                                      behavior: SnackBarBehavior.floating,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      action: SnackBarAction(
+                                        label: 'Undo',
+                                        textColor: Colors.white,
+                                        onPressed: () {
+                                          setState(() {
+                                            materials.insert(index, material);
+                                          });
+                                        },
+                                      ),
+                                    ),
+                                  );
+                                }
+                              },
+                              child: _buildMaterialCard(material),
+                            );
                           },
                         ),
                 ),
@@ -1012,10 +1269,7 @@ class _MaterialScreenState extends State<MaterialScreen> {
           icon: const Icon(Icons.add),
           label: const Text(
             'Add Material',
-            style: TextStyle(
-              fontWeight: FontWeight.w600,
-              fontSize: 16,
-            ),
+            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
           ),
         ),
       ),

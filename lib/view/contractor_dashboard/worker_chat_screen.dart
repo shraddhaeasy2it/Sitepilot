@@ -3,10 +3,7 @@ import 'package:flutter/material.dart';
 class WorkerChatScreen extends StatefulWidget {
   final Map<String, dynamic> worker;
 
-  const WorkerChatScreen({
-    super.key,
-    required this.worker,
-  });
+  const WorkerChatScreen({super.key, required this.worker});
 
   @override
   State<WorkerChatScreen> createState() => _WorkerChatScreenState();
@@ -45,14 +42,18 @@ class _WorkerChatScreenState extends State<WorkerChatScreen> {
         id: '2',
         senderName: 'Manager',
         message: 'Good morning! How is everything at the site?',
-        timestamp: DateTime.now().subtract(const Duration(hours: 1, minutes: 45)),
+        timestamp: DateTime.now().subtract(
+          const Duration(hours: 1, minutes: 45),
+        ),
         isFromCurrentUser: true,
       ),
       ChatMessage(
         id: '3',
         senderName: widget.worker['name'],
         message: 'Everything looks good. We\'re working on the foundation.',
-        timestamp: DateTime.now().subtract(const Duration(hours: 1, minutes: 30)),
+        timestamp: DateTime.now().subtract(
+          const Duration(hours: 1, minutes: 30),
+        ),
         isFromCurrentUser: false,
       ),
       ChatMessage(
@@ -101,13 +102,17 @@ class _WorkerChatScreenState extends State<WorkerChatScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        toolbarHeight: 90,
         title: Row(
           children: [
             CircleAvatar(
               backgroundColor: _getStatusColor(widget.worker['status']),
               child: Text(
                 widget.worker['avatar'],
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
             const SizedBox(width: 12),
@@ -117,7 +122,10 @@ class _WorkerChatScreenState extends State<WorkerChatScreen> {
                 children: [
                   Text(
                     widget.worker['name'],
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   Text(
                     widget.worker['role'],
@@ -146,9 +154,7 @@ class _WorkerChatScreenState extends State<WorkerChatScreen> {
       body: Column(
         children: [
           _buildWorkerInfo(),
-          Expanded(
-            child: _buildChatList(),
-          ),
+          Expanded(child: _buildChatList()),
           _buildMessageInput(),
         ],
       ),
@@ -160,17 +166,11 @@ class _WorkerChatScreenState extends State<WorkerChatScreen> {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.grey[100],
-        border: Border(
-          bottom: BorderSide(color: Colors.grey[300]!),
-        ),
+        border: Border(bottom: BorderSide(color: Colors.grey[300]!)),
       ),
       child: Row(
         children: [
-          Icon(
-            Icons.location_on,
-            color: Colors.blue,
-            size: 16,
-          ),
+          Icon(Icons.location_on, color: Colors.blue, size: 16),
           const SizedBox(width: 8),
           Text(
             'Site: ${widget.worker['site']}',
@@ -182,7 +182,9 @@ class _WorkerChatScreenState extends State<WorkerChatScreen> {
             decoration: BoxDecoration(
               color: _getStatusColor(widget.worker['status']).withOpacity(0.1),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: _getStatusColor(widget.worker['status'])),
+              border: Border.all(
+                color: _getStatusColor(widget.worker['status']),
+              ),
             ),
             child: Text(
               widget.worker['status'],
@@ -277,11 +279,7 @@ class _WorkerChatScreenState extends State<WorkerChatScreen> {
             CircleAvatar(
               radius: 16,
               backgroundColor: Colors.green,
-              child: const Icon(
-                Icons.person,
-                color: Colors.white,
-                size: 16,
-              ),
+              child: const Icon(Icons.person, color: Colors.white, size: 16),
             ),
           ],
         ],
@@ -399,4 +397,4 @@ class ChatMessage {
     required this.timestamp,
     required this.isFromCurrentUser,
   });
-} 
+}

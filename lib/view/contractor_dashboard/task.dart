@@ -523,8 +523,8 @@ class _TaskPageState extends State<TaskPage> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _showAddTaskBottomSheet,
-        child: const Icon(Icons.add,color: Colors.white,),
         backgroundColor: Color(0xFF4a63c0),
+        child: const Icon(Icons.add,color: Colors.white,),
       ),
     );
   }
@@ -563,7 +563,7 @@ class _TaskPageState extends State<TaskPage> {
                 value: site.id,
                 child: Text(site.name),
               );
-            }).toList(),
+            }),
           ],
           onChanged: (String? newValue) {
             if (newValue != null) {

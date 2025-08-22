@@ -399,6 +399,8 @@ import 'package:flutter/services.dart';
 import 'package:lottie/lottie.dart';
 
 class LandingPages extends StatefulWidget {
+  const LandingPages({super.key});
+
   @override
   _LandingPagesState createState() => _LandingPagesState();
 }

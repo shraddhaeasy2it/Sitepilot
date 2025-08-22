@@ -7,7 +7,7 @@ import 'package:ecoteam_app/services/api_service_login.dart' show ApiService;
 import 'package:ecoteam_app/view/contractor_dashboard/home_page.dart'; // Verify this import path
 
 class LoginScreenemail extends StatefulWidget {
-  const LoginScreenemail({Key? key}) : super(key: key);
+  const LoginScreenemail({super.key});
 
   @override
   _LoginScreenState createState() => _LoginScreenState();
@@ -119,7 +119,7 @@ class _LoginScreenState extends State<LoginScreenemail> {
                     ),
                     filled: true,
                     fillColor: isDarkMode
-                        ? theme.colorScheme.surfaceVariant
+                        ? theme.colorScheme.surfaceContainerHighest
                         : Colors.grey[100],
                   ),
                   validator: (value) {
@@ -157,7 +157,7 @@ class _LoginScreenState extends State<LoginScreenemail> {
                     ),
                     filled: true,
                     fillColor: isDarkMode
-                        ? theme.colorScheme.surfaceVariant
+                        ? theme.colorScheme.surfaceContainerHighest
                         : Colors.grey[100],
                   ),
                   validator: (value) {

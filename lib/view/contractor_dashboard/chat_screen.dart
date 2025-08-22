@@ -90,6 +90,7 @@ class _ChatScreenState extends State<ChatScreen> {
  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        toolbarHeight: 90,
         title: const Text('Chat'),
       ),
       body: Column(

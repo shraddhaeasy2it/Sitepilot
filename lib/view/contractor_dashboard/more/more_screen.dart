@@ -1,6 +1,11 @@
-import 'package:ecoteam_app/models/dashboard/site_model.dart';
-import 'package:ecoteam_app/view/contractor_dashboard/more/inspection.dart';
-import 'package:ecoteam_app/view/contractor_dashboard/more/material_screen.dart';
+
+
+import 'package:ecoteam_app/view/contractor_dashboard/more/docstorage.dart';
+import 'package:ecoteam_app/view/contractor_dashboard/more/supplier.dart';
+
+import '../../../models/dashboard/site_model.dart';
+import 'inspection.dart';
+import 'material_screen.dart';
 import 'package:flutter/material.dart';
 
 import 'mancount.dart';
@@ -42,120 +47,101 @@ class _MoreScreenState extends State<MoreScreen> {
     }
   }
 
-  final List<Map<String, dynamic>> _modules = [];
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _modules.clear();
-    _modules.addAll([
-      {
-        'title': 'Materials',
-        'icon': Icons.inventory_2_rounded,
-        'color': Colors.orange[50]!,
-        'accentColor': Colors.orange,
-        'onTap': () => Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => MaterialScreen(
-              selectedSiteId: _selectedSiteId,
-              onSiteChanged: widget.onSiteChanged,
-              sites: widget.sites,
-            ),
-          ),
-        ),
-      },
-      {
-        'title': 'Machinery',
-        'icon': Icons.precision_manufacturing_rounded,
-        'color': Colors.purple[50]!,
-        'accentColor': Colors.purple,
-        'onTap': () => Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => MachineryDetailScreen(
-              siteId: _selectedSiteId,
-              siteName: _getSiteName(),
-            ),
-          ),
-        ),
-      },
-      {
-        'title': 'Inventory',
-        'icon': Icons.insights_rounded,
-        'color': Colors.blue[50]!,
-        'accentColor': Colors.blue,
-        'onTap': () => Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => InventoryDetailScreen(
-              siteId: _selectedSiteId,
-              siteName: _getSiteName(),
-            ),
-          ),
-        ),
-      },
-      {
-        'title': 'Payments',
-        'icon': Icons.payment_rounded,
-        'color': Colors.lightBlue[50]!,
-        'accentColor': Colors.lightBlue[700]!,
-        'onTap': () => Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => PaymentsDetailScreen(
-              siteId: _selectedSiteId,
-              siteName: _getSiteName(),
-            ),
-          ),
-        ),
-      },
-      {
-        'title': 'Manpower',
-        'icon': Icons.groups_rounded,
-        'color': Colors.green[50]!,
-        'accentColor': Colors.green,
-        'onTap': () => Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ManpowerCountScreen(
-              siteId: _selectedSiteId,
-              siteName: _getSiteName(),
-            ),
-          ),
-        ),
-      },
-      {
-        'title': 'Inspection',
-        'icon': Icons.insert_page_break_rounded,
-        'color': Colors.pink[50]!,
-        'accentColor': Colors.pink[800]!,
-        'onTap': () => Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => InspectionPage(
-              siteId: _selectedSiteId,
-              siteName: _getSiteName(),
-              onTotalUpdate: (int _) {},
-            ),
-          ),
-        ),
-      },
-      {
-        'title': 'Picking',
-        'icon': Icons.sign_language_rounded,
-        'color': Colors.brown[50]!,
-        'accentColor': Colors.brown[900],
-        'onTap': () => Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) =>
-                PickingPage(siteId: _selectedSiteId, siteName: _getSiteName()),
-          ),
-        ),
-      },
-    ]);
-  }
+  /// Dynamic module definitions
+  late final List<Map<String, dynamic>> _modules = [
+    {
+      'title': 'Materials',
+      'icon': Icons.inventory_2_rounded,
+      'color': Colors.orange[50]!,
+      'accentColor': Colors.orange,
+      'builder': () => MaterialScreen(
+        selectedSiteId: _selectedSiteId,
+        onSiteChanged: widget.onSiteChanged,
+        sites: widget.sites,
+      ),
+    },
+    {
+      'title': 'Machinery',
+      'icon': Icons.precision_manufacturing_rounded,
+      'color': Colors.purple[50]!,
+      'accentColor': Colors.purple,
+      'builder': () => MachineryDetailScreen(
+        siteId: _selectedSiteId,
+        siteName: _getSiteName(),
+      ),
+    },
+    {
+      'title': 'Inventory',
+      'icon': Icons.insights_rounded,
+      'color': Colors.blue[50]!,
+      'accentColor': Colors.blue,
+      'builder': () => InventoryDetailScreen(
+        siteId: _selectedSiteId,
+        siteName: _getSiteName(),
+      ),
+    },
+    {
+      'title': 'Payments',
+      'icon': Icons.payment_rounded,
+      'color': Colors.lightBlue[50]!,
+      'accentColor': Colors.lightBlue[700]!,
+      'builder': () => PaymentsDetailScreen(
+        siteId: _selectedSiteId,
+        siteName: _getSiteName(),
+      ),
+    },
+    {
+      'title': 'Manpower',
+      'icon': Icons.groups_rounded,
+      'color': Colors.green[50]!,
+      'accentColor': Colors.green,
+      'builder': () => ManpowerCountScreen(
+        siteId: _selectedSiteId,
+        siteName: _getSiteName(),
+      ),
+    },
+    {
+      'title': 'Inspection',
+      'icon': Icons.insert_page_break_rounded,
+      'color': Colors.pink[50]!,
+      'accentColor': Colors.pink[800]!,
+      'builder': () => InspectionPage(
+        siteId: _selectedSiteId,
+        siteName: _getSiteName(),
+        onTotalUpdate: (int _) {},
+      ),
+    },
+    {
+      'title': 'Picking',
+      'icon': Icons.sign_language_rounded,
+      'color': Colors.brown[50]!,
+      'accentColor': Colors.brown[900],
+      'builder': () =>
+          PickingPage(siteId: _selectedSiteId, siteName: _getSiteName()),
+    },
+    {
+      'title': 'File Manager',
+      'icon': Icons.folder_copy_rounded,
+      'color': Colors.indigo[50]!,
+      'accentColor': Colors.indigo,
+      'builder': () => DocumentStorageScreen(
+        selectedSiteId: _selectedSiteId,
+        onSiteChanged: widget.onSiteChanged,
+        sites: widget.sites, siteId: '', siteName: '',
+      ),
+    },
+    {
+      'title': 'Supplier Ledger',
+      'icon': Icons.support_agent_rounded,
+      'color': Colors.brown[50]!,
+      'accentColor': const Color.fromARGB(255, 187, 74, 54),
+      'builder': () => SupplierLedger(
+        selectedSiteId: _selectedSiteId,
+        onSiteChanged: widget.onSiteChanged,
+        sites: widget.sites,
+      ),
+    }
+  ];
 
   String _getSiteName() {
     return widget.sites
@@ -172,55 +158,26 @@ class _MoreScreenState extends State<MoreScreen> {
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
+        toolbarHeight: 90,
+        title: Text(
+          'Construction Hub',
+          style: TextStyle(color: Colors.white),
+        ),
         iconTheme: const IconThemeData(
           color: Colors.white, // Back arrow white
         ),
-  toolbarHeight: 90,
-  elevation: 1,
-  backgroundColor: Colors.transparent,
-  flexibleSpace: ClipRRect(
-    borderRadius: const BorderRadius.vertical(
-      bottom: Radius.circular(25),
-    ),
-    child: Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            Color(0xFF6f88e2),
-            Color(0xFF5a73d1),
-            Color(0xFF4a63c0),
-          ],
+        backgroundColor: Colors.transparent,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color(0xFF6f88e2), Color(0xFF5a73d1), Color(0xFF4a63c0)],
+            ),
+            borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
+          ),
         ),
       ),
-    ),
-  ),
-  title: const Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Text(
-        'Construction Hub',
-        style: TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.w600,
-          fontSize: 30,
-        ),
-      ),
-      SizedBox(height: 4),
-      Text(
-        'Track resources and workforce',
-        style: TextStyle(
-          color: Colors.white70,
-          fontSize: 16,
-          fontWeight: FontWeight.w400,
-        ),
-      ),
-    ],
-  ),
-),
-
-
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -256,10 +213,10 @@ class _MoreScreenState extends State<MoreScreen> {
 
   Widget _buildSiteDropdown() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
@@ -270,20 +227,20 @@ class _MoreScreenState extends State<MoreScreen> {
       ),
       child: Row(
         children: [
-          Icon(Icons.location_on, color: const Color.fromARGB(255, 79, 109, 219), size: 22),
+          Icon(Icons.location_on_outlined, color: Colors.blue[600], size: 20),
           const SizedBox(width: 12),
           Expanded(
             child: DropdownButtonHideUnderline(
               child: DropdownButton<String>(
                 isExpanded: true,
                 value: _selectedSiteId.isNotEmpty ? _selectedSiteId : null,
-                hint: const Text('Select Site', style: TextStyle(fontSize: 18)),
+                hint: const Text('Select Site', style: TextStyle(fontSize: 14)),
                 items: widget.sites.map((site) {
                   return DropdownMenuItem<String>(
                     value: site.id,
                     child: Text(
                       site.name,
-                      style: const TextStyle(fontSize: 17),
+                      style: const TextStyle(fontSize: 14),
                     ),
                   );
                 }).toList(),
@@ -303,7 +260,12 @@ class _MoreScreenState extends State<MoreScreen> {
 
   Widget _buildModuleCard(Map<String, dynamic> module) {
     return GestureDetector(
-      onTap: module['onTap'],
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => module['builder']()),
+        );
+      },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
         decoration: BoxDecoration(

@@ -47,7 +47,10 @@ class ResponsiveWrapper extends StatelessWidget {
           return const TabletHomePage();
         } else {
           // Mobile
-          return HomePageApp();
+          return Scaffold(
+            
+            body: SplashScreen(), // Your contractor dashboard home
+          );
         }
       },
     );
@@ -66,7 +69,7 @@ class DesktopHomePage extends StatelessWidget {
           Expanded(
             flex: 2,
             child: Container(
-              color: Colors.blue.shade100,
+              
               child: const Center(child: Text("Sidebar / Menu")),
             ),
           ),

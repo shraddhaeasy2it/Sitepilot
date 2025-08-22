@@ -40,12 +40,12 @@ class HomePagescreen extends StatefulWidget {
 
 class _ContractorDashboardPageState extends State<HomePagescreen> {
   late CompanySiteProvider _companyProvider;
+  final Map<String, Uint8List?> _siteImages = {};
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
-  // Use companies from provider
   List<String> get companies => _companyProvider.companies;
   String? currentCompany;
 
-  // Convert provider sites to SiteData objects for UI display
   List<SiteData> get sites {
     final providerSites = _companyProvider.sites;
     return providerSites
@@ -53,8 +53,8 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
           (site) => SiteData(
             id: site.id,
             name: site.name,
-            imageUrl:
-                'https://images.unsplash.com/photo-1487958449943-2429e8be8625?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60', // Default image
+            imageUrl: 'https://images.unsplash.com/photo-1487958449943-2429e8be8625?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60',
+            imageBytes: _siteImages[site.id],
             status: 'In Progress',
             progress: 0.65,
             startDate: '2023-05-10',
@@ -70,9 +70,7 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
   void initState() {
     super.initState();
     _companyProvider = Provider.of<CompanySiteProvider>(context, listen: false);
-    // Initialize after provider is loaded
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      // Ensure companies are loaded
       if (_companyProvider.companies.isEmpty) {
         await _companyProvider.loadCompanies();
       }
@@ -121,16 +119,13 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
   }
 
   void _navigateToChatScreen() {
-    // Use provider's sites directly
     final siteList = _companyProvider.sites;
-
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => ChatScreen(
           selectedSiteId: siteList.isNotEmpty ? siteList.first.id : null,
           onSiteChanged: (String siteId) {
-            // Handle site change if needed
             debugPrint('Site changed to: $siteId');
           },
           sites: siteList,
@@ -141,18 +136,17 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Listen to the provider for changes
     final companyProvider = Provider.of<CompanySiteProvider>(context);
     final isLoading = companyProvider.companies.isEmpty;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFf4f4f4),
+      key: _scaffoldKey,
+      backgroundColor: const Color(0xFFF8FAFC),
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(90),
         child: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
-          
           flexibleSpace: ClipRRect(
             borderRadius: const BorderRadius.vertical(
               bottom: Radius.circular(16),
@@ -171,13 +165,13 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
               ),
               child: AppBar(
                 toolbarHeight: 90,
-                backgroundColor: Colors.transparent, // Make AppBar transparent
+                backgroundColor: Colors.transparent,
                 elevation: 0,
                 shape: const RoundedRectangleBorder(
                   borderRadius: BorderRadius.vertical(
                     bottom: Radius.circular(25),
                   ),
-                ), // Remove shadow to see the gradient clearly
+                ),
                 title: Padding(
                   padding: EdgeInsets.only(top: 12),
                   child: Row(
@@ -185,7 +179,7 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                       Icon(Icons.business, color: Colors.white, size: 24),
                       const SizedBox(width: 12),
                       if (isLoading)
-                        Container(
+                        SizedBox(
                           width: 150,
                           child: Row(
                             children: [
@@ -194,8 +188,7 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.w600,
-                                  color: Colors
-                                      .white, // Changed to white for better contrast
+                                  color: Colors.white,
                                 ),
                               ),
                               SizedBox(width: 10),
@@ -204,79 +197,14 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                                 height: 20,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  color: Colors.white, // Changed to white
+                                  color: Colors.white,
                                 ),
                               ),
                             ],
                           ),
                         )
                       else
-                        DropdownButton<String>(
-                          value: currentCompany,
-                          hint: Text(
-                            'Select Company',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
-                              color: const Color(0xFF6f88e2),
-                            ),
-                          ),
-                          icon: const Icon(
-                            Icons.arrow_drop_down,
-                            color: Color.fromARGB(255, 255, 255, 255),
-                          ),
-                          elevation: 16,
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                            color: const Color.fromARGB(
-                              255,
-                              221,
-                              203,
-                              203,
-                            ), // 👈 Text color when an item is selected (shown in the button)
-                          ),
-                          underline: Container(
-                            height: 0,
-                            color: const Color.fromARGB(0, 219, 218, 218),
-                          ),
-                          dropdownColor: const Color.fromARGB(
-                            255,
-                            125,
-                            141,
-                            199,
-                          ), // Background color of dropdown items
-                          onChanged: (String? newValue) {
-                            if (newValue != null) {
-                              setState(() {
-                                currentCompany = newValue;
-                                _companyProvider.selectCompany(newValue);
-                              });
-                            }
-                          },
-                          items: companies.isEmpty
-                              ? []
-                              : companies.map<DropdownMenuItem<String>>((
-                                  String value,
-                                ) {
-                                  return DropdownMenuItem<String>(
-                                    value: value,
-                                    child: Text(
-                                      value,
-                                      style: TextStyle(
-                                        color: const Color.fromARGB(
-                                          255,
-                                          253,
-                                          251,
-                                          251,
-                                        ), // 👈 Text color of dropdown items
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  );
-                                }).toList(),
-                        ),
+                        _buildCustomCompanyDropdown(),
                     ],
                   ),
                 ),
@@ -284,13 +212,13 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                   IconButton(
                     icon: const Icon(Icons.notifications),
                     onPressed: () {},
-                    color: Colors.white, // Added white color
+                    color: Colors.white,
                   ),
                   const SizedBox(width: 8),
                   IconButton(
                     onPressed: _navigateToChatScreen,
                     icon: const Icon(Icons.chat_rounded),
-                    color: Colors.white, // Added white color
+                    color: Colors.white,
                   ),
                   const SizedBox(width: 8),
                   GestureDetector(
@@ -303,10 +231,9 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                       );
                     },
                     child: CircleAvatar(
-                      backgroundColor:
-                          Colors.white, // Added background for contrast
-                      backgroundImage: NetworkImage(
-                        'https://randomuser.me/api/portraits/men/1.jpg',
+                      backgroundColor: Colors.white,
+                      backgroundImage: AssetImage(  
+                        'assets/avtar.jpg', // Replace with your avatar image path
                       ),
                       radius: 18,
                     ),
@@ -314,7 +241,7 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                   const SizedBox(width: 16),
                 ],
                 iconTheme: IconThemeData(
-                  color: Colors.white, // Simplified color definition
+                  color: Colors.white,
                 ),
               ),
             ),
@@ -326,32 +253,63 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
           Padding(
             padding: const EdgeInsets.all(20),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'Projects',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.blue.shade900,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Sites Overview',
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF2A2A2A),
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                      SizedBox(height: 8),
+                      Container(
+                        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Color(0xFF4a63c0).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          '${sites.length} active sites',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF4a63c0),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                Text(
-                  '${sites.length} sites',
-                  style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
+                Container(
+                  padding: EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Color(0xFF4a63c0).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Icon(
+                    Icons.analytics_rounded,
+                    color: Color(0xFF4a63c0),
+                    size: 24,
+                  ),
                 ),
               ],
             ),
           ),
           Expanded(
             child: ListView.builder(
-              padding: const EdgeInsets.all(17),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               itemCount: sites.length,
               itemBuilder: (context, index) {
                 return SiteCard(
                   site: sites[index],
                   onTap: () => _navigateToDashboard(sites[index]),
-                  onEdit: () => _showEditSiteDialog(sites[index]),
+                  onEdit: () => _showEditSiteBottomSheet(sites[index]),
                   onDelete: () => _showDeleteSiteDialog(sites[index]),
                 );
               },
@@ -362,18 +320,191 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
       floatingActionButton: FloatingActionButton(
         backgroundColor: Color(0xFF4a63c0),
         onPressed: () => _showAddSiteBottomSheet(),
-        child: const Icon(Icons.add, size: 28,color: Colors.white,),
+        child: const Icon(Icons.add, size: 28, color: Colors.white),
       ),
     );
   }
 
   Future<Uint8List?> _pickImage() async {
     final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) {
-      return await pickedFile.readAsBytes();
+    final source = await showDialog<ImageSource>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Select Image Source'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: Icon(Icons.camera_alt, color: Color(0xFF4a63c0)),
+                title: Text('Camera'),
+                onTap: () => Navigator.pop(context, ImageSource.camera),
+              ),
+              ListTile(
+                leading: Icon(Icons.photo_library, color: Color(0xFF4a63c0)),
+                title: Text('Gallery'),
+                onTap: () => Navigator.pop(context, ImageSource.gallery),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+
+    if (source != null) {
+      final pickedFile = await picker.pickImage(source: source);
+      if (pickedFile != null) {
+        return await pickedFile.readAsBytes();
+      }
     }
     return null;
+  }
+
+  Future<void> _selectDate(TextEditingController controller) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2030),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(
+              primary: Color(0xFF4a63c0),
+              onPrimary: Colors.white,
+              surface: Colors.white,
+              onSurface: Colors.black,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null) {
+      controller.text = '${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
+    }
+  }
+
+  Widget _buildCustomCompanyDropdown() {
+    return GestureDetector(
+      onTap: () => _showCompanySelectionBottomSheet(),
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              currentCompany ?? 'Select Company',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+            ),
+            SizedBox(width: 8),
+            Icon(Icons.keyboard_arrow_down, color: Colors.white, size: 12),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showCompanySelectionBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                margin: EdgeInsets.only(top: 8),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Padding(
+                padding: EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Select Company',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF4a63c0),
+                      ),
+                    ),
+                    SizedBox(height: 16),
+                    ...companies.map((company) => _buildCompanyOption(company)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildCompanyOption(String company) {
+    final isSelected = currentCompany == company;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          currentCompany = company;
+          _companyProvider.selectCompany(company);
+        });
+        Navigator.pop(context);
+      },
+      child: Container(
+        margin: EdgeInsets.only(bottom: 8),
+        padding: EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isSelected ? Color(0xFF4a63c0).withOpacity(0.1) : Colors.grey.shade50,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? Color(0xFF4a63c0) : Colors.grey.shade200,
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.business,
+              color: isSelected ? Color(0xFF4a63c0) : Colors.grey.shade600,
+              size: 20,
+            ),
+            SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                company,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                  color: isSelected ? Color(0xFF4a63c0) : Colors.grey.shade800,
+                ),
+              ),
+            ),
+            if (isSelected)
+              Icon(
+                Icons.check_circle,
+                color: Color(0xFF4a63c0),
+                size: 20,
+              ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _showAddSiteBottomSheet() {
@@ -382,6 +513,7 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
     final TextEditingController startDateController = TextEditingController();
     final TextEditingController endDateController = TextEditingController();
     String selectedStatus = 'Planning';
+    Uint8List? imageBytes;
 
     showModalBottomSheet(
       context: context,
@@ -392,7 +524,7 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
           bottom: MediaQuery.of(context).viewInsets.bottom,
         ),
         child: Container(
-          height: MediaQuery.of(context).size.height * 0.85,
+          height: MediaQuery.of(context).size.height * 0.65,
           decoration: const BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -420,6 +552,57 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                   ],
                 ),
                 const SizedBox(height: 16),
+                // Center(
+                //   child: GestureDetector(
+                //     onTap: () async {
+                //       final bytes = await _pickImage();
+                //       if (bytes != null) {
+                //         setState(() {
+                //           imageBytes = bytes;
+                //         });
+                //       }
+                //     },
+                //     child: Container(
+                //       width: 120,
+                //       height: 120,
+                //       decoration: BoxDecoration(
+                //         borderRadius: BorderRadius.circular(16),
+                //         color: Colors.grey.shade100,
+                //         border: Border.all(
+                //           color: Colors.grey.shade300,
+                //           width: 1,
+                //         ),
+                //       ),
+                //       child: imageBytes != null
+                //           ? ClipRRect(
+                //               borderRadius: BorderRadius.circular(16),
+                //               child: Image.memory(
+                //                 imageBytes!,
+                //                 fit: BoxFit.cover,
+                //               ),
+                //             )
+                //           : Column(
+                //               mainAxisAlignment: MainAxisAlignment.center,
+                //               children: [
+                //                 Icon(
+                //                   Icons.add_a_photo,
+                //                   size: 30,
+                //                   color: Colors.grey.shade400,
+                //                 ),
+                //                 SizedBox(height: 8),
+                //                 Text(
+                //                   'Add Photo',
+                //                   style: TextStyle(
+                //                     color: Colors.grey.shade600,
+                //                     fontSize: 12,
+                //                   ),
+                //                 ),
+                //               ],
+                //             ),
+                //     ),
+                //   ),
+                // ),
+                //const SizedBox(height: 16),
                 _buildInputField(
                   controller: nameController,
                   label: 'Site Name',
@@ -434,14 +617,16 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                 const SizedBox(height: 16),
                 _buildInputField(
                   controller: startDateController,
-                  label: 'Start Date (YYYY-MM-DD)',
+                  label: 'Start Date',
                   icon: Icons.calendar_today,
+                  isDateField: true,
                 ),
                 const SizedBox(height: 16),
                 _buildInputField(
                   controller: endDateController,
-                  label: 'End Date (YYYY-MM-DD)',
+                  label: 'End Date',
                   icon: Icons.calendar_today,
+                  isDateField: true,
                 ),
                 const SizedBox(height: 16),
                 _buildStatusDropdown(
@@ -463,6 +648,7 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                           companyId: _companyProvider.selectedCompanyId ?? '',
                         );
                         await _companyProvider.addSite(newSite);
+                        
                         Navigator.pop(context);
                         setState(() {});
                         ScaffoldMessenger.of(context).showSnackBar(
@@ -471,6 +657,7 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                               'Site "${nameController.text}" added successfully!',
                             ),
                             behavior: SnackBarBehavior.floating,
+                            backgroundColor: Colors.green,
                           ),
                         );
                       }
@@ -483,7 +670,7 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                     ),
                     child: const Text(
                       'Add Site',
-                      style: TextStyle(fontSize: 16,color: Colors.white),
+                      style: TextStyle(fontSize: 16, color: Colors.white),
                     ),
                   ),
                 ),
@@ -495,7 +682,7 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
     );
   }
 
-  void _showEditSiteDialog(SiteData site) {
+  void _showEditSiteBottomSheet(SiteData site) {
     final TextEditingController nameController = TextEditingController(
       text: site.name,
     );
@@ -509,95 +696,151 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
       text: site.endDate,
     );
     String selectedStatus = site.status;
-    Uint8List? imageBytes = site.imageBytes;
-    String? imageUrl = site.imageUrl;
+    Uint8List? imageBytes = _siteImages[site.id] ?? site.imageBytes;
 
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: Padding(
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: Container(
+          height: MediaQuery.of(context).size.height * 0.80,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
           padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Edit Site',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF4a63c0),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Edit Site',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue.shade900,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
                 ),
-              ),
-              const SizedBox(height: 24),
-              GestureDetector(
-                onTap: () async {
-                  final bytes = await _pickImage();
-                  if (bytes != null) {
-                    setState(() {
-                      imageBytes = bytes;
-                      imageUrl = null;
-                    });
-                  }
-                },
-                child: CircleAvatar(
-                  radius: 50,
-                  backgroundImage: imageBytes != null
-                      ? MemoryImage(imageBytes!)
-                      : (imageUrl != null ? NetworkImage(imageUrl!) : null),
-                  child: imageBytes == null && imageUrl == null
-                      ? const Icon(Icons.add_a_photo, size: 30)
-                      : null,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Tap to change photo',
-                style: TextStyle(color: Colors.grey.shade600),
-              ),
-              const SizedBox(height: 16),
-              _buildInputField(
-                controller: nameController,
-                label: 'Site Name',
-                icon: Icons.construction,
-              ),
-              const SizedBox(height: 16),
-              _buildInputField(
-                controller: addressController,
-                label: 'Address',
-                icon: Icons.location_on,
-              ),
-              const SizedBox(height: 16),
-              _buildInputField(
-                controller: startDateController,
-                label: 'Start Date',
-                icon: Icons.calendar_today,
-              ),
-              const SizedBox(height: 16),
-              _buildInputField(
-                controller: endDateController,
-                label: 'End Date',
-                icon: Icons.calendar_today,
-              ),
-              const SizedBox(height: 16),
-              _buildStatusDropdown(
-                value: selectedStatus,
-                onChanged: (value) => selectedStatus = value!,
-              ),
-              const SizedBox(height: 24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('Cancel'),
+                const SizedBox(height: 16),
+                Center(
+                  child: GestureDetector(
+                    onTap: () async {
+                      final bytes = await _pickImage();
+                      if (bytes != null) {
+                        setState(() {
+                          imageBytes = bytes;
+                        });
+                      }
+                    },
+                    child: Container(
+                      width: 120,
+                      height: 120,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        color: Colors.grey.shade100,
+                        border: Border.all(
+                          color: Colors.grey.shade300,
+                          width: 1,
+                        ),
+                      ),
+                      child: imageBytes != null
+                          ? ClipRRect(
+                              borderRadius: BorderRadius.circular(16),
+                              child: Image.memory(
+                                imageBytes!,
+                                fit: BoxFit.cover,
+                              ),
+                            )
+                          : (site.imageUrl != null
+                              ? ClipRRect(
+                                  borderRadius: BorderRadius.circular(16),
+                                  child: Image.network(
+                                    site.imageUrl!,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return Center(
+                                        child: Icon(
+                                          Icons.construction,
+                                          size: 40,
+                                          color: Colors.grey.shade400,
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                )
+                              : Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.add_a_photo,
+                                      size: 30,
+                                      color: Colors.grey.shade400,
+                                    ),
+                                    SizedBox(height: 8),
+                                    Text(
+                                      'Add Photo',
+                                      style: TextStyle(
+                                        color: Colors.grey.shade600,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                )),
+                    ),
                   ),
-                  const SizedBox(width: 8),
-                  ElevatedButton(
+                ),
+                const SizedBox(height: 16),
+                _buildInputField(
+                  controller: nameController,
+                  label: 'Site Name',
+                  icon: Icons.construction,
+                ),
+                const SizedBox(height: 16),
+                _buildInputField(
+                  controller: addressController,
+                  label: 'Address',
+                  icon: Icons.location_on,
+                ),
+                const SizedBox(height: 16),
+                _buildInputField(
+                  controller: startDateController,
+                  label: 'Start Date',
+                  icon: Icons.calendar_today,
+                  isDateField: true,
+                ),
+                const SizedBox(height: 16),
+                _buildInputField(
+                  controller: endDateController,
+                  label: 'End Date',
+                  icon: Icons.calendar_today,
+                  isDateField: true,
+                ),
+                const SizedBox(height: 16),
+                _buildStatusDropdown(
+                  value: selectedStatus,
+                  onChanged: (value) => selectedStatus = value!,
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
                     onPressed: () {
                       if (nameController.text.isNotEmpty &&
                           addressController.text.isNotEmpty) {
-                        // Update site using provider
                         final updatedSite = Site(
                           id: site.id,
                           name: nameController.text,
@@ -605,11 +848,14 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                           companyId: currentCompany ?? '',
                         );
 
-                        // Update the site through the provider
                         _companyProvider.updateSite(updatedSite).then((_) {
-                          // Force UI refresh
+                          if (imageBytes != null) {
+                            setState(() {
+                              _siteImages[site.id] = imageBytes;
+                            });
+                          }
+                          
                           setState(() {});
-
                           Navigator.pop(context);
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
@@ -617,6 +863,7 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                                 'Site "${nameController.text}" updated successfully!',
                               ),
                               behavior: SnackBarBehavior.floating,
+                              backgroundColor: Colors.green,
                             ),
                           );
                         });
@@ -624,12 +871,18 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Color(0xFF4a63c0),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
-                    child: const Text('Update'),
+                    child: const Text(
+                      'Update Site',
+                      style: TextStyle(fontSize: 16, color: Colors.white),
+                    ),
                   ),
-                ],
-              ),
-            ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -640,18 +893,27 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
     required TextEditingController controller,
     required String label,
     required IconData icon,
+    bool isDateField = false,
   }) {
     return TextField(
       controller: controller,
+      readOnly: isDateField,
+      onTap: isDateField ? () => _selectDate(controller) : null,
       decoration: InputDecoration(
         labelText: label,
         labelStyle: TextStyle(color: Colors.grey.shade600),
-        prefixIcon: Icon(icon, color: Color(0xFF4a63c0),),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        prefixIcon: Icon(icon, color: Color(0xFF4a63c0)),
+        suffixIcon: isDateField ? Icon(Icons.calendar_today, color: Color(0xFF4a63c0)) : null,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: Color(0xFF4a63c0), width: 2),
         ),
+        filled: true,
+        fillColor: Colors.grey.shade50,
       ),
     );
   }
@@ -665,17 +927,31 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
       decoration: InputDecoration(
         labelText: 'Status',
         labelStyle: TextStyle(color: Colors.grey.shade600),
-        prefixIcon: Icon(Icons.timeline, color:Color(0xFF4a63c0),),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        prefixIcon: Icon(Icons.timeline, color: Color(0xFF4a63c0)),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: Color(0xFF4a63c0), width: 2),
         ),
+        filled: true,
+        fillColor: Colors.grey.shade50,
       ),
       items: ['Planning', 'In Progress', 'On Schedule', 'Delayed', 'Completed']
-          .map((status) => DropdownMenuItem(value: status, child: Text(status)))
+          .map((status) => DropdownMenuItem(
+                value: status,
+                child: Text(
+                  status,
+                  style: TextStyle(fontSize: 14),
+                ),
+              ))
           .toList(),
       onChanged: onChanged,
+      dropdownColor: Colors.white,
+      borderRadius: BorderRadius.circular(12),
+      icon: Icon(Icons.keyboard_arrow_down, color: Color(0xFF4a63c0)),
     );
   }
 
@@ -716,11 +992,11 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                   const SizedBox(width: 8),
                   ElevatedButton(
                     onPressed: () {
-                      // Delete the site using the provider
                       _companyProvider.deleteSite(site.id).then((_) {
-                        // Force UI refresh
-                        setState(() {});
-
+                        setState(() {
+                          _siteImages.remove(site.id);
+                        });
+                        
                         Navigator.pop(context);
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
@@ -728,6 +1004,7 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                               'Site "${site.name}" deleted successfully!',
                             ),
                             behavior: SnackBarBehavior.floating,
+                            backgroundColor: Colors.green,
                           ),
                         );
                       });
@@ -757,7 +1034,7 @@ class SiteData {
   final String startDate;
   final String endDate;
   final String address;
-  final String companyId; // Added company identifier
+  final String companyId;
 
   SiteData({
     required this.id,
@@ -769,7 +1046,7 @@ class SiteData {
     required this.startDate,
     required this.endDate,
     required this.address,
-    this.companyId = '', // Default empty string for backward compatibility
+    this.companyId = '',
   });
 }
 
@@ -806,150 +1083,234 @@ class SiteCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      color: const Color(0xFFfcfcfc),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: SizedBox(
-          height: 130,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              ClipRRect(
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(12),
-                  bottomLeft: Radius.circular(12),
-                ),
-                child: site.imageBytes != null
-                    ? Image.memory(
-                        site.imageBytes!,
-                        width: 120,
-                        fit: BoxFit.cover,
-                      )
-                    : Image.network(
-                        site.imageUrl ?? '',
-                        width: 120,
-                        fit: BoxFit.cover,
-                        loadingBuilder: (context, child, loadingProgress) {
-                          if (loadingProgress == null) return child;
-                          return SizedBox(
-                            width: 120,
-                            child: Center(
-                              child: CircularProgressIndicator(
-                                value:
-                                    loadingProgress.expectedTotalBytes != null
-                                    ? loadingProgress.cumulativeBytesLoaded /
-                                          loadingProgress.expectedTotalBytes!
-                                    : null,
-                              ),
-                            ),
-                          );
-                        },
-                        errorBuilder: (context, error, stackTrace) {
-                          return Container(
-                            width: 120,
-                            color: Colors.grey[200],
-                            child: Center(
-                              child: Icon(
-                                Icons.construction,
-                                size: 40,
-                                color: Colors.grey[400],
-                              ),
-                            ),
-                          );
-                        },
+    return Container(
+      margin: EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            blurRadius: 10,
+            spreadRadius: 2,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        borderRadius: BorderRadius.circular(16),
+        color: Colors.white,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    
+                    // Site Image
+                    Container(
+                      width: 90,
+                      height: 90,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        color: Colors.grey.shade100,
                       ),
-              ),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: site.imageBytes != null
+                            ? Image.memory(
+                                site.imageBytes!,
+                                fit: BoxFit.cover,
+                              )
+                            : (site.imageUrl != null
+                                ? Image.network(
+                                    site.imageUrl!,
+                                    fit: BoxFit.cover,
+                                    loadingBuilder: (context, child, loadingProgress) {
+                                      if (loadingProgress == null) return child;
+                                      return Center(
+                                        child: CircularProgressIndicator(
+                                          value: loadingProgress.expectedTotalBytes != null
+                                              ? loadingProgress.cumulativeBytesLoaded /
+                                                  loadingProgress.expectedTotalBytes!
+                                              : null,
+                                        ),
+                                      );
+                                    },
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return Center(
+                                        child: Icon(
+                                          Icons.construction,
+                                          size: 30,
+                                          color: Colors.grey.shade400,
+                                        ),
+                                      );
+                                    },
+                                  )
+                                : Center(
+                                    child: Icon(
+                                      Icons.construction,
+                                      size: 30,
+                                      color: Colors.grey.shade400,
+                                    ),
+                                  )),
+                      ),
+                    ),
+                    SizedBox(width: 16),
+                    // Site Details
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  site.name,
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.blue.shade900,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              PopupMenuButton(
+                                icon: Icon(Icons.more_vert, size: 20, color: Colors.grey.shade600),
+                                itemBuilder: (context) => [
+                                  PopupMenuItem(
+                                    onTap: onEdit,
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.edit, size: 20, color: Colors.blue.shade700),
+                                        SizedBox(width: 8),
+                                        Text('Edit'),
+                                      ],
+                                    ),
+                                  ),
+                                  PopupMenuItem(
+                                    onTap: onDelete,
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.delete, size: 20, color: Colors.red.shade600),
+                                        SizedBox(width: 8),
+                                        Text(
+                                          'Delete',
+                                          style: TextStyle(color: Colors.red.shade600),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 4),
+                          Container(
+                            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: getStatusColor(site.status).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                             child: Text(
-                              site.name,
-                              style: const TextStyle(
-                                fontSize: 16,
+                              site.status,
+                              style: TextStyle(
+                                color: getStatusColor(site.status),
+                                fontSize: 12,
                                 fontWeight: FontWeight.bold,
                               ),
-                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                          PopupMenuButton(
-                            icon: const Icon(Icons.more_vert, size: 20),
-                            itemBuilder: (context) => [
-                              PopupMenuItem(
-                                onTap: onEdit,
-                                child: const Text('Edit'),
+                          SizedBox(height: 8),
+                          // Progress bar with percentage
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    'Progress',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey.shade600,
+                                    ),
+                                  ),
+                                  Text(
+                                    '${(site.progress * 100).toStringAsFixed(0)}%',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.blue.shade800,
+                                    ),
+                                  ),
+                                ],
                               ),
-                              PopupMenuItem(
-                                onTap: onDelete,
-                                child: const Text(
-                                  'Delete',
-                                  style: TextStyle(color: Colors.red),
+                              SizedBox(height: 4),
+                              LinearProgressIndicator(
+                                value: site.progress,
+                                backgroundColor: Colors.grey.shade200,
+                                color: Colors.blue,
+                                borderRadius: BorderRadius.circular(4),
+                                minHeight: 6,
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 8),
+                          // Date range
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.calendar_today,
+                                size: 14,
+                                color: Colors.grey.shade600,
+                              ),
+                              SizedBox(width: 4),
+                              Text(
+                                '${site.startDate} - ${site.endDate}',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey.shade600,
                                 ),
                               ),
                             ],
                           ),
                         ],
                       ),
-                      const SizedBox(height: 4),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: getStatusColor(site.status).withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          site.status,
-                          style: TextStyle(
-                            color: getStatusColor(site.status),
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      LinearProgressIndicator(
-                        value: site.progress,
-                        backgroundColor: Colors.grey[200],
-                        color: Colors.blue,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            '${(site.progress * 100).toStringAsFixed(0)}%',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.blue.shade800,
-                            ),
-                          ),
-                          Text(
-                            '${site.startDate} - ${site.endDate}',
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: Colors.grey.shade600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-              ),
-            ],
+                
+                // Address
+                Row(
+                  children: [
+                    Icon(
+                      Icons.location_on,
+                      size: 14,
+                      color: Colors.grey.shade600,
+                    ),
+                    SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        site.address,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade600,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),

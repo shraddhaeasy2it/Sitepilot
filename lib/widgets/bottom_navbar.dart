@@ -22,7 +22,7 @@ class CustomBottomNavBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: backgroundColor,
+        
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.1),
@@ -44,9 +44,9 @@ class CustomBottomNavBar extends StatelessWidget {
         child: Theme(
           data: Theme.of(context).copyWith(
             navigationBarTheme: NavigationBarThemeData(
-              labelTextStyle: MaterialStateProperty.resolveWith<TextStyle>(
-                (Set<MaterialState> states) {
-                  final isSelected = states.contains(MaterialState.selected);
+              labelTextStyle: WidgetStateProperty.resolveWith<TextStyle>(
+                (Set<WidgetState> states) {
+                  final isSelected = states.contains(WidgetState.selected);
                   return TextStyle(
                     fontSize: labelFontSize,
                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,

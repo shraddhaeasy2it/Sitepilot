@@ -12,7 +12,7 @@ class ApiService {
   ];
   
   // Static list to maintain companies
-  static List<String> _companies = [
+  static final List<String> _companies = [
     'ABC Construction',
     'XYZ Builders',
     'Urban Developers',

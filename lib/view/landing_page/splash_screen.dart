@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 // Your existing LandingPages import assumed here or in same file
 
 class SplashScreen extends StatefulWidget {
+  const SplashScreen({super.key});
+
   @override
   _SplashScreenState createState() => _SplashScreenState();
 }

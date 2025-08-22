@@ -6,7 +6,7 @@ import 'package:uuid/uuid.dart';
 class CompanySiteProvider extends ChangeNotifier {
   String? _selectedCompanyId;
   List<String> _companies = [];
-  Map<String, List<Site>> _companySites = {}; // Map to store sites by company
+  final Map<String, List<Site>> _companySites = {}; // Map to store sites by company
   final Uuid _uuid = Uuid(); // For generating unique IDs
 
   String? get selectedCompanyId => _selectedCompanyId;

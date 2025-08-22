@@ -134,7 +134,7 @@ class _OtpScreenState extends State<OtpScreen> {
                   ),
                   filled: true,
                   fillColor: isDarkMode
-                      ? theme.colorScheme.surfaceVariant
+                      ? theme.colorScheme.surfaceContainerHighest
                       : Colors.grey[100],
                 ),
                 validator: (value) {
@@ -167,7 +167,7 @@ class _OtpScreenState extends State<OtpScreen> {
                   ),
                   filled: true,
                   fillColor: isDarkMode
-                      ? theme.colorScheme.surfaceVariant
+                      ? theme.colorScheme.surfaceContainerHighest
                       : Colors.grey[100],
                 ),
               ),

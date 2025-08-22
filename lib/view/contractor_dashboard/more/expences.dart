@@ -16,7 +16,8 @@ class MachineryDetailScreen extends StatefulWidget {
   State<MachineryDetailScreen> createState() => _MachineryDetailScreenState();
 }
 
-class _MachineryDetailScreenState extends State<MachineryDetailScreen> {
+class _MachineryDetailScreenState extends State<MachineryDetailScreen>
+    with TickerProviderStateMixin {
   final List<Map<String, dynamic>> _entries = [];
   String _filter = 'All';
 
@@ -27,7 +28,30 @@ class _MachineryDetailScreenState extends State<MachineryDetailScreen> {
   final _advanceController = TextEditingController();
   final _dieselUsedController = TextEditingController();
 
-  int? _editingIndex; // null means adding new, otherwise editing existing
+  int? _editingIndex;
+  late AnimationController _fabAnimationController;
+  late Animation<double> _fabAnimation;
+
+  // Enhanced color scheme
+  static const Color primaryColor = Color(0xFF6f88e2);
+  static const Color primaryVariant = Color(0xFF5a73d1);
+  static const Color primaryDark = Color(0xFF4a63c0);
+  static const Color surfaceColor = Color(0xFFF8F9FF);
+  static const Color cardColor = Colors.white;
+
+  @override
+  void initState() {
+    super.initState();
+    _fabAnimationController = AnimationController(
+      duration: const Duration(milliseconds: 200),
+      vsync: this,
+    );
+    _fabAnimation = CurvedAnimation(
+      parent: _fabAnimationController,
+      curve: Curves.easeInOut,
+    );
+    _fabAnimationController.forward();
+  }
 
   @override
   void dispose() {
@@ -36,6 +60,7 @@ class _MachineryDetailScreenState extends State<MachineryDetailScreen> {
     _rateController.dispose();
     _advanceController.dispose();
     _dieselUsedController.dispose();
+    _fabAnimationController.dispose();
     super.dispose();
   }
 
@@ -51,122 +76,592 @@ class _MachineryDetailScreenState extends State<MachineryDetailScreen> {
     }).toList();
 
     return Scaffold(
+      backgroundColor: surfaceColor,
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
+        elevation: 0,
         toolbarHeight: 90,
+        backgroundColor: Colors.transparent,
         title: Text(
           'Machinery - ${widget.siteName}',
-          style: const TextStyle(color: Colors.white),
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+          ),
         ),
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
-          PopupMenuButton<String>(
-            onSelected: (val) => setState(() => _filter = val),
-            itemBuilder: (_) => const [
-              PopupMenuItem(value: 'All', child: Text('All')),
-              PopupMenuItem(value: 'Fuel', child: Text('Fuel Only')),
-              PopupMenuItem(value: 'Rental', child: Text('Rental Only')),
-            ],
-            icon: const Icon(Icons.filter_list, color: Colors.white),
+          Container(
+            margin: const EdgeInsets.only(right: 16, top: 8, bottom: 8),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.white.withOpacity(0.3)),
+            ),
+            child: PopupMenuButton<String>(
+              onSelected: (val) => setState(() => _filter = val),
+              itemBuilder: (_) => [
+                _buildPopupMenuItem('All', Icons.apps, _filter == 'All'),
+                _buildPopupMenuItem('Fuel', Icons.local_gas_station, _filter == 'Fuel'),
+                _buildPopupMenuItem('Rental', Icons.settings, _filter == 'Rental'),
+              ],
+              icon: const Icon(Icons.filter_list, color: Colors.white, size: 20),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              offset: const Offset(0, 45),
+            ),
           ),
         ],
-        backgroundColor: Colors.transparent,
         flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
+          decoration: BoxDecoration(
+            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(24)),
             gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [Color(0xFF6f88e2), Color(0xFF5a73d1), Color(0xFF4a63c0)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [primaryColor, primaryVariant, primaryDark],
+              stops: const [0.0, 0.5, 1.0],
             ),
+            boxShadow: [
+              BoxShadow(
+                color: primaryColor.withOpacity(0.3),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
           ),
         ),
       ),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [surfaceColor, Colors.white],
+            stops: const [0.3, 1.0],
+          ),
+        ),
+        child: Column(
+          children: [
+            const SizedBox(height: 120), // Space for app bar
+            _buildStatsRow(),
+            const SizedBox(height: 16),
+            Expanded(
+              child: filtered.isEmpty
+                  ? _buildEmptyState()
+                  : _buildEntriesList(filtered),
+            ),
+          ],
+        ),
+      ),
+      floatingActionButton: ScaleTransition(
+        scale: _fabAnimation,
+        child: FloatingActionButton.extended(
+          onPressed: () {
+            _editingIndex = null;
+            _showEntryTypeDialog(siteOptions);
+          },
+          backgroundColor: primaryColor,
+          foregroundColor: Colors.white,
+          label: const Text('Add Entry', style: TextStyle(fontWeight: FontWeight.w600)),
+          icon: const Icon(Icons.add),
+          elevation: 8,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        ),
+      ),
+    );
+  }
 
-      body: filtered.isEmpty
-          ? const Center(child: Text('No entries yet.'))
-          : ListView.builder(
-              itemCount: filtered.length,
-              padding: const EdgeInsets.all(16),
-              itemBuilder: (context, index) {
-                final entry = filtered[index];
-                final actualIndex = _entries.indexOf(entry); // for editing
+  PopupMenuItem<String> _buildPopupMenuItem(String value, IconData icon, bool isSelected) {
+    return PopupMenuItem(
+      value: value,
+      child: Row(
+        children: [
+          Icon(
+            icon,
+            color: isSelected ? primaryColor : Colors.grey[600],
+            size: 20,
+          ),
+          const SizedBox(width: 12),
+          Text(
+            value,
+            style: TextStyle(
+              color: isSelected ? primaryColor : Colors.grey[800],
+              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+            ),
+          ),
+          if (isSelected) ...[
+            const Spacer(),
+            Icon(Icons.check, color: primaryColor, size: 18),
+          ],
+        ],
+      ),
+    );
+  }
 
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  child: ListTile(
-                    leading: Icon(
-                      entry['type'] == 'Fuel'
-                          ? Icons.local_gas_station
-                          : Icons.settings,
-                      color: entry['type'] == 'Fuel'
-                          ? Colors.orange
-                          : Colors.blue,
-                    ),
-                    title: Text('${entry['machine']} (${entry['type']})'),
-                    subtitle: entry['type'] == 'Fuel'
-                        ? Text(
-                            'Liters: ${entry['liters']} | Rate: ₹${entry['rate']}\nTotal: ₹${entry['total']}',
-                          )
-                        : Text(
-                            'Advance: ₹${entry['advance']}\nDiesel: ${entry['diesel']}L\nFrom: ${entry['fromSite']} → ${entry['toSite']}',
-                          ),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
+  Widget _buildStatsRow() {
+    final fuelEntries = _entries.where((e) => e['type'] == 'Fuel').length;
+    final rentalEntries = _entries.where((e) => e['type'] == 'Rental').length;
+    _entries.fold<double>(0, (sum, e) {
+      if (e['type'] == 'Fuel') return sum + (e['total'] ?? 0);
+      return sum + (e['advance'] ?? 0);
+    });
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        children: [
+          Expanded(child: _buildStatCard('Total Entries', '${_entries.length}', Icons.list, primaryColor)),
+          const SizedBox(width: 12),
+          Expanded(child: _buildStatCard('Fuel', '$fuelEntries', Icons.local_gas_station, Colors.orange[600]!)),
+          const SizedBox(width: 12),
+          Expanded(child: _buildStatCard('Rental', '$rentalEntries', Icons.settings, Colors.blue[600]!)),
+          const SizedBox(width: 12),
+          // Expanded(child: _buildStatCard('Total Cost', '₹${totalCost.toStringAsFixed(0)}', Icons.currency_rupee, Colors.green[600]!)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatCard(String title, String value, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Icon(icon, color: color, size: 20),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 10,
+              color: Colors.grey[600],
+              fontWeight: FontWeight.w500,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(32),
+            decoration: BoxDecoration(
+              color: primaryColor.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.precision_manufacturing_outlined,
+              size: 64,
+              color: primaryColor,
+            ),
+          ),
+          const SizedBox(height: 24),
+          Text(
+            'No machinery entries yet',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey[800],
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Add your first fuel or rental entry\nto get started',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey[600],
+              height: 1.4,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEntriesList(List<Map<String, dynamic>> filtered) {
+    return ListView.builder(
+      itemCount: filtered.length,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      itemBuilder: (context, index) {
+        final entry = filtered[index];
+        final actualIndex = _entries.indexOf(entry);
+
+        return AnimatedContainer(
+          duration: Duration(milliseconds: 300 + (index * 50)),
+          curve: Curves.easeOutBack,
+          child: Dismissible(
+            key: UniqueKey(),
+            background: _buildSwipeBackground(
+                color: const Color.fromARGB(255, 115, 161, 240), icon: Icons.edit, alignLeft: true, label: 'Edit'),
+            secondaryBackground: _buildSwipeBackground(
+                color: Colors.red[600]!, icon: Icons.delete, alignLeft: false, label: 'Delete'),
+            confirmDismiss: (direction) async {
+              if (direction == DismissDirection.startToEnd) {
+                // Edit
+                _editingIndex = actualIndex;
+                final existing = _entries[actualIndex];
+                if (existing['type'] == 'Fuel') {
+                  _machineController.text = existing['machine'];
+                  _litersController.text = existing['liters'].toString();
+                  _rateController.text = existing['rate'].toString();
+                  _showFuelEntryForm(isEditing: true);
+                } else {
+                  _machineController.text = existing['machine'];
+                  _advanceController.text = existing['advance'].toString();
+                  _dieselUsedController.text = existing['diesel'].toString();
+                  _showRentalEntryForm(
+                    Provider.of<CompanySiteProvider>(context, listen: false)
+                        .sites.map((site) => site.name).toList(),
+                    isEditing: true,
+                    fromSiteInit: existing['fromSite'],
+                    toSiteInit: existing['toSite'],
+                  );
+                }
+                return false;
+              } else {
+                _deleteEntry(actualIndex);
+                return true;
+              }
+            },
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: cardColor,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.08),
+                    blurRadius: 20,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Material(
+                color: Colors.transparent,
+                borderRadius: BorderRadius.circular(20),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(20),
+                  onTap: () => _showEntryDetails(entry),
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Row(
                       children: [
-                        IconButton(
-                          icon:
-                              const Icon(Icons.edit, color: Colors.blueAccent),
-                          onPressed: () {
-                            _editingIndex = actualIndex;
-                            final existing = _entries[actualIndex];
-                            if (existing['type'] == 'Fuel') {
-                              _machineController.text = existing['machine'];
-                              _litersController.text =
-                                  existing['liters'].toString();
-                              _rateController.text =
-                                  existing['rate'].toString();
-                              _showFuelEntryForm(isEditing: true);
-                            } else {
-                              _machineController.text = existing['machine'];
-                              _advanceController.text =
-                                  existing['advance'].toString();
-                              _dieselUsedController.text =
-                                  existing['diesel'].toString();
-                              _showRentalEntryForm(siteOptions,
-                                  isEditing: true,
-                                  fromSiteInit: existing['fromSite'],
-                                  toSiteInit: existing['toSite']);
-                            }
-                          },
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.delete, color: Colors.red),
-                          onPressed: () => _deleteEntry(actualIndex),
+                        _buildEntryIcon(entry['type']),
+                        const SizedBox(width: 16),
+                        Expanded(child: _buildEntryContent(entry)),
+                        Icon(
+                          Icons.chevron_right,
+                          color: Colors.grey[400],
                         ),
                       ],
                     ),
                   ),
-                );
-              },
+                ),
+              ),
             ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          _editingIndex = null; // ensure fresh add
-          _showEntryTypeDialog(siteOptions);
-        },
-        child: const Icon(Icons.add),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildEntryIcon(String type) {
+    final isfuel = type == 'Fuel';
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: (isfuel ? Colors.orange : Colors.blue).withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Icon(
+        isfuel ? Icons.local_gas_station : Icons.settings,
+        color: isfuel ? Colors.orange[600] : Colors.blue[600],
+        size: 24,
+      ),
+    );
+  }
+
+  Widget _buildEntryContent(Map<String, dynamic> entry) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                entry['machine'],
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                ),
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: entry['type'] == 'Fuel' 
+                    ? Colors.orange.withOpacity(0.1) 
+                    : Colors.blue.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                entry['type'],
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: entry['type'] == 'Fuel' ? Colors.orange[700] : Colors.blue[700],
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        if (entry['type'] == 'Fuel') ...[
+          _buildInfoRow(Icons.water_drop_outlined, 'Liters', '${entry['liters']}'),
+          _buildInfoRow(Icons.currency_rupee, 'Rate', '₹${entry['rate']}'),
+          _buildInfoRow(Icons.calculate, 'Total', '₹${entry['total']}', isTotal: true),
+        ] else ...[
+          _buildInfoRow(Icons.payment_outlined, 'Advance', '₹${entry['advance']}'),
+          _buildInfoRow(Icons.local_gas_station_outlined, 'Diesel', '${entry['diesel']}L'),
+          if (entry['fromSite'] != null && entry['toSite'] != null)
+            _buildInfoRow(Icons.route, 'Route', '${entry['fromSite']} → ${entry['toSite']}'),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildInfoRow(IconData icon, String label, String value, {bool isTotal = false}) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Row(
+        children: [
+          Icon(icon, size: 14, color: Colors.grey[600]),
+          const SizedBox(width: 6),
+          Text(
+            '$label: ',
+            style: TextStyle(
+              fontSize: 13,
+              color: Colors.grey[600],
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 13,
+              color: isTotal ? primaryColor : Colors.black87,
+              fontWeight: isTotal ? FontWeight.w700 : FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSwipeBackground({
+    required Color color,
+    required IconData icon,
+    required bool alignLeft,
+    required String label,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      alignment: alignLeft ? Alignment.centerLeft : Alignment.centerRight,
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: Colors.white, size: 28),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showEntryDetails(Map<String, dynamic> entry) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  _buildEntryIcon(entry['type']),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          entry['machine'],
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          '${entry['type']} Entry • ${entry['date']}',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              const Divider(),
+              const SizedBox(height: 16),
+              ..._buildDetailRows(entry),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  List<Widget> _buildDetailRows(Map<String, dynamic> entry) {
+    if (entry['type'] == 'Fuel') {
+      return [
+        _buildDetailRow('Liters', '${entry['liters']} L', Icons.water_drop),
+        _buildDetailRow('Rate per Liter', '₹${entry['rate']}', Icons.currency_rupee),
+        _buildDetailRow('Total Amount', '₹${entry['total']}', Icons.calculate),
+      ];
+    } else {
+      return [
+        _buildDetailRow('Advance Paid', '₹${entry['advance']}', Icons.payment),
+        _buildDetailRow('Diesel Supplied', '${entry['diesel']} L', Icons.local_gas_station),
+        if (entry['fromSite'] != null)
+          _buildDetailRow('From Site', entry['fromSite'], Icons.location_on),
+        if (entry['toSite'] != null)
+          _buildDetailRow('To Site', entry['toSite'], Icons.flag),
+      ];
+    }
+  }
+
+  Widget _buildDetailRow(String label, String value, IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: primaryColor),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 
   void _deleteEntry(int index) {
+    final deletedEntry = _entries[index];
     setState(() {
       _entries.removeAt(index);
     });
+    
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Entry deleted'),
-        backgroundColor: Colors.red,
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.delete, color: Colors.white),
+            const SizedBox(width: 12),
+            Text('${deletedEntry['machine']} deleted'),
+          ],
+        ),
+        backgroundColor: Colors.red[600],
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        action: SnackBarAction(
+          label: 'UNDO',
+          textColor: Colors.white,
+          onPressed: () {
+            setState(() {
+              _entries.insert(index, deletedEntry);
+            });
+          },
+        ),
       ),
     );
   }
@@ -174,32 +669,123 @@ class _MachineryDetailScreenState extends State<MachineryDetailScreen> {
   void _showEntryTypeDialog(List<String> siteOptions) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text(
-          'Add New Entry',
-          style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+          ),
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: primaryColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(Icons.add, color: primaryColor, size: 24),
+                  ),
+                  const SizedBox(width: 16),
+                  const Expanded(
+                    child: Text(
+                      'Add New Entry',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              _buildEntryTypeCard(
+                title: 'Fuel Entry',
+                subtitle: 'Track fuel consumption and costs',
+                icon: Icons.local_gas_station,
+                color: Colors.orange[600]!,
+                onTap: () {
+                  Navigator.pop(context);
+                  _showFuelEntryForm();
+                },
+              ),
+              const SizedBox(height: 12),
+              _buildEntryTypeCard(
+                title: 'Rental Entry',
+                subtitle: 'Track machinery rental and diesel supply',
+                icon: Icons.settings,
+                color: Colors.blue[600]!,
+                onTap: () {
+                  Navigator.pop(context);
+                  _showRentalEntryForm(siteOptions);
+                },
+              ),
+            ],
+          ),
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.local_gas_station, color: Colors.orange),
-              title: const Text('Fuel Entry'),
-              onTap: () {
-                Navigator.pop(context);
-                _showFuelEntryForm();
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.settings, color: Colors.blue),
-              title: const Text('Rental Entry'),
-              onTap: () {
-                Navigator.pop(context);
-                _showRentalEntryForm(siteOptions);
-              },
-            ),
-          ],
+      ),
+    );
+  }
+
+  Widget _buildEntryTypeCard({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey[200]!),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: color, size: 24),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                        height: 1.3,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey[400]),
+            ],
+          ),
         ),
       ),
     );
@@ -207,7 +793,6 @@ class _MachineryDetailScreenState extends State<MachineryDetailScreen> {
 
   void _showFuelEntryForm({bool isEditing = false}) {
     String? machineError;
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -222,76 +807,139 @@ class _MachineryDetailScreenState extends State<MachineryDetailScreen> {
               borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
             ),
             child: Padding(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(24),
               child: StatefulBuilder(
                 builder: (context, setState) {
                   return Column(
                     mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      Center(
+                        child: Container(
+                          width: 40,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[300],
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.orange.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Icon(Icons.local_gas_station, color: Colors.orange[600], size: 24),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Text(
+                              isEditing ? 'Edit Fuel Entry' : 'New Fuel Entry',
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
                       _buildEnhancedTextField(
                         controller: _machineController,
                         label: 'Machine Name',
                         icon: Icons.precision_manufacturing,
                         errorText: machineError,
                       ),
-                      const SizedBox(height: 10),
-                      _buildEnhancedTextField(
-                        controller: _litersController,
-                        label: 'Liters',
-                        icon: Icons.water_drop,
-                        keyboardType: TextInputType.number,
-                        suffix: 'L',
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildEnhancedTextField(
+                              controller: _litersController,
+                              label: 'Liters',
+                              icon: Icons.water_drop,
+                              keyboardType: TextInputType.number,
+                              suffix: 'L',
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _buildEnhancedTextField(
+                              controller: _rateController,
+                              label: 'Rate per Liter',
+                              icon: Icons.currency_rupee,
+                              keyboardType: TextInputType.number,
+                              suffix: '₹/L',
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 10),
-                      _buildEnhancedTextField(
-                        controller: _rateController,
-                        label: 'Rate per Liter',
-                        icon: Icons.currency_rupee,
-                        keyboardType: TextInputType.number,
-                        suffix: '₹/L',
-                      ),
-                      const SizedBox(height: 20),
-                      ElevatedButton(
-                        onPressed: () {
-                          final machine = _machineController.text.trim();
-                          if (machine.isEmpty) {
-                            setState(() =>
-                                machineError = 'Machine name is required');
-                            return;
-                          }
-                          final liters =
-                              double.tryParse(_litersController.text) ?? 0;
-                          final rate =
-                              double.tryParse(_rateController.text) ?? 0;
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            final machine = _machineController.text.trim();
+                            if (machine.isEmpty) {
+                              setState(() =>
+                                  machineError = 'Machine name is required');
+                              return;
+                            }
+                            final liters =
+                                double.tryParse(_litersController.text) ?? 0;
+                            final rate =
+                                double.tryParse(_rateController.text) ?? 0;
 
-                          final entry = {
-                            'type': 'Fuel',
-                            'machine': machine,
-                            'liters': liters,
-                            'rate': rate,
-                            'total': liters * rate,
-                            'date':
-                                DateTime.now().toString().split(' ').first,
-                          };
+                            final entry = {
+                              'type': 'Fuel',
+                              'machine': machine,
+                              'liters': liters,
+                              'rate': rate,
+                              'total': liters * rate,
+                              'date': DateTime.now()
+                                  .toString()
+                                  .split(' ')
+                                  .first,
+                            };
 
-                          setState(() => machineError = null);
+                            setState(() => machineError = null);
 
-                          if (isEditing && _editingIndex != null) {
-                            this.setState(() {
-                              _entries[_editingIndex!] = entry;
-                            });
-                          } else {
-                            this.setState(() {
-                              _entries.add(entry);
-                            });
-                          }
+                            if (isEditing && _editingIndex != null) {
+                              this.setState(() {
+                                _entries[_editingIndex!] = entry;
+                              });
+                            } else {
+                              this.setState(() {
+                                _entries.add(entry);
+                              });
+                            }
 
-                          _machineController.clear();
-                          _litersController.clear();
-                          _rateController.clear();
-                          Navigator.pop(context);
-                        },
-                        child: Text(isEditing ? 'Update Fuel Entry' : 'Save Fuel Entry'),
+                            _machineController.clear();
+                            _litersController.clear();
+                            _rateController.clear();
+                            Navigator.pop(context);
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: primaryColor,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 0,
+                          ),
+                          child: Text(
+                            isEditing ? 'Update Fuel Entry' : 'Save Fuel Entry',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
                       ),
                     ],
                   );
@@ -309,7 +957,6 @@ class _MachineryDetailScreenState extends State<MachineryDetailScreen> {
     String? machineError;
     String? fromSite = fromSiteInit;
     String? toSite = toSiteInit;
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -324,93 +971,164 @@ class _MachineryDetailScreenState extends State<MachineryDetailScreen> {
               borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
             ),
             child: Padding(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(24),
               child: StatefulBuilder(
                 builder: (context, setState) {
                   return Column(
                     mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      Center(
+                        child: Container(
+                          width: 40,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[300],
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.blue.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Icon(Icons.settings, color: Colors.blue[600], size: 24),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Text(
+                              isEditing ? 'Edit Rental Entry' : 'New Rental Entry',
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
                       _buildEnhancedTextField(
                         controller: _machineController,
                         label: 'Machine Name',
                         icon: Icons.precision_manufacturing,
                         errorText: machineError,
                       ),
-                      const SizedBox(height: 10),
-                      _buildEnhancedDropdown(
-                        value: fromSite,
-                        label: 'From Site',
-                        icon: Icons.location_on,
-                        items: siteOptions,
-                        onChanged: (val) => setState(() => fromSite = val),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildEnhancedDropdown(
+                              value: fromSite,
+                              label: 'From Site',
+                              icon: Icons.location_on,
+                              items: siteOptions,
+                              onChanged: (val) => setState(() => fromSite = val),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _buildEnhancedDropdown(
+                              value: toSite,
+                              label: 'To Site',
+                              icon: Icons.flag,
+                              items: siteOptions,
+                              onChanged: (val) => setState(() => toSite = val),
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 10),
-                      _buildEnhancedDropdown(
-                        value: toSite,
-                        label: 'To Site',
-                        icon: Icons.flag,
-                        items: siteOptions,
-                        onChanged: (val) => setState(() => toSite = val),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildEnhancedTextField(
+                              controller: _advanceController,
+                              label: 'Advance Paid',
+                              icon: Icons.payment,
+                              keyboardType: TextInputType.number,
+                              suffix: '₹',
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _buildEnhancedTextField(
+                              controller: _dieselUsedController,
+                              label: 'Diesel Supplied',
+                              icon: Icons.local_gas_station,
+                              keyboardType: TextInputType.number,
+                              suffix: 'L',
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 10),
-                      _buildEnhancedTextField(
-                        controller: _advanceController,
-                        label: 'Advance Paid',
-                        icon: Icons.payment,
-                        keyboardType: TextInputType.number,
-                        suffix: '₹',
-                      ),
-                      const SizedBox(height: 10),
-                      _buildEnhancedTextField(
-                        controller: _dieselUsedController,
-                        label: 'Diesel Supplied',
-                        icon: Icons.local_gas_station,
-                        keyboardType: TextInputType.number,
-                        suffix: 'L',
-                      ),
-                      const SizedBox(height: 20),
-                      ElevatedButton(
-                        onPressed: () {
-                          final machine = _machineController.text.trim();
-                          if (machine.isEmpty) {
-                            setState(() =>
-                                machineError = 'Machine name is required');
-                            return;
-                          }
-                          final diesel =
-                              double.tryParse(_dieselUsedController.text) ?? 0;
-                          final advance =
-                              double.tryParse(_advanceController.text) ?? 0;
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            final machine = _machineController.text.trim();
+                            if (machine.isEmpty) {
+                              setState(() =>
+                                  machineError = 'Machine name is required');
+                              return;
+                            }
+                            final diesel =
+                                double.tryParse(_dieselUsedController.text) ?? 0;
+                            final advance =
+                                double.tryParse(_advanceController.text) ?? 0;
 
-                          final entry = {
-                            'type': 'Rental',
-                            'machine': machine,
-                            'advance': advance,
-                            'diesel': diesel,
-                            'fromSite': fromSite,
-                            'toSite': toSite,
-                            'date':
-                                DateTime.now().toString().split(' ').first,
-                          };
+                            final entry = {
+                              'type': 'Rental',
+                              'machine': machine,
+                              'advance': advance,
+                              'diesel': diesel,
+                              'fromSite': fromSite,
+                              'toSite': toSite,
+                              'date': DateTime.now()
+                                  .toString()
+                                  .split(' ')
+                                  .first,
+                            };
 
-                          setState(() => machineError = null);
+                            setState(() => machineError = null);
 
-                          if (isEditing && _editingIndex != null) {
-                            this.setState(() {
-                              _entries[_editingIndex!] = entry;
-                            });
-                          } else {
-                            this.setState(() {
-                              _entries.add(entry);
-                            });
-                          }
+                            if (isEditing && _editingIndex != null) {
+                              this.setState(() {
+                                _entries[_editingIndex!] = entry;
+                              });
+                            } else {
+                              this.setState(() {
+                                _entries.add(entry);
+                              });
+                            }
 
-                          _machineController.clear();
-                          _advanceController.clear();
-                          _dieselUsedController.clear();
-                          Navigator.pop(context);
-                        },
-                        child: Text(isEditing ? 'Update Rental Entry' : 'Save Rental Entry'),
+                            _machineController.clear();
+                            _advanceController.clear();
+                            _dieselUsedController.clear();
+                            Navigator.pop(context);
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: primaryColor,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 0,
+                          ),
+                          child: Text(
+                            isEditing ? 'Update Rental Entry' : 'Save Rental Entry',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
                       ),
                     ],
                   );
@@ -431,14 +1149,59 @@ class _MachineryDetailScreenState extends State<MachineryDetailScreen> {
     TextInputType? keyboardType,
     String? suffix,
   }) {
-    return TextField(
-      controller: controller,
-      keyboardType: keyboardType,
-      decoration: InputDecoration(
-        labelText: label,
-        errorText: errorText,
-        suffixText: suffix,
-        prefixIcon: Icon(icon, color: const Color(0xFF6f88e2)),
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: TextField(
+        controller: controller,
+        keyboardType: keyboardType,
+        decoration: InputDecoration(
+          labelText: label,
+          errorText: errorText,
+          suffixText: suffix,
+          prefixIcon: Icon(icon, color: primaryColor, size: 20),
+          filled: true,
+          fillColor: Colors.white,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: Colors.grey[300]!),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: Colors.grey[300]!),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: primaryColor, width: 2),
+          ),
+          errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: Colors.red[400]!),
+          ),
+          focusedErrorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: Colors.red[400]!),
+          ),
+          labelStyle: TextStyle(
+            color: Colors.grey[600],
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
+          suffixStyle: TextStyle(
+            color: primaryColor,
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        ),
       ),
     );
   }
@@ -450,16 +1213,60 @@ class _MachineryDetailScreenState extends State<MachineryDetailScreen> {
     required List<String> items,
     required ValueChanged<String?> onChanged,
   }) {
-    return DropdownButtonFormField<String>(
-      value: value,
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: Icon(icon, color: const Color(0xFF6f88e2)),
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-      items: items.map((site) {
-        return DropdownMenuItem(value: site, child: Text(site));
-      }).toList(),
-      onChanged: onChanged,
+      child: DropdownButtonFormField<String>(
+        value: value,
+        decoration: InputDecoration(
+          labelText: label,
+          prefixIcon: Icon(icon, color: primaryColor, size: 20),
+          filled: true,
+          fillColor: Colors.white,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: Colors.grey[300]!),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: Colors.grey[300]!),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: primaryColor, width: 2),
+          ),
+          labelStyle: TextStyle(
+            color: Colors.grey[600],
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        ),
+        items: items.map((site) {
+          return DropdownMenuItem(
+            value: site,
+            child: Text(
+              site,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          );
+        }).toList(),
+        onChanged: onChanged,
+        icon: Icon(Icons.arrow_drop_down, color: primaryColor),
+        dropdownColor: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+      ),
     );
   }
 }

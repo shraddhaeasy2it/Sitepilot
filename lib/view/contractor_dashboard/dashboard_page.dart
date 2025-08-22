@@ -217,82 +217,85 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-  return Scaffold(
-    backgroundColor: const Color(0xFFf4f4f4),
-    body: Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          SizedBox(
-            height: 150,
-            child: Lottie.asset(
-              'assets/helmet.json', // Your loading animation path
-              repeat: true,
-              animate: true,
-            ),
+      return Scaffold(
+        //backgroundColor: Colors.white,
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SizedBox(
+                height: 150,
+                child: Lottie.asset(
+                  'assets/helmet.json',
+                  repeat: true,
+                  animate: true,
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Preparing your dashboard',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF4a63c0),
+                ),
+              ),
+              const SizedBox(height: 10),
+              const Text(
+                'Please wait while we load your data...',
+                style: TextStyle(fontSize: 14, color: Colors.grey),
+              ),
+            ],
           ),
-          const SizedBox(height: 10),
-          const Text(
-            'Loading dashboard...',
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey,
-            ),
-          ),
-        ],
-      ),
-    ),
-  );
-}
+        ),
+      );
+    }
 
     // Fallback: If data is still missing after loading, show error
     if (_dashboardData == null || _screens.isEmpty) {
       return Scaffold(
-        backgroundColor: const Color(0xFFf4f4f4),
-        body: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [Color(0xFF1A1A2E), Color(0xFF16213E)],
-            ),
-          ),
-          child: Center(
+       
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.1),
+                    color: const Color(0xFF4a63c0).withOpacity(0.1),
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.grey.shade300),
+                    border: Border.all(
+                      color: const Color(0xFF4a63c0).withOpacity(0.3),
+                    ),
                   ),
-                  child: const Icon(
-                    Icons.error_outline,
-                    color: Colors.white,
-                    size: 48,
+                  child: Lottie.asset(
+                    'assets/error.json',
+                    width: 100,
+                    height: 100,
+                    repeat: false,
                   ),
                 ),
-                const SizedBox(height: 24),
                 const Text(
                   'Failed to load dashboard',
                   style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
+                    color: Color(0xFF1F2937),
+                    fontSize: 22,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 12),
                 const Text(
-                  'Please check your connection and try again',
-                  style: TextStyle(color: Colors.white70, fontSize: 14),
+                  'Please check your internet connection and try again',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.grey, fontSize: 16),
                 ),
                 const SizedBox(height: 32),
                 ElevatedButton(
                   onPressed: _loadData,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF6366F1),
+                    backgroundColor: const Color(0xFF4a63c0),
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(
                       horizontal: 32,
@@ -301,9 +304,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
+                    elevation: 2,
+                    shadowColor: const Color(0xFF4a63c0).withOpacity(0.3),
                   ),
                   child: const Text(
-                    'Retry',
+                    'Try Again',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                   ),
                 ),
@@ -315,53 +320,56 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFf4f4f4),
+      
       appBar: _currentIndex == 0
           ? AppBar(
-            iconTheme: const IconThemeData(
-          color: Colors.white, // Back arrow white
-        ),
+              iconTheme: const IconThemeData(color: Colors.white),
               toolbarHeight: 90,
               elevation: 0,
               backgroundColor: Colors.transparent,
-              flexibleSpace: ClipRRect(
-                borderRadius: const BorderRadius.vertical(
-                  bottom: Radius.circular(25),
-                ),
-                child: Container(
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Color(0xFF6f88e2),
-                        Color(0xFF5a73d1),
-                        Color(0xFF4a63c0),
-                      ],
-                    ),
+              flexibleSpace: Container(
+                decoration: const BoxDecoration(
+                  borderRadius: BorderRadius.vertical(
+                    bottom: Radius.circular(25),
                   ),
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Color(0xFF6f88e2),
+                      Color(0xFF5a73d1),
+                      Color(0xFF4a63c0),
+                    ],
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black12,
+                      blurRadius: 10,
+                      offset: Offset(0, 4),
+                    ),
+                  ],
                 ),
               ),
               title: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Construction',
+                    'Dashboard',
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: 30,
+                      fontSize: 28,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 0.5,
                     ),
                   ),
-                  if (widget.companyName != null) const SizedBox(height: 10),
+                  if (widget.companyName != null) const SizedBox(height: 8),
                   if (widget.companyName != null)
                     Text(
                       widget.companyName!,
                       style: const TextStyle(
-                        fontSize: 15,
+                        fontSize: 16,
                         fontWeight: FontWeight.w500,
-                        color: Color.fromARGB(214, 255, 255, 255),
+                        color: Colors.white70,
                       ),
                     ),
                 ],
@@ -378,6 +386,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     icon: const Icon(
                       Icons.notifications_outlined,
                       color: Colors.white,
+                      size: 26,
                     ),
                     onPressed: _showNotifications,
                   ),
@@ -385,7 +394,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ],
             )
           : null,
-
       body: IndexedStack(index: _currentIndex, children: _screens),
       bottomNavigationBar: CustomBottomNavBar(
         currentIndex: _currentIndex,
@@ -412,8 +420,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void _showNotifications() {
     // Notification logic here
   }
-
-  // Removed site management modal as it's now handled by the company site provider
 }
 
 class SitesManagementModal extends StatefulWidget {
@@ -473,7 +479,7 @@ class _SitesManagementModalState extends State<SitesManagementModal> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Site "${newSite.name}" added successfully!'),
-            backgroundColor: const Color(0xFF10B981),
+            backgroundColor: const Color(0xFF4a63c0),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
@@ -483,8 +489,8 @@ class _SitesManagementModalState extends State<SitesManagementModal> {
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Site "${newSite.name}" already exists!'),
-            backgroundColor: const Color(0xFFF59E0B),
+            content: Text('Failed to add site "${newSite.name}"!'),
+            backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
@@ -527,7 +533,7 @@ class _SitesManagementModalState extends State<SitesManagementModal> {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text('Site "${site.name}" deleted successfully!'),
-                    backgroundColor: const Color(0xFFEF4444),
+                    backgroundColor: const Color(0xFF4a63c0),
                     behavior: SnackBarBehavior.floating,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -539,7 +545,7 @@ class _SitesManagementModalState extends State<SitesManagementModal> {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text('Failed to delete site "${site.name}"!'),
-                    backgroundColor: const Color(0xFFEF4444),
+                    backgroundColor: Colors.red,
                     behavior: SnackBarBehavior.floating,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -549,7 +555,7 @@ class _SitesManagementModalState extends State<SitesManagementModal> {
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFEF4444),
+              backgroundColor: Colors.red,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
@@ -566,16 +572,12 @@ class _SitesManagementModalState extends State<SitesManagementModal> {
   Widget build(BuildContext context) {
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      backgroundColor: const Color(0xFFf4f4f4),
+      backgroundColor: Colors.white,
       child: Container(
         width: MediaQuery.of(context).size.width * 0.9,
         height: MediaQuery.of(context).size.height * 0.8,
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Colors.white, Color(0xFFF8FAFC)],
-          ),
+          color: Colors.white,
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
@@ -610,38 +612,29 @@ class _SitesManagementModalState extends State<SitesManagementModal> {
                     ),
                   ],
                 ),
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.grey[100],
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close, color: Color(0xFF6B7280)),
-                  ),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close, color: Color(0xFF6B7280)),
                 ),
               ],
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 24),
 
             // Add new site form
             Container(
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
-                ),
-                borderRadius: BorderRadius.circular(20),
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.grey.shade200),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF667EEA).withOpacity(0.3),
-                    blurRadius: 20,
-                    offset: const Offset(0, 8),
+                    color: const Color(0xFF4a63c0).withOpacity(0.1),
+                    blurRadius: 15,
+                    offset: const Offset(0, 5),
                   ),
                 ],
               ),
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(20),
               child: Form(
                 key: _formKey,
                 child: Column(
@@ -652,44 +645,44 @@ class _SitesManagementModalState extends State<SitesManagementModal> {
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: Color(0xFF1F2937),
                       ),
                     ),
                     const SizedBox(height: 20),
                     TextFormField(
                       controller: _siteNameController,
-                      style: const TextStyle(color: Colors.white),
+                      style: const TextStyle(color: Color(0xFF1F2937)),
                       decoration: InputDecoration(
                         labelText: 'Site Name',
-                        labelStyle: const TextStyle(color: Colors.white70),
+                        labelStyle: const TextStyle(color: Color(0xFF6B7280)),
                         prefixIcon: const Icon(
                           Icons.location_on,
-                          color: Colors.white70,
+                          color: Color(0xFF4a63c0),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Colors.white30),
+                          borderSide: const BorderSide(color: Colors.grey),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: const BorderSide(
-                            color: Colors.white,
+                            color: Color(0xFF4a63c0),
                             width: 2,
                           ),
                         ),
                         errorBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Colors.redAccent),
+                          borderSide: const BorderSide(color: Colors.red),
                         ),
                         focusedErrorBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: const BorderSide(
-                            color: Colors.redAccent,
+                            color: Colors.red,
                             width: 2,
                           ),
                         ),
                         filled: true,
-                        fillColor: Colors.white.withOpacity(0.1),
+                        fillColor: Colors.grey.shade50,
                       ),
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
@@ -701,38 +694,38 @@ class _SitesManagementModalState extends State<SitesManagementModal> {
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: _siteAddressController,
-                      style: const TextStyle(color: Colors.white),
+                      style: const TextStyle(color: Color(0xFF1F2937)),
                       decoration: InputDecoration(
                         labelText: 'Site Address',
-                        labelStyle: const TextStyle(color: Colors.white70),
+                        labelStyle: const TextStyle(color: Color(0xFF6B7280)),
                         prefixIcon: const Icon(
                           Icons.home,
-                          color: Colors.white70,
+                          color: Color(0xFF4a63c0),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Colors.white30),
+                          borderSide: const BorderSide(color: Colors.grey),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: const BorderSide(
-                            color: Colors.white,
+                            color: Color(0xFF4a63c0),
                             width: 2,
                           ),
                         ),
                         errorBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Colors.redAccent),
+                          borderSide: const BorderSide(color: Colors.red),
                         ),
                         focusedErrorBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: const BorderSide(
-                            color: Colors.redAccent,
+                            color: Colors.red,
                             width: 2,
                           ),
                         ),
                         filled: true,
-                        fillColor: Colors.white.withOpacity(0.1),
+                        fillColor: Colors.grey.shade50,
                       ),
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
@@ -744,25 +737,23 @@ class _SitesManagementModalState extends State<SitesManagementModal> {
                     const SizedBox(height: 20),
                     SizedBox(
                       width: double.infinity,
-                      child: ElevatedButton.icon(
+                      child: ElevatedButton(
                         onPressed: _addNewSite,
-                        icon: const Icon(Icons.add, color:  Color(0xFF4a63c0),),
-                        label: const Text(
-                          'Add Site',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 16,
-                            color: Colors.white,
-                          ),
-                        ),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          foregroundColor:  Color(0xFF4a63c0),
+                          backgroundColor: const Color(0xFF4a63c0),
+                          foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          elevation: 0,
+                          elevation: 2,
+                        ),
+                        child: const Text(
+                          'Add Site',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 16,
+                          ),
                         ),
                       ),
                     ),
@@ -771,20 +762,42 @@ class _SitesManagementModalState extends State<SitesManagementModal> {
               ),
             ),
 
-            const SizedBox(height: 32),
+            const SizedBox(height: 24),
 
             // Existing sites list
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Existing Sites (${widget.sites.length})',
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF1F2937),
-                    ),
+                  Row(
+                    children: [
+                      const Text(
+                        'Existing Sites',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1F2937),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF4a63c0).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          '${widget.sites.length}',
+                          style: const TextStyle(
+                            color: Color(0xFF4a63c0),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 16),
                   Expanded(
@@ -795,13 +808,9 @@ class _SitesManagementModalState extends State<SitesManagementModal> {
                         return Container(
                           margin: const EdgeInsets.only(bottom: 12),
                           decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.centerLeft,
-                              end: Alignment.centerRight,
-                              colors: [Colors.white, Colors.grey[50]!],
-                            ),
+                            color: Colors.white,
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: Colors.grey[200]!),
+                            border: Border.all(color: Colors.grey.shade200),
                             boxShadow: [
                               BoxShadow(
                                 color: Colors.black.withOpacity(0.05),
@@ -812,24 +821,19 @@ class _SitesManagementModalState extends State<SitesManagementModal> {
                           ),
                           child: ListTile(
                             contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 20,
-                              vertical: 8,
+                              horizontal: 16,
+                              vertical: 12,
                             ),
                             leading: Container(
-                              padding: const EdgeInsets.all(10),
+                              padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
-                                gradient: const LinearGradient(
-                                  colors: [
-                                     Color(0xFF4a63c0),
-                                     Color(0xFF4a63c0),
-                                  ],
-                                ),
+                                color: const Color(0xFF4a63c0).withOpacity(0.1),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: const Icon(
                                 Icons.location_on,
-                                color: Colors.white,
-                                size: 20,
+                                color: Color(0xFF4a63c0),
+                                size: 24,
                               ),
                             ),
                             title: Text(
@@ -847,18 +851,12 @@ class _SitesManagementModalState extends State<SitesManagementModal> {
                                 fontSize: 14,
                               ),
                             ),
-                            trailing: Container(
-                              decoration: BoxDecoration(
-                                color: Colors.red[50],
-                                borderRadius: BorderRadius.circular(8),
+                            trailing: IconButton(
+                              icon: const Icon(
+                                Icons.delete_outline,
+                                color: Colors.red,
                               ),
-                              child: IconButton(
-                                icon: Icon(
-                                  Icons.delete_outline,
-                                  color: Colors.red[600],
-                                ),
-                                onPressed: () => _deleteSite(site),
-                              ),
+                              onPressed: () => _deleteSite(site),
                             ),
                           ),
                         );
@@ -894,20 +892,13 @@ class DashboardContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      // decoration: const BoxDecoration(
-      //   gradient: LinearGradient(
-      //     begin: Alignment.topCenter,
-      //     end: Alignment.bottomCenter,
-      //     colors: [Color(0xFFF8FAFC), Color(0xFFE2E8F0)],
-      //   ),
-      // ),
-      color: const Color(0xFFf4f4f4),
+      color: Colors.white,
       child: Column(
         children: [
           _buildSiteSelector(),
           Expanded(
             child: dashboardData == null
-                ? const Center(child: CircularProgressIndicator())
+                ? _buildEmptyState()
                 : _buildDashboardContent(context),
           ),
         ],
@@ -917,35 +908,31 @@ class DashboardContent extends StatelessWidget {
 
   Widget _buildSiteSelector() {
     return Container(
-      margin: const EdgeInsets.all(20),
+      margin: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Colors.white, Color(0xFFF8FAFC)],
-        ),
-        borderRadius: BorderRadius.circular(20),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
           ),
         ],
-        border: Border.all(color: Colors.white.withOpacity(0.2)),
+        border: Border.all(color: Colors.grey.shade200),
       ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         child: DropdownButtonFormField<String>(
           value: selectedSiteId?.isNotEmpty == true ? selectedSiteId : null,
           decoration: const InputDecoration(
-            labelText: 'Filter By Site',
+            labelText: 'Select Site',
             labelStyle: TextStyle(
               color: Color(0xFF6B7280),
               fontWeight: FontWeight.w500,
             ),
             border: InputBorder.none,
-            prefixIcon: Icon(Icons.location_on, color: Color(0xFF667EEA)),
+            prefixIcon: Icon(Icons.location_on, color: Color(0xFF4a63c0)),
           ),
           dropdownColor: Colors.white,
           style: const TextStyle(
@@ -956,7 +943,10 @@ class DashboardContent extends StatelessWidget {
           items: sites.map((site) {
             return DropdownMenuItem<String>(
               value: site.id,
-              child: Text(site.name),
+              child: Text(
+                site.name,
+                style: const TextStyle(color: Color(0xFF1F2937)),
+              ),
             );
           }).toList(),
           onChanged: (String? newValue) {
@@ -964,26 +954,25 @@ class DashboardContent extends StatelessWidget {
               onSiteChanged(newValue);
             }
           },
+          icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF4a63c0)),
+          borderRadius: BorderRadius.circular(12),
         ),
       ),
     );
   }
 
   Widget _buildDashboardContent(BuildContext context) {
-    if (dashboardData == null) {
-      return _buildEmptyState();
-    }
     return RefreshIndicator(
       onRefresh: () async {}, // Parent handles refresh
-      color: const Color(0xFF667EEA),
+      color: const Color(0xFF4a63c0),
       backgroundColor: Colors.white,
       child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 20),
+        padding: const EdgeInsets.symmetric(horizontal: 16),
         child: Column(
           children: [
             const SizedBox(height: 8),
             _buildSummaryGrid(dashboardData!),
-            const SizedBox(height: 32),
+            const SizedBox(height: 24),
             _buildRecentActivities(),
             const SizedBox(height: 20),
           ],
@@ -996,34 +985,35 @@ class DashboardContent extends StatelessWidget {
     final summaryItems = [
       {
         'icon': Icons.inventory_2_outlined,
-        'title': 'Inventory Count',
+        'title': 'Inventory',
         'value': data.totalPicking.toString(),
-        'colors': [const Color(0xFF3B82F6), const Color(0xFF1D4ED8)],
-        'bgColors': [const Color(0xFFDBEAFE), const Color(0xFFBFDBFE)],
+        'subtitle': 'Items in stock',
+        'color': const Color.fromARGB(255, 175, 61, 141),
+        'bgColor': const Color.fromARGB(255, 175, 61, 141).withOpacity(0.1),
       },
       {
         'icon': Icons.groups_outlined,
-        'title': 'Total Workers',
+        'title': 'Workers',
         'value': data.totalWorkers.toString(),
-        'colors': [const Color(0xFF10B981), const Color(0xFF059669)],
-        'bgColors': [const Color(0xFFD1FAE5), const Color(0xFFA7F3D0)],
+        'subtitle': 'Active today',
+        'color': const Color.fromARGB(255, 13, 153, 106),
+        'bgColor': const Color(0xFF10B981).withOpacity(0.1),
       },
       {
         'icon': Icons.fact_check_outlined,
-        'title': 'Total Inspections',
+        'title': 'Inspections',
         'value': data.totalInspection.toString(),
-        'colors': [
-          const Color.fromARGB(255, 245, 165, 26),
-          const Color.fromARGB(255, 226, 137, 36),
-        ],
-        'bgColors': [const Color(0xFFFEF3C7), const Color(0xFFFDE68A)],
+        'subtitle': 'Completed',
+        'color': const Color.fromARGB(255, 230, 148, 6),
+        'bgColor': const Color(0xFFF59E0B).withOpacity(0.1),
       },
       {
         'icon': Icons.shopping_cart_outlined,
-        'title': 'Total Pickings',
+        'title': 'Pickings',
         'value': data.totalPicking.toString(),
-        'colors': [const Color(0xFF8B5CF6), const Color(0xFF7C3AED)],
-        'bgColors': [const Color(0xFFEDE9FE), const Color(0xFFDDD6FE)],
+        'subtitle': 'This month',
+        'color': const Color(0xFF8B5CF6),
+        'bgColor': const Color(0xFF8B5CF6).withOpacity(0.1),
       },
     ];
 
@@ -1032,7 +1022,7 @@ class DashboardContent extends StatelessWidget {
         crossAxisCount: 2,
         mainAxisSpacing: 16,
         crossAxisSpacing: 16,
-        childAspectRatio: 1.30,
+        childAspectRatio: 1.1,
       ),
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -1040,24 +1030,22 @@ class DashboardContent extends StatelessWidget {
       itemBuilder: (context, index) {
         final item = summaryItems[index];
         return Container(
+          
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: item['bgColors'] as List<Color>,
-            ),
-            borderRadius: BorderRadius.circular(20),
+            color: const Color.fromARGB(255, 223, 230, 252),
+            borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: (item['colors'] as List<Color>)[0].withOpacity(0.2),
-                blurRadius: 15,
-                offset: const Offset(0, 8),
+                color: Colors.black.withOpacity(0.2), // Increased opacity
+                blurRadius: 3, // Increased blur
+                offset: const Offset(0, 4), // Increased offset
+                // Added spread
               ),
             ],
-            border: Border.all(color: Colors.grey.shade400, width: 1),
+            border: Border.all(color: Colors.grey.shade200),
           ),
           child: Padding(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1065,24 +1053,13 @@ class DashboardContent extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: item['colors'] as List<Color>,
-                    ),
+                    color: item['bgColor'] as Color,
                     borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: (item['colors'] as List<Color>)[0].withOpacity(
-                          0.3,
-                        ),
-                        blurRadius: 8,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
                   ),
                   child: Icon(
                     item['icon'] as IconData,
-                    color: Colors.white,
-                    size: 18,
+                    color: item['color'] as Color,
+                    size: 20,
                   ),
                 ),
                 Column(
@@ -1093,18 +1070,24 @@ class DashboardContent extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
-                        color: (item['colors'] as List<Color>)[1],
+                        color: item['color'] as Color,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       item['title'] as String,
-                      style: TextStyle(
-                        fontSize: 13,
+                      style: const TextStyle(
+                        fontSize: 16,
                         fontWeight: FontWeight.w500,
-                        color: (item['colors'] as List<Color>)[1].withOpacity(
-                          0.8,
-                        ),
+                        color: Color(0xFF1F2937),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      item['subtitle'] as String,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF6B7280),
                       ),
                     ),
                   ],
@@ -1131,7 +1114,7 @@ class DashboardContent extends StatelessWidget {
         'title': 'Safety Inspection',
         'subtitle': 'Monthly safety check completed',
         'time': '4h ago',
-        'color': const Color(0xFF3B82F6),
+        'color': const Color(0xFF4a63c0),
       },
       {
         'icon': Icons.local_shipping,
@@ -1151,42 +1134,32 @@ class DashboardContent extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFf4f4f4),
-        borderRadius: BorderRadius.circular(24),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
           ),
         ],
-        border: Border.all(color: Colors.grey[200]!),
+        border: Border.all(color: Colors.grey.shade200),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Recent Activities',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF1F2937),
-                      ),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      'Latest updates from your site',
-                      style: TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
-                    ),
-                  ],
+                const Text(
+                  'Recent Activities',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1F2937),
+                  ),
                 ),
                 Container(
                   padding: const EdgeInsets.symmetric(
@@ -1194,50 +1167,41 @@ class DashboardContent extends StatelessWidget {
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
-                    ),
+                    color: const Color(0xFF4a63c0).withOpacity(0.1),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
-                    sites
-                        .firstWhere(
-                          (site) => site.id == selectedSiteId,
-                          orElse: () =>
-                              Site(id: '', name: 'All Sites', address: ''),
-                        )
-                        .name,
-                    style: const TextStyle(
+                    'Today',
+                    style: TextStyle(
                       fontSize: 12,
-                      color: Colors.white,
+                      color: const Color(0xFF4a63c0),
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
             ListView.separated(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: activities.length,
-              separatorBuilder: (context, index) => const SizedBox(height: 16),
+              separatorBuilder: (context, index) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
                 final activity = activities[index];
                 return Container(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.grey[50],
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.grey[200]!),
+                    color: Colors.grey.shade50,
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(10),
+                        padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
                           color: (activity['color'] as Color).withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(10),
                         ),
                         child: Icon(
                           activity['icon'] as IconData,
@@ -1245,7 +1209,7 @@ class DashboardContent extends StatelessWidget {
                           size: 20,
                         ),
                       ),
-                      const SizedBox(width: 16),
+                      const SizedBox(width: 12),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1254,7 +1218,7 @@ class DashboardContent extends StatelessWidget {
                               activity['title'] as String,
                               style: const TextStyle(
                                 fontWeight: FontWeight.w600,
-                                fontSize: 16,
+                                fontSize: 15,
                                 color: Color(0xFF1F2937),
                               ),
                             ),
@@ -1263,7 +1227,7 @@ class DashboardContent extends StatelessWidget {
                               activity['subtitle'] as String,
                               style: const TextStyle(
                                 color: Color(0xFF6B7280),
-                                fontSize: 14,
+                                fontSize: 13,
                               ),
                             ),
                           ],
@@ -1290,38 +1254,37 @@ class DashboardContent extends StatelessWidget {
 
   Widget _buildEmptyState() {
     return Center(
-      child: Container(
-        padding: const EdgeInsets.all(32),
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
-                ),
+                color: const Color(0xFF4a63c0).withOpacity(0.1),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: const Icon(
                 Icons.hourglass_empty,
                 size: 48,
-                color: Colors.white,
+                color: Color(0xFF4a63c0),
               ),
             ),
             const SizedBox(height: 24),
             const Text(
-              'No data available',
+              'No Data Available',
               style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
                 color: Color(0xFF1F2937),
               ),
             ),
             const SizedBox(height: 8),
             const Text(
               'Data will appear here once available',
-              style: TextStyle(color: Color(0xFF6B7280), fontSize: 14),
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 16, color: Color(0xFF6B7280)),
             ),
           ],
         ),

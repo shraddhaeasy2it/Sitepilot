@@ -27,6 +27,11 @@ dependencies:
   uuid: ^4.2.2
   open_file: ^3.5.1
   lottie: ^2.7.0
+  share_plus: ^10.1.4
+  file_picker: ^10.2.3
+
+  
+  
 
 dev_dependencies:
   flutter_test:

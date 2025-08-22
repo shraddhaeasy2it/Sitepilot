@@ -185,5 +185,7 @@ class ApiService {
 
   Future addSite(Site newSite) async {}
 
-  Future<DashboardData?> fetchDashboardData() async {}
+  Future<DashboardData?> fetchDashboardData() async {
+    return null;
+  }
 }

@@ -102,13 +102,15 @@ class _SupplierLedgerState extends State<SupplierLedger> {
 
   List<SupplierTransaction> get _filteredTransactions {
     List<SupplierTransaction> filtered = _transactions.where((t) {
-      final matchesSearch = _searchQuery.isEmpty ||
+      final matchesSearch =
+          _searchQuery.isEmpty ||
           t.supplierName.toLowerCase().contains(_searchQuery.toLowerCase()) ||
           t.invoiceNo.toLowerCase().contains(_searchQuery.toLowerCase());
-      final matchesFilter = _selectedFilter == "All" || t.status == _selectedFilter;
+      final matchesFilter =
+          _selectedFilter == "All" || t.status == _selectedFilter;
       return matchesSearch && matchesFilter;
     }).toList();
-    
+
     // Sort by payment due date (overdue first, then due soon, then pending)
     filtered.sort((a, b) {
       if (a.status == "Overdue" && b.status != "Overdue") return -1;
@@ -117,7 +119,7 @@ class _SupplierLedgerState extends State<SupplierLedger> {
       if (a.status == "Pending" && b.status == "Due Soon") return 1;
       return a.paymentDue.compareTo(b.paymentDue);
     });
-    
+
     return filtered;
   }
 
@@ -139,7 +141,10 @@ class _SupplierLedgerState extends State<SupplierLedger> {
         value: widget.selectedSiteId,
         decoration: InputDecoration(
           labelText: 'Select Site',
-          prefixIcon: const Icon(Icons.location_on_outlined, color: primaryColor),
+          prefixIcon: const Icon(
+            Icons.location_on_outlined,
+            color: primaryColor,
+          ),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
             borderSide: BorderSide.none,
@@ -179,7 +184,9 @@ class _SupplierLedgerState extends State<SupplierLedger> {
                 filled: true,
                 fillColor: Colors.white,
                 contentPadding: const EdgeInsets.symmetric(
-                  vertical: 0, horizontal: 16),
+                  vertical: 0,
+                  horizontal: 16,
+                ),
               ),
               onChanged: (value) {
                 setState(() {
@@ -198,8 +205,9 @@ class _SupplierLedgerState extends State<SupplierLedger> {
             child: DropdownButtonHideUnderline(
               child: DropdownButton<String>(
                 value: _selectedFilter,
-                items: ["All", "Pending", "Due Soon", "Overdue", "Paid"]
-                    .map((String value) {
+                items: ["All", "Pending", "Due Soon", "Overdue", "Paid"].map((
+                  String value,
+                ) {
                   return DropdownMenuItem<String>(
                     value: value,
                     child: Text(value),
@@ -231,9 +239,7 @@ class _SupplierLedgerState extends State<SupplierLedger> {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -250,7 +256,10 @@ class _SupplierLedgerState extends State<SupplierLedger> {
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: statusColor.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(20),
@@ -277,12 +286,11 @@ class _SupplierLedgerState extends State<SupplierLedger> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    Text("Amount", style: TextStyle(color: Colors.grey[600])),
                     Text(
-                      "Amount",
-                      style: TextStyle(color: Colors.grey[600]),
-                    ),
-                    Text(
-                      NumberFormat.currency(symbol: 'Rs ').format(transaction.amount),
+                      NumberFormat.currency(
+                        symbol: 'Rs ',
+                      ).format(transaction.amount),
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
@@ -293,10 +301,7 @@ class _SupplierLedgerState extends State<SupplierLedger> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text(
-                      "Due Date",
-                      style: TextStyle(color: Colors.grey[600]),
-                    ),
+                    Text("Due Date", style: TextStyle(color: Colors.grey[600])),
                     Text(
                       DateFormat('MMM dd, yyyy').format(transaction.paymentDue),
                       style: TextStyle(
@@ -319,9 +324,7 @@ class _SupplierLedgerState extends State<SupplierLedger> {
                   onPressed: () => _markAsPaid(transaction),
                   icon: const Icon(Icons.check_circle, size: 18),
                   label: const Text("Mark as Paid"),
-                  style: TextButton.styleFrom(
-                    foregroundColor: primaryColor,
-                  ),
+                  style: TextButton.styleFrom(foregroundColor: primaryColor),
                 ),
               ),
           ],
@@ -363,10 +366,7 @@ class _SupplierLedgerState extends State<SupplierLedger> {
               _searchQuery.isEmpty
                   ? 'Start by adding your first transaction'
                   : 'Try adjusting your search criteria',
-              style: TextStyle(
-                fontSize: 16,
-                color: textSecondary,
-              ),
+              style: TextStyle(fontSize: 16, color: textSecondary),
               textAlign: TextAlign.center,
             ),
           ],
@@ -381,7 +381,9 @@ class _SupplierLedgerState extends State<SupplierLedger> {
     _invoiceNoController.clear();
     _amountController.clear();
     _dateController.text = DateFormat('yyyy-MM-dd').format(DateTime.now());
-    _dueDateController.text = DateFormat('yyyy-MM-dd').format(DateTime.now().add(const Duration(days: 30)));
+    _dueDateController.text = DateFormat(
+      'yyyy-MM-dd',
+    ).format(DateTime.now().add(const Duration(days: 30)));
     _status = "Pending";
 
     showModalBottomSheet(
@@ -490,7 +492,9 @@ class _SupplierLedgerState extends State<SupplierLedger> {
                         prefixIcon: Icon(Icons.currency_rupee),
                         prefixText: "Rs ",
                       ),
-                      keyboardType: TextInputType.numberWithOptions(decimal: true),
+                      keyboardType: TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
                     ),
                     const SizedBox(height: 16),
                     TextField(
@@ -509,7 +513,9 @@ class _SupplierLedgerState extends State<SupplierLedger> {
                           lastDate: DateTime(2101),
                         );
                         if (pickedDate != null) {
-                          _dateController.text = DateFormat('yyyy-MM-dd').format(pickedDate);
+                          _dateController.text = DateFormat(
+                            'yyyy-MM-dd',
+                          ).format(pickedDate);
                         }
                       },
                     ),
@@ -525,12 +531,16 @@ class _SupplierLedgerState extends State<SupplierLedger> {
                       onTap: () async {
                         DateTime? pickedDate = await showDatePicker(
                           context: context,
-                          initialDate: DateTime.now().add(const Duration(days: 30)),
+                          initialDate: DateTime.now().add(
+                            const Duration(days: 30),
+                          ),
                           firstDate: DateTime(2000),
                           lastDate: DateTime(2101),
                         );
                         if (pickedDate != null) {
-                          _dueDateController.text = DateFormat('yyyy-MM-dd').format(pickedDate);
+                          _dueDateController.text = DateFormat(
+                            'yyyy-MM-dd',
+                          ).format(pickedDate);
                         }
                       },
                     ),
@@ -542,8 +552,9 @@ class _SupplierLedgerState extends State<SupplierLedger> {
                         border: OutlineInputBorder(),
                         prefixIcon: Icon(Icons.info_outline),
                       ),
-                      items: ["Pending", "Due Soon", "Overdue", "Paid"]
-                          .map((String value) {
+                      items: ["Pending", "Due Soon", "Overdue", "Paid"].map((
+                        String value,
+                      ) {
                         return DropdownMenuItem<String>(
                           value: value,
                           child: Text(value),
@@ -649,7 +660,7 @@ class _SupplierLedgerState extends State<SupplierLedger> {
     setState(() {
       transaction.status = "Paid";
     });
-    
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text("Marked ${transaction.invoiceNo} as Paid"),
@@ -663,36 +674,30 @@ class _SupplierLedgerState extends State<SupplierLedger> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text("Export Statements"),
-        content: const Text("Select format to export supplier payment statements:"),
+        content: const Text(
+          "Select format to export supplier payment statements:",
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text("Cancel"),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: primaryColor,
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: primaryColor),
             onPressed: () {
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text("Export started successfully"),
-                ),
+                const SnackBar(content: Text("Export started successfully")),
               );
             },
             child: const Text("PDF", style: TextStyle(color: Colors.white)),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: primaryColor,
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: primaryColor),
             onPressed: () {
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text("Export started successfully"),
-                ),
+                const SnackBar(content: Text("Export started successfully")),
               );
             },
             child: const Text("Excel", style: TextStyle(color: Colors.white)),
@@ -707,10 +712,7 @@ class _SupplierLedgerState extends State<SupplierLedger> {
     return Scaffold(
       backgroundColor: backgroundColor,
       appBar: AppBar(
-        
-        iconTheme: const IconThemeData(
-          color: Colors.white,
-        ),
+        iconTheme: const IconThemeData(color: Colors.white),
         backgroundColor: Colors.transparent,
         elevation: 0,
         toolbarHeight: 90,
@@ -724,9 +726,9 @@ class _SupplierLedgerState extends State<SupplierLedger> {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  Color(0xFF6f88e2),
-                  Color(0xFF5a73d1),
                   Color(0xFF4a63c0),
+                  Color(0xFF3a53b0),
+                  Color(0xFF2a43a0),
                 ],
               ),
             ),
@@ -734,10 +736,7 @@ class _SupplierLedgerState extends State<SupplierLedger> {
         ),
         title: const Text(
           'Supplier Ledger',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
         actions: [
@@ -749,11 +748,7 @@ class _SupplierLedgerState extends State<SupplierLedger> {
         ],
       ),
       body: _isLoading
-          ? Center(
-              child: CircularProgressIndicator(
-                color: primaryColor,
-              ),
-            )
+          ? Center(child: CircularProgressIndicator(color: primaryColor))
           : Column(
               children: [
                 _buildSiteDropdown(),
@@ -764,7 +759,9 @@ class _SupplierLedgerState extends State<SupplierLedger> {
                       : ListView.builder(
                           itemCount: _filteredTransactions.length,
                           itemBuilder: (context, index) {
-                            return _buildTransactionCard(_filteredTransactions[index]);
+                            return _buildTransactionCard(
+                              _filteredTransactions[index],
+                            );
                           },
                         ),
                 ),
@@ -789,10 +786,7 @@ class _SupplierLedgerState extends State<SupplierLedger> {
           icon: const Icon(Icons.add),
           label: const Text(
             'Add Transaction',
-            style: TextStyle(
-              fontWeight: FontWeight.w600,
-              fontSize: 16,
-            ),
+            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
           ),
         ),
       ),

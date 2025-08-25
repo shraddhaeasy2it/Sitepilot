@@ -55,7 +55,7 @@ class _LoginScreenState extends State<LoginScreenemail> {
         // Navigate to home page - verify HomePageApp exists in your imports
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => const HomePageApp()),
+          MaterialPageRoute(builder: (context) => const HomePagescreen()),
         );
       } else {
         setState(() {

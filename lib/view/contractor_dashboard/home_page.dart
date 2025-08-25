@@ -8,29 +8,6 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
-class HomePageApp extends StatelessWidget {
-  const HomePageApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Contractor Home Page',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        cardTheme: CardThemeData(
-          elevation: 4,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          margin: const EdgeInsets.all(8),
-        ),
-      ),
-      home: const HomePagescreen(),
-    );
-  }
-}
-
 class HomePagescreen extends StatefulWidget {
   const HomePagescreen({super.key});
 
@@ -41,29 +18,37 @@ class HomePagescreen extends StatefulWidget {
 class _ContractorDashboardPageState extends State<HomePagescreen> {
   late CompanySiteProvider _companyProvider;
   final Map<String, Uint8List?> _siteImages = {};
+  final Map<String, SiteData> _siteDataMap = {};
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  bool _isGridView = false; // Toggle between grid and list view
 
   List<String> get companies => _companyProvider.companies;
   String? currentCompany;
 
   List<SiteData> get sites {
     final providerSites = _companyProvider.sites;
-    return providerSites
-        .map(
-          (site) => SiteData(
-            id: site.id,
-            name: site.name,
-            imageUrl: 'https://images.unsplash.com/photo-1487958449943-2429e8be8625?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60',
-            imageBytes: _siteImages[site.id],
-            status: 'In Progress',
-            progress: 0.65,
-            startDate: '2023-05-10',
-            endDate: '2023-11-30',
-            address: site.address,
-            companyId: site.companyId,
-          ),
-        )
-        .toList();
+    return providerSites.map((site) {
+      // Use existing site data if available, otherwise create new
+      if (_siteDataMap.containsKey(site.id)) {
+        return _siteDataMap[site.id]!;
+      } else {
+        final newSiteData = SiteData(
+          id: site.id,
+          name: site.name,
+          imageUrl:
+              'https://images.unsplash.com/photo-1487958449943-2429e8be8625?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60',
+          imageBytes: _siteImages[site.id],
+          status: 'Active',
+          progress: 0.25,
+          startDate: '2023-05-10',
+          endDate: '2023-11-30',
+          address: site.address,
+          companyId: site.companyId,
+        );
+        _siteDataMap[site.id] = newSiteData;
+        return newSiteData;
+      }
+    }).toList();
   }
 
   @override
@@ -138,12 +123,15 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
   Widget build(BuildContext context) {
     final companyProvider = Provider.of<CompanySiteProvider>(context);
     final isLoading = companyProvider.companies.isEmpty;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenWidth < 360;
+    final isMediumScreen = screenWidth >= 360 && screenWidth < 414;
 
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(90),
+        preferredSize: Size.fromHeight(isSmallScreen ? 80 : 90),
         child: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
@@ -157,14 +145,14 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Color(0xFF6f88e2),
-                    Color(0xFF5a73d1),
                     Color(0xFF4a63c0),
+                    Color(0xFF3a53b0),
+                    Color(0xFF2a43a0),
                   ],
                 ),
               ),
               child: AppBar(
-                toolbarHeight: 90,
+                toolbarHeight: isSmallScreen ? 80 : 90,
                 backgroundColor: Colors.transparent,
                 elevation: 0,
                 shape: const RoundedRectangleBorder(
@@ -173,25 +161,29 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                   ),
                 ),
                 title: Padding(
-                  padding: EdgeInsets.only(top: 12),
+                  padding: EdgeInsets.only(top: isSmallScreen ? 8 : 12),
                   child: Row(
                     children: [
-                      Icon(Icons.business, color: Colors.white, size: 24),
-                      const SizedBox(width: 12),
+                      Icon(
+                        Icons.business,
+                        color: Colors.white70,
+                        size: isSmallScreen ? 20 : 24,
+                      ),
+                      SizedBox(width: isSmallScreen ? 3 : 6),
                       if (isLoading)
                         SizedBox(
-                          width: 150,
+                          width: isSmallScreen ? 120 : 150,
                           child: Row(
                             children: [
                               Text(
                                 'Loading...',
                                 style: TextStyle(
-                                  fontSize: 18,
+                                  fontSize: isSmallScreen ? 16 : 18,
                                   fontWeight: FontWeight.w600,
                                   color: Colors.white,
                                 ),
                               ),
-                              SizedBox(width: 10),
+                              SizedBox(width: isSmallScreen ? 6 : 10),
                               SizedBox(
                                 width: 20,
                                 height: 20,
@@ -204,23 +196,29 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                           ),
                         )
                       else
-                        _buildCustomCompanyDropdown(),
+                        _buildCustomCompanyDropdown(isSmallScreen),
                     ],
                   ),
                 ),
                 actions: [
                   IconButton(
-                    icon: const Icon(Icons.notifications),
+                    icon: Icon(
+                      Icons.notifications,
+                      size: isSmallScreen ? 20 : 24,
+                    ),
                     onPressed: () {},
                     color: Colors.white,
                   ),
-                  const SizedBox(width: 8),
+                  SizedBox(width: isSmallScreen ? 2 : 5),
                   IconButton(
                     onPressed: _navigateToChatScreen,
-                    icon: const Icon(Icons.chat_rounded),
+                    icon: Icon(
+                      Icons.chat_rounded,
+                      size: isSmallScreen ? 20 : 24,
+                    ),
                     color: Colors.white,
                   ),
-                  const SizedBox(width: 8),
+                  SizedBox(width: isSmallScreen ? 2 : 5),
                   GestureDetector(
                     onTap: () {
                       Navigator.push(
@@ -232,17 +230,13 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                     },
                     child: CircleAvatar(
                       backgroundColor: Colors.white,
-                      backgroundImage: AssetImage(  
-                        'assets/avtar.jpg', // Replace with your avatar image path
-                      ),
-                      radius: 18,
+                      backgroundImage: AssetImage('assets/avtar.jpg'),
+                      radius: isSmallScreen ? 16 : 18,
                     ),
                   ),
-                  const SizedBox(width: 16),
+                  SizedBox(width: isSmallScreen ? 12 : 16),
                 ],
-                iconTheme: IconThemeData(
-                  color: Colors.white,
-                ),
+                iconTheme: IconThemeData(color: Colors.white),
               ),
             ),
           ),
@@ -251,7 +245,7 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.all(20),
+            padding: EdgeInsets.all(isSmallScreen ? 16 : 20),
             child: Row(
               children: [
                 Expanded(
@@ -261,15 +255,18 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                       Text(
                         'Sites Overview',
                         style: TextStyle(
-                          fontSize: 28,
+                          fontSize: isSmallScreen ? 24 : 28,
                           fontWeight: FontWeight.bold,
                           color: Color(0xFF2A2A2A),
                           letterSpacing: -0.5,
                         ),
                       ),
-                      SizedBox(height: 8),
+                      SizedBox(height: isSmallScreen ? 6 : 8),
                       Container(
-                        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: isSmallScreen ? 12 : 16,
+                          vertical: isSmallScreen ? 6 : 8,
+                        ),
                         decoration: BoxDecoration(
                           color: Color(0xFF4a63c0).withOpacity(0.1),
                           borderRadius: BorderRadius.circular(20),
@@ -277,7 +274,7 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                         child: Text(
                           '${sites.length} active sites',
                           style: TextStyle(
-                            fontSize: 14,
+                            fontSize: isSmallScreen ? 12 : 14,
                             fontWeight: FontWeight.w600,
                             color: Color(0xFF4a63c0),
                           ),
@@ -286,42 +283,171 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                     ],
                   ),
                 ),
-                Container(
-                  padding: EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Color(0xFF4a63c0).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Icon(
-                    Icons.analytics_rounded,
-                    color: Color(0xFF4a63c0),
-                    size: 24,
-                  ),
+                // View toggle buttons
+                Row(
+                  children: [
+                    IconButton(
+                      onPressed: () {
+                        setState(() {
+                          _isGridView = false;
+                        });
+                      },
+                      icon: Icon(
+                        Icons.list,
+                        color: !_isGridView ? Color(0xFF4a63c0) : Colors.grey,
+                        size: isSmallScreen ? 20 : 24,
+                      ),
+                    ),
+                    SizedBox(width: 8),
+                    IconButton(
+                      onPressed: () {
+                        setState(() {
+                          _isGridView = true;
+                        });
+                      },
+                      icon: Icon(
+                        Icons.grid_view,
+                        color: _isGridView ? Color(0xFF4a63c0) : Colors.grey,
+                        size: isSmallScreen ? 20 : 24,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              itemCount: sites.length,
-              itemBuilder: (context, index) {
-                return SiteCard(
-                  site: sites[index],
-                  onTap: () => _navigateToDashboard(sites[index]),
-                  onEdit: () => _showEditSiteBottomSheet(sites[index]),
-                  onDelete: () => _showDeleteSiteDialog(sites[index]),
-                );
-              },
-            ),
+            child: _isGridView
+                ? _buildGridView(isSmallScreen, isMediumScreen)
+                : _buildListView(isSmallScreen, isMediumScreen),
           ),
         ],
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: Color(0xFF4a63c0),
         onPressed: () => _showAddSiteBottomSheet(),
-        child: const Icon(Icons.add, size: 28, color: Colors.white),
+        child: Icon(
+          Icons.add,
+          size: isSmallScreen ? 24 : 28,
+          color: Colors.white,
+        ),
       ),
+    );
+  }
+
+  Widget _buildListView(bool isSmallScreen, bool isMediumScreen) {
+    return ListView.builder(
+      padding: EdgeInsets.symmetric(
+        horizontal: isSmallScreen ? 8 : 12,
+        vertical: isSmallScreen ? 6 : 8,
+      ),
+      itemCount: sites.length,
+      itemBuilder: (context, index) {
+        return SiteCard(
+          site: sites[index],
+          onTap: () => _navigateToDashboard(sites[index]),
+          onEdit: () => _showEditSiteBottomSheet(sites[index]),
+          onDelete: () => _showDeleteSiteDialog(sites[index]),
+          onStatusTap: () => _showStatusSelectionBottomSheet(sites[index]),
+          isSmallScreen: isSmallScreen,
+          isMediumScreen: isMediumScreen,
+          isGridView: false,
+        );
+      },
+    );
+  }
+
+  Widget _buildGridView(bool isSmallScreen, bool isMediumScreen) {
+    return GridView.builder(
+      padding: EdgeInsets.symmetric(
+        horizontal: isSmallScreen ? 8 : 12,
+        vertical: isSmallScreen ? 6 : 8,
+      ),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        childAspectRatio: 0.85,
+        crossAxisSpacing: isSmallScreen ? 8 : 12,
+        mainAxisSpacing: isSmallScreen ? 8 : 12,
+      ),
+      itemCount: sites.length,
+      itemBuilder: (context, index) {
+        return SiteCard(
+          site: sites[index],
+          onTap: () => _navigateToDashboard(sites[index]),
+          onEdit: () => _showEditSiteBottomSheet(sites[index]),
+          onDelete: () => _showDeleteSiteDialog(sites[index]),
+          onStatusTap: () => _showStatusSelectionBottomSheet(sites[index]),
+          isSmallScreen: isSmallScreen,
+          isMediumScreen: isMediumScreen,
+          isGridView: true,
+        );
+      },
+    );
+  }
+
+  void _showStatusSelectionBottomSheet(SiteData site) {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) {
+        return Container(
+          padding: EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Update Status',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 16),
+              _buildStatusOption(
+                'Active',
+                Icons.play_arrow,
+                const Color.fromARGB(255, 106, 211, 109),
+                site,
+              ),
+              _buildStatusOption('On Hold', Icons.pause, Colors.orange, site),
+              _buildStatusOption('Completed', Icons.check, Colors.blue, site),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildStatusOption(
+    String status,
+    IconData icon,
+    Color color,
+    SiteData site,
+  ) {
+    return ListTile(
+      leading: Icon(icon, color: color),
+      title: Text(status),
+      onTap: () {
+        // Update the site status in our data map
+        setState(() {
+          _siteDataMap[site.id] = SiteData(
+            id: site.id,
+            name: site.name,
+            imageUrl: site.imageUrl,
+            imageBytes: site.imageBytes,
+            status: status,
+            progress: site.progress,
+            startDate: site.startDate,
+            endDate: site.endDate,
+            address: site.address,
+            companyId: site.companyId,
+          );
+        });
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Status updated to $status'),
+            backgroundColor: color,
+          ),
+        );
+      },
     );
   }
 
@@ -381,28 +507,42 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
       },
     );
     if (picked != null) {
-      controller.text = '${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
+      controller.text =
+          '${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
     }
   }
 
-  Widget _buildCustomCompanyDropdown() {
+  Widget _buildCustomCompanyDropdown(bool isSmallScreen) {
     return GestureDetector(
       onTap: () => _showCompanySelectionBottomSheet(),
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: EdgeInsets.symmetric(
+          horizontal: isSmallScreen ? 10 : 14,
+          vertical: isSmallScreen ? 10 : 12,
+        ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              currentCompany ?? 'Select Company',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
+            Container(
+              constraints: BoxConstraints(
+                maxWidth: MediaQuery.of(context).size.width * 0.5,
+              ),
+              child: Text(
+                currentCompany ?? 'Select Company',
+                style: TextStyle(
+                  fontSize: isSmallScreen ? 14 : 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+                overflow: TextOverflow.ellipsis,
               ),
             ),
-            SizedBox(width: 8),
-            Icon(Icons.keyboard_arrow_down, color: Colors.white, size: 12),
+
+            Icon(
+              Icons.keyboard_arrow_down,
+              color: Colors.white,
+              size: isSmallScreen ? 12 : 15,
+            ),
           ],
         ),
       ),
@@ -410,11 +550,14 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
   }
 
   void _showCompanySelectionBottomSheet() {
+    final screenHeight = MediaQuery.of(context).size.height;
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       builder: (context) {
         return Container(
+          constraints: BoxConstraints(maxHeight: screenHeight * 0.6),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -445,7 +588,18 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                       ),
                     ),
                     SizedBox(height: 16),
-                    ...companies.map((company) => _buildCompanyOption(company)),
+                    Container(
+                      constraints: BoxConstraints(
+                        maxHeight: screenHeight * 0.4,
+                      ),
+                      child: SingleChildScrollView(
+                        child: Column(
+                          children: companies
+                              .map((company) => _buildCompanyOption(company))
+                              .toList(),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -470,7 +624,9 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
         margin: EdgeInsets.only(bottom: 8),
         padding: EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isSelected ? Color(0xFF4a63c0).withOpacity(0.1) : Colors.grey.shade50,
+          color: isSelected
+              ? Color(0xFF4a63c0).withOpacity(0.1)
+              : Colors.grey.shade50,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isSelected ? Color(0xFF4a63c0) : Colors.grey.shade200,
@@ -482,25 +638,21 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
             Icon(
               Icons.business,
               color: isSelected ? Color(0xFF4a63c0) : Colors.grey.shade600,
-              size: 20,
+              size: 18,
             ),
             SizedBox(width: 12),
             Expanded(
               child: Text(
                 company,
                 style: TextStyle(
-                  fontSize: 16,
+                  fontSize: 14,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                   color: isSelected ? Color(0xFF4a63c0) : Colors.grey.shade800,
                 ),
               ),
             ),
             if (isSelected)
-              Icon(
-                Icons.check_circle,
-                color: Color(0xFF4a63c0),
-                size: 20,
-              ),
+              Icon(Icons.check_circle, color: Color(0xFF4a63c0), size: 20),
           ],
         ),
       ),
@@ -514,6 +666,7 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
     final TextEditingController endDateController = TextEditingController();
     String selectedStatus = 'Planning';
     Uint8List? imageBytes;
+    final screenHeight = MediaQuery.of(context).size.height;
 
     showModalBottomSheet(
       context: context,
@@ -524,7 +677,7 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
           bottom: MediaQuery.of(context).viewInsets.bottom,
         ),
         child: Container(
-          height: MediaQuery.of(context).size.height * 0.65,
+          height: screenHeight * 0.60,
           decoration: const BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -533,7 +686,19 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
           child: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
+                Center(
+                  child: Container(
+                    width: 60,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(3),
+                    ),
+                  ),
+                ),
+                SizedBox(height: 16),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -542,98 +707,59 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                       style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
-                        color: Colors.blue.shade900,
+                        color: Color(0xFF2A2A2A),
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.close),
+                      icon: Icon(Icons.close, color: Colors.grey.shade600),
                       onPressed: () => Navigator.pop(context),
                     ),
                   ],
                 ),
                 const SizedBox(height: 16),
-                // Center(
-                //   child: GestureDetector(
-                //     onTap: () async {
-                //       final bytes = await _pickImage();
-                //       if (bytes != null) {
-                //         setState(() {
-                //           imageBytes = bytes;
-                //         });
-                //       }
-                //     },
-                //     child: Container(
-                //       width: 120,
-                //       height: 120,
-                //       decoration: BoxDecoration(
-                //         borderRadius: BorderRadius.circular(16),
-                //         color: Colors.grey.shade100,
-                //         border: Border.all(
-                //           color: Colors.grey.shade300,
-                //           width: 1,
-                //         ),
-                //       ),
-                //       child: imageBytes != null
-                //           ? ClipRRect(
-                //               borderRadius: BorderRadius.circular(16),
-                //               child: Image.memory(
-                //                 imageBytes!,
-                //                 fit: BoxFit.cover,
-                //               ),
-                //             )
-                //           : Column(
-                //               mainAxisAlignment: MainAxisAlignment.center,
-                //               children: [
-                //                 Icon(
-                //                   Icons.add_a_photo,
-                //                   size: 30,
-                //                   color: Colors.grey.shade400,
-                //                 ),
-                //                 SizedBox(height: 8),
-                //                 Text(
-                //                   'Add Photo',
-                //                   style: TextStyle(
-                //                     color: Colors.grey.shade600,
-                //                     fontSize: 12,
-                //                   ),
-                //                 ),
-                //               ],
-                //             ),
-                //     ),
-                //   ),
-                // ),
-                //const SizedBox(height: 16),
-                _buildInputField(
+
+                // Form Fields
+                _buildModernInputField(
                   controller: nameController,
                   label: 'Site Name',
                   icon: Icons.construction,
                 ),
                 const SizedBox(height: 16),
-                _buildInputField(
+                _buildModernInputField(
                   controller: addressController,
                   label: 'Address',
                   icon: Icons.location_on,
                 ),
                 const SizedBox(height: 16),
-                _buildInputField(
-                  controller: startDateController,
-                  label: 'Start Date',
-                  icon: Icons.calendar_today,
-                  isDateField: true,
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildModernInputField(
+                        controller: startDateController,
+                        label: 'Start Date',
+                        icon: Icons.calendar_today,
+                        isDateField: true,
+                      ),
+                    ),
+                    SizedBox(width: 16),
+                    Expanded(
+                      child: _buildModernInputField(
+                        controller: endDateController,
+                        label: 'End Date',
+                        icon: Icons.calendar_today,
+                        isDateField: true,
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 16),
-                _buildInputField(
-                  controller: endDateController,
-                  label: 'End Date',
-                  icon: Icons.calendar_today,
-                  isDateField: true,
-                ),
-                const SizedBox(height: 16),
-                _buildStatusDropdown(
+                _buildModernStatusDropdown(
                   value: selectedStatus,
                   onChanged: (value) => selectedStatus = value!,
                 ),
                 const SizedBox(height: 24),
+
+                // Add Button
                 SizedBox(
                   width: double.infinity,
                   height: 50,
@@ -648,7 +774,29 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                           companyId: _companyProvider.selectedCompanyId ?? '',
                         );
                         await _companyProvider.addSite(newSite);
-                        
+
+                        // Create and store the site data
+                        final newSiteData = SiteData(
+                          id: newSite.id,
+                          name: newSite.name,
+                          address: newSite.address,
+                          companyId: newSite.companyId,
+                          status: selectedStatus,
+                          progress: 0.0,
+                          startDate: startDateController.text.isNotEmpty
+                              ? startDateController.text
+                              : '2023-01-01',
+                          endDate: endDateController.text.isNotEmpty
+                              ? endDateController.text
+                              : '2023-12-31',
+                        );
+
+                        _siteDataMap[newSite.id] = newSiteData;
+
+                        if (imageBytes != null) {
+                          _siteImages[newSite.id] = imageBytes;
+                        }
+
                         Navigator.pop(context);
                         setState(() {});
                         ScaffoldMessenger.of(context).showSnackBar(
@@ -667,6 +815,7 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
+                      elevation: 2,
                     ),
                     child: const Text(
                       'Add Site',
@@ -674,6 +823,7 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                     ),
                   ),
                 ),
+                SizedBox(height: 16),
               ],
             ),
           ),
@@ -697,6 +847,7 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
     );
     String selectedStatus = site.status;
     Uint8List? imageBytes = _siteImages[site.id] ?? site.imageBytes;
+    final screenHeight = MediaQuery.of(context).size.height;
 
     showModalBottomSheet(
       context: context,
@@ -707,7 +858,7 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
           bottom: MediaQuery.of(context).viewInsets.bottom,
         ),
         child: Container(
-          height: MediaQuery.of(context).size.height * 0.80,
+          height: screenHeight * 0.75,
           decoration: const BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -716,7 +867,19 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
           child: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
+                Center(
+                  child: Container(
+                    width: 60,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(3),
+                    ),
+                  ),
+                ),
+                SizedBox(height: 16),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -725,16 +888,18 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                       style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
-                        color: Colors.blue.shade900,
+                        color: Color(0xFF2A2A2A),
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.close),
+                      icon: Icon(Icons.close, color: Colors.grey.shade600),
                       onPressed: () => Navigator.pop(context),
                     ),
                   ],
                 ),
                 const SizedBox(height: 16),
+
+                // Image
                 Center(
                   child: GestureDetector(
                     onTap: () async {
@@ -765,75 +930,88 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                               ),
                             )
                           : (site.imageUrl != null
-                              ? ClipRRect(
-                                  borderRadius: BorderRadius.circular(16),
-                                  child: Image.network(
-                                    site.imageUrl!,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (context, error, stackTrace) {
-                                      return Center(
-                                        child: Icon(
-                                          Icons.construction,
-                                          size: 40,
-                                          color: Colors.grey.shade400,
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                )
-                              : Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.add_a_photo,
-                                      size: 30,
-                                      color: Colors.grey.shade400,
+                                ? ClipRRect(
+                                    borderRadius: BorderRadius.circular(16),
+                                    child: Image.network(
+                                      site.imageUrl!,
+                                      fit: BoxFit.cover,
+                                      errorBuilder:
+                                          (context, error, stackTrace) {
+                                            return Center(
+                                              child: Icon(
+                                                Icons.construction,
+                                                size: 40,
+                                                color: Colors.grey.shade400,
+                                              ),
+                                            );
+                                          },
                                     ),
-                                    SizedBox(height: 8),
-                                    Text(
-                                      'Add Photo',
-                                      style: TextStyle(
-                                        color: Colors.grey.shade600,
-                                        fontSize: 12,
+                                  )
+                                : Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.add_a_photo,
+                                        size: 30,
+                                        color: Colors.grey.shade400,
                                       ),
-                                    ),
-                                  ],
-                                )),
+                                      SizedBox(height: 8),
+                                      Text(
+                                        'Add Photo',
+                                        style: TextStyle(
+                                          color: Colors.grey.shade600,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ],
+                                  )),
                     ),
                   ),
                 ),
-                const SizedBox(height: 16),
-                _buildInputField(
+                const SizedBox(height: 20),
+
+                // Form Fields
+                _buildModernInputField(
                   controller: nameController,
                   label: 'Site Name',
                   icon: Icons.construction,
                 ),
                 const SizedBox(height: 16),
-                _buildInputField(
+                _buildModernInputField(
                   controller: addressController,
                   label: 'Address',
                   icon: Icons.location_on,
                 ),
                 const SizedBox(height: 16),
-                _buildInputField(
-                  controller: startDateController,
-                  label: 'Start Date',
-                  icon: Icons.calendar_today,
-                  isDateField: true,
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildModernInputField(
+                        controller: startDateController,
+                        label: 'Start Date',
+                        icon: Icons.calendar_today,
+                        isDateField: true,
+                      ),
+                    ),
+                    SizedBox(width: 16),
+                    Expanded(
+                      child: _buildModernInputField(
+                        controller: endDateController,
+                        label: 'End Date',
+                        icon: Icons.calendar_today,
+                        isDateField: true,
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 16),
-                _buildInputField(
-                  controller: endDateController,
-                  label: 'End Date',
-                  icon: Icons.calendar_today,
-                  isDateField: true,
-                ),
-                const SizedBox(height: 16),
-                _buildStatusDropdown(
+                _buildModernStatusDropdown(
                   value: selectedStatus,
                   onChanged: (value) => selectedStatus = value!,
                 ),
                 const SizedBox(height: 24),
+
+                // Update Button
                 SizedBox(
                   width: double.infinity,
                   height: 50,
@@ -849,12 +1027,26 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                         );
 
                         _companyProvider.updateSite(updatedSite).then((_) {
+                          // Update the site data in our map
+                          _siteDataMap[site.id] = SiteData(
+                            id: site.id,
+                            name: nameController.text,
+                            address: addressController.text,
+                            companyId: currentCompany ?? '',
+                            status: selectedStatus,
+                            progress: site.progress,
+                            startDate: startDateController.text,
+                            endDate: endDateController.text,
+                            imageUrl: site.imageUrl,
+                            imageBytes: imageBytes,
+                          );
+
                           if (imageBytes != null) {
                             setState(() {
                               _siteImages[site.id] = imageBytes;
                             });
                           }
-                          
+
                           setState(() {});
                           Navigator.pop(context);
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -874,6 +1066,7 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
+                      elevation: 2,
                     ),
                     child: const Text(
                       'Update Site',
@@ -881,6 +1074,7 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                     ),
                   ),
                 ),
+                SizedBox(height: 16),
               ],
             ),
           ),
@@ -889,69 +1083,96 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
     );
   }
 
-  Widget _buildInputField({
+  Widget _buildModernInputField({
     required TextEditingController controller,
     required String label,
     required IconData icon,
     bool isDateField = false,
   }) {
-    return TextField(
-      controller: controller,
-      readOnly: isDateField,
-      onTap: isDateField ? () => _selectDate(controller) : null,
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: TextStyle(color: Colors.grey.shade600),
-        prefixIcon: Icon(icon, color: Color(0xFF4a63c0)),
-        suffixIcon: isDateField ? Icon(Icons.calendar_today, color: Color(0xFF4a63c0)) : null,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.shade300),
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            blurRadius: 10,
+            spreadRadius: 2,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: TextField(
+        controller: controller,
+        readOnly: isDateField,
+        onTap: isDateField ? () => _selectDate(controller) : null,
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: TextStyle(color: Colors.grey.shade600),
+          prefixIcon: Icon(icon, color: Color(0xFF4a63c0)),
+          suffixIcon: isDateField
+              ? Icon(Icons.calendar_today, color: Color(0xFF4a63c0))
+              : null,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: Color(0xFF4a63c0), width: 2),
+          ),
+          filled: true,
+          fillColor: Colors.white,
         ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Color(0xFF4a63c0), width: 2),
-        ),
-        filled: true,
-        fillColor: Colors.grey.shade50,
       ),
     );
   }
 
-  Widget _buildStatusDropdown({
+  Widget _buildModernStatusDropdown({
     required String value,
     required Function(String?) onChanged,
   }) {
-    return DropdownButtonFormField<String>(
-      value: value,
-      decoration: InputDecoration(
-        labelText: 'Status',
-        labelStyle: TextStyle(color: Colors.grey.shade600),
-        prefixIcon: Icon(Icons.timeline, color: Color(0xFF4a63c0)),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.shade300),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Color(0xFF4a63c0), width: 2),
-        ),
-        filled: true,
-        fillColor: Colors.grey.shade50,
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            blurRadius: 10,
+            spreadRadius: 2,
+            offset: Offset(0, 4),
+          ),
+        ],
       ),
-      items: ['Planning', 'In Progress', 'On Schedule', 'Delayed', 'Completed']
-          .map((status) => DropdownMenuItem(
+      child: DropdownButtonFormField<String>(
+        value: value,
+        decoration: InputDecoration(
+          labelText: 'Status',
+          labelStyle: TextStyle(color: Colors.grey.shade600),
+          prefixIcon: Icon(Icons.timeline, color: Color(0xFF4a63c0)),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: Color(0xFF4a63c0), width: 2),
+          ),
+          filled: true,
+          fillColor: Colors.white,
+        ),
+        items: ['Planning', 'Active', 'On Hold', 'Completed']
+            .map(
+              (status) => DropdownMenuItem(
                 value: status,
-                child: Text(
-                  status,
-                  style: TextStyle(fontSize: 14),
-                ),
-              ))
-          .toList(),
-      onChanged: onChanged,
-      dropdownColor: Colors.white,
-      borderRadius: BorderRadius.circular(12),
-      icon: Icon(Icons.keyboard_arrow_down, color: Color(0xFF4a63c0)),
+                child: Text(status, style: TextStyle(fontSize: 14)),
+              ),
+            )
+            .toList(),
+        onChanged: onChanged,
+        dropdownColor: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        icon: Icon(Icons.keyboard_arrow_down, color: Color(0xFF4a63c0)),
+      ),
     );
   }
 
@@ -995,8 +1216,9 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                       _companyProvider.deleteSite(site.id).then((_) {
                         setState(() {
                           _siteImages.remove(site.id);
+                          _siteDataMap.remove(site.id);
                         });
-                        
+
                         Navigator.pop(context);
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
@@ -1046,8 +1268,35 @@ class SiteData {
     required this.startDate,
     required this.endDate,
     required this.address,
-    this.companyId = '',
+    required this.companyId,
   });
+
+  // Add copyWith method for easier updates
+  SiteData copyWith({
+    String? id,
+    String? name,
+    String? imageUrl,
+    Uint8List? imageBytes,
+    String? status,
+    double? progress,
+    String? startDate,
+    String? endDate,
+    String? address,
+    String? companyId,
+  }) {
+    return SiteData(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      imageUrl: imageUrl ?? this.imageUrl,
+      imageBytes: imageBytes ?? this.imageBytes,
+      status: status ?? this.status,
+      progress: progress ?? this.progress,
+      startDate: startDate ?? this.startDate,
+      endDate: endDate ?? this.endDate,
+      address: address ?? this.address,
+      companyId: companyId ?? this.companyId,
+    );
+  }
 }
 
 class SiteCard extends StatelessWidget {
@@ -1055,260 +1304,359 @@ class SiteCard extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  final VoidCallback onStatusTap;
+  final bool isSmallScreen;
+  final bool isMediumScreen;
+  final bool isGridView;
 
   const SiteCard({
-    super.key,
+    Key? key,
     required this.site,
     required this.onTap,
     required this.onEdit,
     required this.onDelete,
-  });
-
-  Color getStatusColor(String status) {
-    switch (status.toLowerCase()) {
-      case 'in progress':
-        return Colors.orange;
-      case 'delayed':
-        return Colors.red;
-      case 'on schedule':
-        return Colors.green;
-      case 'planning':
-        return Color(0xFF4a63c0);
-      case 'completed':
-        return Colors.purple;
-      default:
-        return Colors.grey;
-    }
-  }
+    required this.onStatusTap,
+    required this.isSmallScreen,
+    required this.isMediumScreen,
+    required this.isGridView,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    final cardWidth = isGridView
+        ? null
+        : MediaQuery.of(context).size.width - 30;
+    final cardHeight = isGridView ? null : 160.0;
+
     return Container(
-      margin: EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            blurRadius: 10,
-            spreadRadius: 2,
-            offset: Offset(0, 4),
-          ),
-        ],
+      width: isGridView ? (isSmallScreen ? 160 : 180) : double.infinity,
+      height: isGridView ? (isSmallScreen ? 220 : 240) : null,
+      margin: EdgeInsets.symmetric(
+        horizontal: isGridView ? (isSmallScreen ? 4 : 6) : 0,
+        vertical: isGridView ? (isSmallScreen ? 4 : 6) : 8,
       ),
-      child: Material(
-        borderRadius: BorderRadius.circular(16),
-        color: Colors.white,
+      child: Card(
+        elevation: 2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(16),
           child: Padding(
-            padding: const EdgeInsets.all(14),
+            padding: EdgeInsets.all(isGridView ? (isSmallScreen ? 8 : 12) : 16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Header with image and actions
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    
-                    // Site Image
+                    // Site Image - Compact in grid view
                     Container(
-                      width: 90,
-                      height: 90,
+                      width: isGridView ? (isSmallScreen ? 50 : 55) : 70,
+                      height: isGridView ? (isSmallScreen ? 50 : 55) : 70,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(12),
                         color: Colors.grey.shade100,
                       ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: site.imageBytes != null
-                            ? Image.memory(
+                      child: site.imageBytes != null
+                          ? ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: Image.memory(
                                 site.imageBytes!,
                                 fit: BoxFit.cover,
-                              )
-                            : (site.imageUrl != null
-                                ? Image.network(
-                                    site.imageUrl!,
-                                    fit: BoxFit.cover,
-                                    loadingBuilder: (context, child, loadingProgress) {
-                                      if (loadingProgress == null) return child;
-                                      return Center(
-                                        child: CircularProgressIndicator(
-                                          value: loadingProgress.expectedTotalBytes != null
-                                              ? loadingProgress.cumulativeBytesLoaded /
-                                                  loadingProgress.expectedTotalBytes!
-                                              : null,
-                                        ),
-                                      );
-                                    },
-                                    errorBuilder: (context, error, stackTrace) {
-                                      return Center(
-                                        child: Icon(
-                                          Icons.construction,
-                                          size: 30,
-                                          color: Colors.grey.shade400,
-                                        ),
-                                      );
-                                    },
+                              ),
+                            )
+                          : (site.imageUrl != null
+                                ? ClipRRect(
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: Image.network(
+                                      site.imageUrl!,
+                                      fit: BoxFit.cover,
+                                      errorBuilder:
+                                          (context, error, stackTrace) {
+                                            return Center(
+                                              child: Icon(
+                                                Icons.construction,
+                                                size: isGridView
+                                                    ? (isSmallScreen ? 20 : 22)
+                                                    : 30,
+                                                color: Colors.grey.shade400,
+                                              ),
+                                            );
+                                          },
+                                    ),
                                   )
                                 : Center(
                                     child: Icon(
                                       Icons.construction,
-                                      size: 30,
+                                      size: isGridView
+                                          ? (isSmallScreen ? 20 : 22)
+                                          : 30,
                                       color: Colors.grey.shade400,
                                     ),
                                   )),
-                      ),
                     ),
-                    SizedBox(width: 16),
-                    // Site Details
+
+                    SizedBox(width: isGridView ? (isSmallScreen ? 6 : 8) : 12),
+
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  site.name,
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.blue.shade900,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
+                          Text(
+                            site.name,
+                            style: TextStyle(
+                              fontSize: isGridView
+                                  ? (isSmallScreen ? 14 : 16)
+                                  : (isSmallScreen ? 16 : 20),
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF2A2A2A),
+                            ),
+                            maxLines: isGridView ? 2 : 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+
+                          SizedBox(height: isGridView ? 6 : 8),
+
+                          Text(
+                            site.address,
+                            style: TextStyle(
+                              fontSize: isGridView
+                                  ? (isSmallScreen ? 9 : 10)
+                                  : (isSmallScreen ? 10 : 12),
+                              color: Colors.grey.shade600,
+                            ),
+                            maxLines: isGridView ? 2 : 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+
+                          SizedBox(height: isGridView ? 12 : 14),
+
+                          // Status chip - Compact in grid view
+                          GestureDetector(
+                            onTap: onStatusTap,
+                            child: Container(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: isGridView
+                                    ? (isSmallScreen ? 4 : 6)
+                                    : 8,
+                                vertical: isGridView
+                                    ? (isSmallScreen ? 1 : 2)
+                                    : 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: _getStatusColor(
+                                  site.status,
+                                ).withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: _getStatusColor(site.status),
+                                  width: 1,
                                 ),
                               ),
-                              PopupMenuButton(
-                                icon: Icon(Icons.more_vert, size: 20, color: Colors.grey.shade600),
-                                itemBuilder: (context) => [
-                                  PopupMenuItem(
-                                    onTap: onEdit,
-                                    child: Row(
-                                      children: [
-                                        Icon(Icons.edit, size: 20, color: Colors.blue.shade700),
-                                        SizedBox(width: 8),
-                                        Text('Edit'),
-                                      ],
-                                    ),
-                                  ),
-                                  PopupMenuItem(
-                                    onTap: onDelete,
-                                    child: Row(
-                                      children: [
-                                        Icon(Icons.delete, size: 20, color: Colors.red.shade600),
-                                        SizedBox(width: 8),
-                                        Text(
-                                          'Delete',
-                                          style: TextStyle(color: Colors.red.shade600),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                          SizedBox(height: 4),
-                          Container(
-                            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: getStatusColor(site.status).withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              site.status,
-                              style: TextStyle(
-                                color: getStatusColor(site.status),
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                          SizedBox(height: 8),
-                          // Progress bar with percentage
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Text(
-                                    'Progress',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey.shade600,
-                                    ),
+                                  Icon(
+                                    _getStatusIcon(site.status),
+                                    size: isGridView
+                                        ? (isSmallScreen ? 8 : 10)
+                                        : 12,
+                                    color: _getStatusColor(site.status),
                                   ),
+                                  SizedBox(width: isGridView ? 2 : 4),
                                   Text(
-                                    '${(site.progress * 100).toStringAsFixed(0)}%',
+                                    site.status,
                                     style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.blue.shade800,
+                                      fontSize: isGridView
+                                          ? (isSmallScreen ? 8 : 10)
+                                          : 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: _getStatusColor(site.status),
                                     ),
                                   ),
                                 ],
                               ),
-                              SizedBox(height: 4),
-                              LinearProgressIndicator(
-                                value: site.progress,
-                                backgroundColor: Colors.grey.shade200,
-                                color: Colors.blue,
-                                borderRadius: BorderRadius.circular(4),
-                                minHeight: 6,
-                              ),
-                            ],
-                          ),
-                          SizedBox(height: 8),
-                          // Date range
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.calendar_today,
-                                size: 14,
-                                color: Colors.grey.shade600,
-                              ),
-                              SizedBox(width: 4),
-                              Text(
-                                '${site.startDate} - ${site.endDate}',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey.shade600,
-                                ),
-                              ),
-                            ],
+                            ),
                           ),
                         ],
                       ),
                     ),
+
+                    // Action menu - Icons only in list view
+                    if (!isGridView)
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Edit Icon
+                          IconButton(
+                            onPressed: onEdit,
+                            icon: Icon(
+                              Icons.edit,
+                              size: isSmallScreen ? 20 : 22,
+                              color: const Color.fromARGB(255, 95, 95, 95),
+                            ),
+                          ),
+
+                          // Delete Icon
+                          IconButton(
+                            onPressed: onDelete,
+                            icon: Icon(
+                              Icons.delete_outline_rounded,
+                              size: isSmallScreen ? 20 : 22,
+                              color: const Color.fromARGB(255, 248, 117, 108),
+                            ),
+                          ),
+                        ],
+                      ),
                   ],
                 ),
-                
-                // Address
+
+                SizedBox(height: isGridView ? (isSmallScreen ? 6 : 8) : 12),
+                Divider(
+                  height: isGridView ? (isSmallScreen ? 8 : 12) : 16,
+                  thickness: 1,
+                  color: const Color.fromARGB(255, 184, 184, 184),
+                ),
+                SizedBox(height: isGridView ? (isSmallScreen ? 4 : 6) : 8),
+                // Progress bar, dates, and action buttons row
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Icon(
-                      Icons.location_on,
-                      size: 14,
-                      color: Colors.grey.shade600,
-                    ),
-                    SizedBox(width: 4),
-                    Expanded(
-                      child: Text(
-                        site.address,
+                    // Progress bar for both grid and list views
+                    if (!isGridView) // Progress bar for list view
+                      Row(
+                        children: [
+                          Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              SizedBox(
+                                width: 37,
+                                height: 37,
+                                child: CircularProgressIndicator(
+                                  value: site.progress,
+                                  backgroundColor: Colors.grey.shade200,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Color(0xFF4a63c0),
+                                  ),
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                              Text(
+                                '${(site.progress * 100).round()}%',
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF4a63c0),
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(width: 6),
+                          Text(
+                            'Complete',
+                            style: TextStyle(
+                              fontSize: isSmallScreen ? 10 : 12,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                        ],
+                      ),
+
+                    if (isGridView) // Progress bar and action icons for grid view
+                      Expanded(
+                        child: Row(
+                          children: [
+                            Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                SizedBox(
+                                  width: isSmallScreen ? 27 : 37,
+                                  height: isSmallScreen ? 27 : 37,
+                                  child: CircularProgressIndicator(
+                                    value: site.progress,
+                                    backgroundColor: Colors.grey.shade200,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Color(0xFF4a63c0),
+                                    ),
+                                    strokeWidth: 2,
+                                  ),
+                                ),
+                                Text(
+                                  '${(site.progress * 100).round()}%',
+                                  style: TextStyle(
+                                    fontSize: isSmallScreen ? 6 : 7,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF4a63c0),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            SizedBox(width: isSmallScreen ? 3 : 4),
+                            Expanded(
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  IconButton(
+                                    onPressed: onEdit,
+                                    icon: Icon(
+                                      Icons.edit,
+                                      size: isSmallScreen ? 13 : 16,
+                                      color: const Color.fromARGB(
+                                        255,
+                                        61,
+                                        61,
+                                        61,
+                                      ),
+                                    ),
+                                    padding: EdgeInsets.zero,
+                                    constraints: BoxConstraints(),
+                                    visualDensity: VisualDensity.compact,
+                                  ),
+                                  IconButton(
+                                    onPressed: onDelete,
+                                    icon: Icon(
+                                      Icons.delete_outline_rounded,
+                                      size: isSmallScreen ? 13 : 16,
+                                      color: const Color.fromARGB(
+                                        255,
+                                        221,
+                                        96,
+                                        88,
+                                      ),
+                                    ),
+                                    padding: EdgeInsets.zero,
+                                    constraints: BoxConstraints(),
+                                    visualDensity: VisualDensity.compact,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                    // Dates - Always at the end (right side)
+                    if (!isGridView) // Dates for list view
+                      Text(
+                        '${site.startDate}       ${site.endDate}',
                         style: TextStyle(
-                          fontSize: 12,
+                          fontSize: isSmallScreen ? 12 : 14,
                           color: Colors.grey.shade600,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                       ),
-                    ),
                   ],
                 ),
+                SizedBox(height: isSmallScreen ? 5 : 10),
+                if (isGridView) // Dates for grid view
+                  Text(
+                    '${site.startDate}    ${site.endDate}',
+                    style: TextStyle(
+                      fontSize: isSmallScreen ? 10 : 12,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
               ],
             ),
           ),
@@ -1316,4 +1664,42 @@ class SiteCard extends StatelessWidget {
       ),
     );
   }
+
+  Color _getStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'active':
+        return const Color.fromARGB(255, 59, 122, 61);
+      case 'on hold':
+        return Colors.orange;
+      case 'completed':
+        return Colors.blue;
+      case 'planning':
+        return Colors.purple;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  IconData _getStatusIcon(String status) {
+    switch (status.toLowerCase()) {
+      case 'active':
+        return Icons.play_arrow;
+      case 'on hold':
+        return Icons.pause;
+      case 'completed':
+        return Icons.check;
+      case 'planning':
+        return Icons.schedule;
+      default:
+        return Icons.help;
+    }
+  }
+
+  // String _formatDateCompact(String date) {
+  //   // Simple implementation - you might want to use a date parsing/formatting library
+  //   if (date.length >= 8) {
+  //     return '${date.substring(5, 7)}/${date.substring(8)}'; // Shows "MM/DD" format
+  //   }
+  //   return date;
+  // }
 }

@@ -103,23 +103,38 @@ class _MachineryDetailScreenState extends State<MachineryDetailScreen>
               onSelected: (val) => setState(() => _filter = val),
               itemBuilder: (_) => [
                 _buildPopupMenuItem('All', Icons.apps, _filter == 'All'),
-                _buildPopupMenuItem('Fuel', Icons.local_gas_station, _filter == 'Fuel'),
-                _buildPopupMenuItem('Rental', Icons.settings, _filter == 'Rental'),
+                _buildPopupMenuItem(
+                  'Fuel',
+                  Icons.local_gas_station,
+                  _filter == 'Fuel',
+                ),
+                _buildPopupMenuItem(
+                  'Rental',
+                  Icons.settings,
+                  _filter == 'Rental',
+                ),
               ],
-              icon: const Icon(Icons.filter_list, color: Colors.white, size: 20),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              icon: const Icon(
+                Icons.filter_list,
+                color: Colors.white,
+                size: 20,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
               offset: const Offset(0, 45),
             ),
           ),
         ],
         flexibleSpace: Container(
           decoration: BoxDecoration(
-            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(24)),
+            borderRadius: const BorderRadius.vertical(
+              bottom: Radius.circular(24),
+            ),
             gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [primaryColor, primaryVariant, primaryDark],
-              stops: const [0.0, 0.5, 1.0],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color(0xFF4a63c0), Color(0xFF3a53b0), Color(0xFF2a43a0)],
             ),
             boxShadow: [
               BoxShadow(
@@ -142,7 +157,7 @@ class _MachineryDetailScreenState extends State<MachineryDetailScreen>
         ),
         child: Column(
           children: [
-            const SizedBox(height: 120), // Space for app bar
+            const SizedBox(height: 133), // Space for app bar
             _buildStatsRow(),
             const SizedBox(height: 16),
             Expanded(
@@ -162,16 +177,25 @@ class _MachineryDetailScreenState extends State<MachineryDetailScreen>
           },
           backgroundColor: primaryColor,
           foregroundColor: Colors.white,
-          label: const Text('Add Entry', style: TextStyle(fontWeight: FontWeight.w600)),
+          label: const Text(
+            'Add Entry',
+            style: TextStyle(fontWeight: FontWeight.w600),
+          ),
           icon: const Icon(Icons.add),
           elevation: 8,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
         ),
       ),
     );
   }
 
-  PopupMenuItem<String> _buildPopupMenuItem(String value, IconData icon, bool isSelected) {
+  PopupMenuItem<String> _buildPopupMenuItem(
+    String value,
+    IconData icon,
+    bool isSelected,
+  ) {
     return PopupMenuItem(
       value: value,
       child: Row(
@@ -210,11 +234,32 @@ class _MachineryDetailScreenState extends State<MachineryDetailScreen>
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
-          Expanded(child: _buildStatCard('Total Entries', '${_entries.length}', Icons.list, primaryColor)),
+          Expanded(
+            child: _buildStatCard(
+              'Total Entries',
+              '${_entries.length}',
+              Icons.list,
+              primaryColor,
+            ),
+          ),
           const SizedBox(width: 12),
-          Expanded(child: _buildStatCard('Fuel', '$fuelEntries', Icons.local_gas_station, Colors.orange[600]!)),
+          Expanded(
+            child: _buildStatCard(
+              'Fuel',
+              '$fuelEntries',
+              Icons.local_gas_station,
+              Colors.orange[600]!,
+            ),
+          ),
           const SizedBox(width: 12),
-          Expanded(child: _buildStatCard('Rental', '$rentalEntries', Icons.settings, Colors.blue[600]!)),
+          Expanded(
+            child: _buildStatCard(
+              'Rental',
+              '$rentalEntries',
+              Icons.settings,
+              Colors.blue[600]!,
+            ),
+          ),
           const SizedBox(width: 12),
           // Expanded(child: _buildStatCard('Total Cost', '₹${totalCost.toStringAsFixed(0)}', Icons.currency_rupee, Colors.green[600]!)),
         ],
@@ -222,7 +267,12 @@ class _MachineryDetailScreenState extends State<MachineryDetailScreen>
     );
   }
 
-  Widget _buildStatCard(String title, String value, IconData icon, Color color) {
+  Widget _buildStatCard(
+    String title,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -318,9 +368,17 @@ class _MachineryDetailScreenState extends State<MachineryDetailScreen>
           child: Dismissible(
             key: UniqueKey(),
             background: _buildSwipeBackground(
-                color: const Color.fromARGB(255, 115, 161, 240), icon: Icons.edit, alignLeft: true, label: 'Edit'),
+              color: const Color.fromARGB(255, 115, 161, 240),
+              icon: Icons.edit,
+              alignLeft: true,
+              label: 'Edit',
+            ),
             secondaryBackground: _buildSwipeBackground(
-                color: Colors.red[600]!, icon: Icons.delete, alignLeft: false, label: 'Delete'),
+              color: Colors.red[600]!,
+              icon: Icons.delete,
+              alignLeft: false,
+              label: 'Delete',
+            ),
             confirmDismiss: (direction) async {
               if (direction == DismissDirection.startToEnd) {
                 // Edit
@@ -336,8 +394,10 @@ class _MachineryDetailScreenState extends State<MachineryDetailScreen>
                   _advanceController.text = existing['advance'].toString();
                   _dieselUsedController.text = existing['diesel'].toString();
                   _showRentalEntryForm(
-                    Provider.of<CompanySiteProvider>(context, listen: false)
-                        .sites.map((site) => site.name).toList(),
+                    Provider.of<CompanySiteProvider>(
+                      context,
+                      listen: false,
+                    ).sites.map((site) => site.name).toList(),
                     isEditing: true,
                     fromSiteInit: existing['fromSite'],
                     toSiteInit: existing['toSite'],
@@ -375,10 +435,7 @@ class _MachineryDetailScreenState extends State<MachineryDetailScreen>
                         _buildEntryIcon(entry['type']),
                         const SizedBox(width: 16),
                         Expanded(child: _buildEntryContent(entry)),
-                        Icon(
-                          Icons.chevron_right,
-                          color: Colors.grey[400],
-                        ),
+                        Icon(Icons.chevron_right, color: Colors.grey[400]),
                       ],
                     ),
                   ),
@@ -426,8 +483,8 @@ class _MachineryDetailScreenState extends State<MachineryDetailScreen>
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: entry['type'] == 'Fuel' 
-                    ? Colors.orange.withOpacity(0.1) 
+                color: entry['type'] == 'Fuel'
+                    ? Colors.orange.withOpacity(0.1)
                     : Colors.blue.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
@@ -436,7 +493,9 @@ class _MachineryDetailScreenState extends State<MachineryDetailScreen>
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: entry['type'] == 'Fuel' ? Colors.orange[700] : Colors.blue[700],
+                  color: entry['type'] == 'Fuel'
+                      ? Colors.orange[700]
+                      : Colors.blue[700],
                 ),
               ),
             ),
@@ -444,20 +503,46 @@ class _MachineryDetailScreenState extends State<MachineryDetailScreen>
         ),
         const SizedBox(height: 8),
         if (entry['type'] == 'Fuel') ...[
-          _buildInfoRow(Icons.water_drop_outlined, 'Liters', '${entry['liters']}'),
+          _buildInfoRow(
+            Icons.water_drop_outlined,
+            'Liters',
+            '${entry['liters']}',
+          ),
           _buildInfoRow(Icons.currency_rupee, 'Rate', '₹${entry['rate']}'),
-          _buildInfoRow(Icons.calculate, 'Total', '₹${entry['total']}', isTotal: true),
+          _buildInfoRow(
+            Icons.calculate,
+            'Total',
+            '₹${entry['total']}',
+            isTotal: true,
+          ),
         ] else ...[
-          _buildInfoRow(Icons.payment_outlined, 'Advance', '₹${entry['advance']}'),
-          _buildInfoRow(Icons.local_gas_station_outlined, 'Diesel', '${entry['diesel']}L'),
+          _buildInfoRow(
+            Icons.payment_outlined,
+            'Advance',
+            '₹${entry['advance']}',
+          ),
+          _buildInfoRow(
+            Icons.local_gas_station_outlined,
+            'Diesel',
+            '${entry['diesel']}L',
+          ),
           if (entry['fromSite'] != null && entry['toSite'] != null)
-            _buildInfoRow(Icons.route, 'Route', '${entry['fromSite']} → ${entry['toSite']}'),
+            _buildInfoRow(
+              Icons.route,
+              'Route',
+              '${entry['fromSite']} → ${entry['toSite']}',
+            ),
         ],
       ],
     );
   }
 
-  Widget _buildInfoRow(IconData icon, String label, String value, {bool isTotal = false}) {
+  Widget _buildInfoRow(
+    IconData icon,
+    String label,
+    String value, {
+    bool isTotal = false,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(top: 4),
       child: Row(
@@ -585,13 +670,21 @@ class _MachineryDetailScreenState extends State<MachineryDetailScreen>
     if (entry['type'] == 'Fuel') {
       return [
         _buildDetailRow('Liters', '${entry['liters']} L', Icons.water_drop),
-        _buildDetailRow('Rate per Liter', '₹${entry['rate']}', Icons.currency_rupee),
+        _buildDetailRow(
+          'Rate per Liter',
+          '₹${entry['rate']}',
+          Icons.currency_rupee,
+        ),
         _buildDetailRow('Total Amount', '₹${entry['total']}', Icons.calculate),
       ];
     } else {
       return [
         _buildDetailRow('Advance Paid', '₹${entry['advance']}', Icons.payment),
-        _buildDetailRow('Diesel Supplied', '${entry['diesel']} L', Icons.local_gas_station),
+        _buildDetailRow(
+          'Diesel Supplied',
+          '${entry['diesel']} L',
+          Icons.local_gas_station,
+        ),
         if (entry['fromSite'] != null)
           _buildDetailRow('From Site', entry['fromSite'], Icons.location_on),
         if (entry['toSite'] != null)
@@ -640,7 +733,7 @@ class _MachineryDetailScreenState extends State<MachineryDetailScreen>
     setState(() {
       _entries.removeAt(index);
     });
-    
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
@@ -800,7 +893,8 @@ class _MachineryDetailScreenState extends State<MachineryDetailScreen>
       builder: (_) {
         return Padding(
           padding: EdgeInsets.only(
-              bottom: MediaQuery.of(context).viewInsets.bottom),
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+          ),
           child: Container(
             decoration: const BoxDecoration(
               color: Colors.white,
@@ -833,7 +927,11 @@ class _MachineryDetailScreenState extends State<MachineryDetailScreen>
                               color: Colors.orange.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            child: Icon(Icons.local_gas_station, color: Colors.orange[600], size: 24),
+                            child: Icon(
+                              Icons.local_gas_station,
+                              color: Colors.orange[600],
+                              size: 24,
+                            ),
                           ),
                           const SizedBox(width: 16),
                           Expanded(
@@ -885,8 +983,9 @@ class _MachineryDetailScreenState extends State<MachineryDetailScreen>
                           onPressed: () {
                             final machine = _machineController.text.trim();
                             if (machine.isEmpty) {
-                              setState(() =>
-                                  machineError = 'Machine name is required');
+                              setState(
+                                () => machineError = 'Machine name is required',
+                              );
                               return;
                             }
                             final liters =
@@ -952,8 +1051,12 @@ class _MachineryDetailScreenState extends State<MachineryDetailScreen>
     );
   }
 
-  void _showRentalEntryForm(List<String> siteOptions,
-      {bool isEditing = false, String? fromSiteInit, String? toSiteInit}) {
+  void _showRentalEntryForm(
+    List<String> siteOptions, {
+    bool isEditing = false,
+    String? fromSiteInit,
+    String? toSiteInit,
+  }) {
     String? machineError;
     String? fromSite = fromSiteInit;
     String? toSite = toSiteInit;
@@ -964,7 +1067,8 @@ class _MachineryDetailScreenState extends State<MachineryDetailScreen>
       builder: (_) {
         return Padding(
           padding: EdgeInsets.only(
-              bottom: MediaQuery.of(context).viewInsets.bottom),
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+          ),
           child: Container(
             decoration: const BoxDecoration(
               color: Colors.white,
@@ -997,12 +1101,18 @@ class _MachineryDetailScreenState extends State<MachineryDetailScreen>
                               color: Colors.blue.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            child: Icon(Icons.settings, color: Colors.blue[600], size: 24),
+                            child: Icon(
+                              Icons.settings,
+                              color: Colors.blue[600],
+                              size: 24,
+                            ),
                           ),
                           const SizedBox(width: 16),
                           Expanded(
                             child: Text(
-                              isEditing ? 'Edit Rental Entry' : 'New Rental Entry',
+                              isEditing
+                                  ? 'Edit Rental Entry'
+                                  : 'New Rental Entry',
                               style: const TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
@@ -1027,7 +1137,8 @@ class _MachineryDetailScreenState extends State<MachineryDetailScreen>
                               label: 'From Site',
                               icon: Icons.location_on,
                               items: siteOptions,
-                              onChanged: (val) => setState(() => fromSite = val),
+                              onChanged: (val) =>
+                                  setState(() => fromSite = val),
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -1073,12 +1184,14 @@ class _MachineryDetailScreenState extends State<MachineryDetailScreen>
                           onPressed: () {
                             final machine = _machineController.text.trim();
                             if (machine.isEmpty) {
-                              setState(() =>
-                                  machineError = 'Machine name is required');
+                              setState(
+                                () => machineError = 'Machine name is required',
+                              );
                               return;
                             }
                             final diesel =
-                                double.tryParse(_dieselUsedController.text) ?? 0;
+                                double.tryParse(_dieselUsedController.text) ??
+                                0;
                             final advance =
                                 double.tryParse(_advanceController.text) ?? 0;
 
@@ -1122,7 +1235,9 @@ class _MachineryDetailScreenState extends State<MachineryDetailScreen>
                             elevation: 0,
                           ),
                           child: Text(
-                            isEditing ? 'Update Rental Entry' : 'Save Rental Entry',
+                            isEditing
+                                ? 'Update Rental Entry'
+                                : 'Save Rental Entry',
                             style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
@@ -1200,7 +1315,10 @@ class _MachineryDetailScreenState extends State<MachineryDetailScreen>
             fontSize: 14,
             fontWeight: FontWeight.w600,
           ),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 16,
+          ),
         ),
       ),
     );
@@ -1248,17 +1366,17 @@ class _MachineryDetailScreenState extends State<MachineryDetailScreen>
             fontSize: 14,
             fontWeight: FontWeight.w500,
           ),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 16,
+          ),
         ),
         items: items.map((site) {
           return DropdownMenuItem(
             value: site,
             child: Text(
               site,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
             ),
           );
         }).toList(),

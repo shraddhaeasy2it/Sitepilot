@@ -46,20 +46,18 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
     return Theme(
       data: Theme.of(context).copyWith(
         colorScheme: ColorScheme.light(
-          primary: Colors.lightBlue.shade600,
-          secondary: Colors.lightBlue.shade400,
+          primary: const Color(0xFF6f88e2),
+          secondary: const Color(0xFF5a73d1),
         ),
       ),
       child: Scaffold(
         appBar: AppBar(
-          toolbarHeight: 90,
+          toolbarHeight: 80,
           title: Text(
             'Payment Requests - ${widget.siteName}',
             style: TextStyle(color: Colors.white),
           ),
-          iconTheme: const IconThemeData(
-            color: Colors.white, // Back arrow white
-          ),
+          iconTheme: const IconThemeData(color: Colors.white),
           backgroundColor: Colors.transparent,
           flexibleSpace: Container(
             decoration: const BoxDecoration(
@@ -67,9 +65,9 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  Color(0xFF6f88e2),
-                  Color(0xFF5a73d1),
                   Color(0xFF4a63c0),
+                  Color(0xFF3a53b0),
+                  Color(0xFF2a43a0),
                 ],
               ),
               borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
@@ -151,7 +149,7 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
               ),
         floatingActionButton: FloatingActionButton(
           onPressed: _showAddRequestDialog,
-          backgroundColor: const Color.fromARGB(255, 54, 134, 238),
+          backgroundColor: const Color(0xFF6f88e2),
           child: const Icon(Icons.add, color: Colors.white),
         ),
       ),
@@ -199,86 +197,258 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
+      isDismissible: false,
+      enableDrag: false,
       builder: (_) {
-        return Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 10,
-                spreadRadius: 2,
-              ),
-            ],
-          ),
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-            top: 16,
-            left: 16,
-            right: 16,
-          ),
-          child: SingleChildScrollView(
+        return StatefulBuilder(
+          builder: (context, setModalState) => Container(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom,
+              top: 0,
+              left: 0,
+              right: 0,
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text(
-                  'New Payment Request',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                ),
-                const SizedBox(height: 16),
-                DropdownButtonFormField<String>(
-                  value: _selectedCategory,
-                  items: _categories.map((cat) {
-                    return DropdownMenuItem(value: cat, child: Text(cat));
-                  }).toList(),
-                  decoration: const InputDecoration(
-                    labelText: 'Category *',
-                    border: OutlineInputBorder(),
-                  ),
-                  onChanged: (val) {
-                    if (val != null) setState(() => _selectedCategory = val);
-                  },
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: _amountController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'Amount (₹) *',
-                    prefixIcon: Icon(Icons.currency_rupee),
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: _descriptionController,
-                  decoration: const InputDecoration(
-                    labelText: 'Description *',
-                    prefixIcon: Icon(Icons.description),
-                    border: OutlineInputBorder(),
-                  ),
-                  maxLines: 2,
-                ),
-                const SizedBox(height: 16),
-                _buildDocumentUploadField(),
-                const SizedBox(height: 16),
-                ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color.fromARGB(255, 102, 135, 245),
-                    minimumSize: const Size(double.infinity, 50),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                // Header with gradient
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(24),
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [Color(0xFF6f88e2), Color(0xFF5a73d1)],
+                    ),
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(24),
                     ),
                   ),
-                  onPressed: _validateAndSubmitRequest,
-                  icon: const Icon(Icons.send, color: Colors.white),
-                  label: const Text(
-                    'Submit Request',
-                    style: TextStyle(color: Colors.white),
+                  child: Column(
+                    children: [
+                      // Handle bar
+                      Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.3),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(
+                              Icons.payment,
+                              color: Colors.white,
+                              size: 24,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          const Expanded(
+                            child: Text(
+                              'New Payment Request',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: () => Navigator.pop(context),
+                            icon: const Icon(Icons.close, color: Colors.white),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 16),
+
+                // Form content
+                Flexible(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Category Selection
+                        _buildSectionTitle('Category'),
+                        const SizedBox(height: 12),
+                        Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.grey.shade300),
+                            color: Colors.grey.shade50,
+                          ),
+                          child: DropdownButtonFormField<String>(
+                            value: _selectedCategory,
+                            items: _categories.map((cat) {
+                              return DropdownMenuItem(
+                                value: cat,
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      _getCategoryIcon(cat),
+                                      size: 20,
+                                      color: const Color(0xFF6f88e2),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Text(cat),
+                                  ],
+                                ),
+                              );
+                            }).toList(),
+                            decoration: const InputDecoration(
+                              border: InputBorder.none,
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 16,
+                              ),
+                            ),
+                            onChanged: (val) {
+                              if (val != null) {
+                                setModalState(() => _selectedCategory = val);
+                              }
+                            },
+                          ),
+                        ),
+
+                        const SizedBox(height: 24),
+
+                        // Amount
+                        _buildSectionTitle('Amount'),
+                        const SizedBox(height: 12),
+                        Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.grey.shade300),
+                            color: Colors.grey.shade50,
+                          ),
+                          child: TextField(
+                            controller: _amountController,
+                            keyboardType: TextInputType.number,
+                            decoration: const InputDecoration(
+                              prefixIcon: Icon(
+                                Icons.currency_rupee,
+                                color: Color(0xFF6f88e2),
+                              ),
+                              hintText: 'Enter amount',
+                              border: InputBorder.none,
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 16,
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 24),
+
+                        // Description
+                        _buildSectionTitle('Description'),
+                        const SizedBox(height: 12),
+                        Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.grey.shade300),
+                            color: Colors.grey.shade50,
+                          ),
+                          child: TextField(
+                            controller: _descriptionController,
+                            maxLines: 3,
+                            decoration: const InputDecoration(
+                              prefixIcon: Padding(
+                                padding: EdgeInsets.only(bottom: 40),
+                                child: Icon(
+                                  Icons.description,
+                                  color: Color(0xFF6f88e2),
+                                ),
+                              ),
+                              hintText: 'Enter description...',
+                              border: InputBorder.none,
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 16,
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 24),
+
+                        // Document Upload
+                        _buildSectionTitle(
+                          'Invoice/Payment Proof',
+                          isRequired: true,
+                        ),
+                        const SizedBox(height: 12),
+                        _buildEnhancedDocumentUploadField(setModalState),
+
+                        const SizedBox(height: 32),
+
+                        // Submit Button
+                        Container(
+                          width: double.infinity,
+                          height: 56,
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [Color(0xFF6f88e2), Color(0xFF5a73d1)],
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF6f88e2).withOpacity(0.3),
+                                blurRadius: 8,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Material(
+                            color: Colors.transparent,
+                            borderRadius: BorderRadius.circular(12),
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(12),
+                              onTap: _validateAndSubmitRequest,
+                              child: const Center(
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.send, color: Colors.white),
+                                    SizedBox(width: 12),
+                                    Text(
+                                      'Submit Request',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 16),
+                      ],
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -287,83 +457,166 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
     );
   }
 
-  Widget _buildDocumentUploadField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+  IconData _getCategoryIcon(String category) {
+    switch (category) {
+      case 'Material':
+        return Icons.construction;
+      case 'Rental':
+        return Icons.car_rental;
+      case 'Manpower':
+        return Icons.people;
+      case 'Misc':
+        return Icons.more_horiz;
+      default:
+        return Icons.category;
+    }
+  }
+
+  Widget _buildSectionTitle(String title, {bool isRequired = false}) {
+    return Row(
       children: [
-        RichText(
-          text: TextSpan(
-            text: 'Invoice/Payment Proof ',
-            style: const TextStyle(fontSize: 16, color: Colors.black),
-            children: const [
-              TextSpan(
-                text: '*',
-                style: TextStyle(
-                  color: Colors.red,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF2d3748),
           ),
         ),
-        const SizedBox(height: 8),
-        InkWell(
-          onTap: _pickDocument,
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              border: Border.all(
-                color: _showUploadError ? Colors.red : Colors.grey,
-                width: 1,
-              ),
-              borderRadius: BorderRadius.circular(8),
+        if (isRequired)
+          const Text(
+            ' *',
+            style: TextStyle(
+              color: Colors.red,
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
             ),
-            child: Row(
+          ),
+      ],
+    );
+  }
+
+  Widget _buildEnhancedDocumentUploadField(StateSetter setModalState) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: _showUploadError ? Colors.red : Colors.grey.shade300,
+          width: _showUploadError ? 2 : 1,
+        ),
+        color: _selectedFile != null
+            ? const Color(0xFF6f88e2).withOpacity(0.05)
+            : Colors.grey.shade50,
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () async {
+            await _pickDocument();
+            setModalState(() {});
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
               children: [
-                Icon(Icons.upload_file, color: Colors.lightBlue.shade600),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Text(
-                    _selectedFile?.path.split('/').last ??
-                        'Tap to upload document (PDF/Image)',
+                if (_selectedFile == null) ...[
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF6f88e2).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(50),
+                    ),
+                    child: Icon(
+                      Icons.cloud_upload_outlined,
+                      size: 32,
+                      color: _showUploadError
+                          ? Colors.red
+                          : const Color(0xFF6f88e2),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Upload Document',
                     style: TextStyle(
-                      color: _selectedFile == null ? Colors.grey : Colors.black,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                if (_isUploading)
-                  const Padding(
-                    padding: EdgeInsets.only(left: 8),
-                    child: SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: _showUploadError
+                          ? Colors.red
+                          : const Color(0xFF2d3748),
                     ),
                   ),
-                if (_selectedFile != null && !_isUploading)
-                  IconButton(
-                    icon: const Icon(Icons.close, size: 18),
-                    onPressed: () {
-                      setState(() {
-                        _showUploadError = true;
-                      });
-                    },
+                  const SizedBox(height: 8),
+                  Text(
+                    'PDF or Image (JPG, PNG)',
+                    style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
                   ),
+                ] else ...[
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF6f88e2).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(
+                          Icons.insert_drive_file,
+                          color: Color(0xFF6f88e2),
+                          size: 24,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _selectedFile!.path.split('/').last,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF2d3748),
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Tap to change file',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () {
+                          setModalState(() {
+                            _selectedFile = null;
+                            _showUploadError = true;
+                          });
+                        },
+                        icon: Icon(Icons.close, color: Colors.grey.shade600),
+                      ),
+                    ],
+                  ),
+                ],
+                if (_isUploading) ...[
+                  const SizedBox(height: 16),
+                  const LinearProgressIndicator(
+                    backgroundColor: Colors.grey,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      Color(0xFF6f88e2),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
         ),
-        if (_showUploadError)
-          Padding(
-            padding: const EdgeInsets.only(top: 4),
-            child: Text(
-              'Document proof is required',
-              style: TextStyle(color: Colors.red.shade600, fontSize: 12),
-            ),
-          ),
-      ],
+      ),
     );
   }
 
@@ -446,6 +699,12 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
     });
 
     Navigator.pop(context);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Payment request submitted successfully'),
+        backgroundColor: Colors.green,
+      ),
+    );
   }
 
   void _showDetailDialog(Map<String, dynamic> req, int index) {
@@ -498,7 +757,7 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
                           Text(
                             req['document'],
                             style: TextStyle(
-                              color: Colors.lightBlue.shade600,
+                              color: const Color(0xFF6f88e2),
                               decoration: TextDecoration.underline,
                             ),
                           ),
@@ -539,7 +798,7 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
                 ),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.lightBlue.shade600,
+                    backgroundColor: const Color(0xFF6f88e2),
                   ),
                   onPressed: () {
                     setState(() {
@@ -562,7 +821,7 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
               if (req['status'] == 'Approved') ...[
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.lightBlue.shade600,
+                    backgroundColor: const Color(0xFF6f88e2),
                   ),
                   onPressed: () {
                     Navigator.pop(context);
@@ -618,7 +877,7 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
                         children: [
                           Icon(
                             Icons.upload_file,
-                            color: Colors.lightBlue.shade600,
+                            color: const Color(0xFF6f88e2),
                           ),
                           const SizedBox(width: 16),
                           Expanded(
@@ -652,7 +911,7 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
               ),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.lightBlue.shade600,
+                  backgroundColor: const Color(0xFF6f88e2),
                 ),
                 onPressed: () {
                   if (_utrController.text.isEmpty) {

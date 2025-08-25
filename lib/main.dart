@@ -1,4 +1,5 @@
 import 'package:ecoteam_app/services/company_site_provider.dart';
+import 'package:ecoteam_app/view/contractor_dashboard/dashboard_page.dart';
 import 'package:ecoteam_app/view/contractor_dashboard/home_page.dart';
 import 'package:ecoteam_app/view/landing_page/splash_screen.dart';
 import 'package:flutter/material.dart';
@@ -49,7 +50,7 @@ class ResponsiveWrapper extends StatelessWidget {
           // Mobile
           return Scaffold(
             
-            body: SplashScreen(), // Your contractor dashboard home
+            body: HomePagescreen(), // Your contractor dashboard home
           );
         }
       },
@@ -75,7 +76,7 @@ class DesktopHomePage extends StatelessWidget {
           ),
           Expanded(
             flex: 5,
-            child: HomePageApp(), // Your contractor dashboard home
+            child: HomePagescreen(), // Your contractor dashboard home
           ),
         ],
       ),
@@ -90,7 +91,7 @@ class TabletHomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text("Tablet View")),
-      body: HomePageApp(),
+      body: HomePagescreen(),
     );
   }
 }

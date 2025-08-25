@@ -48,7 +48,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _screens = [
       const Center(child: CircularProgressIndicator()), // Dashboard loading
       const Center(child: CircularProgressIndicator()), // Workers loading
-      const Center(child: CircularProgressIndicator()), // Tasks loading
+      // Tasks loading
       const Center(child: CircularProgressIndicator()), // Attendance loading
       const Center(child: CircularProgressIndicator()), // More loading
     ];
@@ -104,18 +104,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
           onSiteChanged: _onSiteChanged,
           sites: _sites,
         ),
-        TaskPage(
-          key: const PageStorageKey('Task'),
-          selectedSiteId: _selectedSiteId,
-          onSiteChanged: _onSiteChanged,
-          sites: _sites,
-          contractors: const [
-            'John Doe',
-            'Supplier Team',
-            'Safety Officer',
-            'Electrician Team',
-          ],
-        ),
+        // TaskPage(
+        //   key: const PageStorageKey('Task'),
+        //   selectedSiteId: _selectedSiteId,
+        //   onSiteChanged: _onSiteChanged,
+        //   sites: _sites,
+        //   contractors: const [
+        //     'John Doe',
+        //     'Supplier Team',
+        //     'Safety Officer',
+        //     'Electrician Team',
+        //   ],
+        // ),
         AttendanceScreen(
           key: const PageStorageKey('attendance'),
           selectedSiteId: _selectedSiteId,
@@ -180,18 +180,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
           onSiteChanged: _onSiteChanged,
           sites: _sites,
         ),
-        TaskPage(
-          key: const PageStorageKey('Task'),
-          selectedSiteId: _selectedSiteId,
-          onSiteChanged: _onSiteChanged,
-          sites: _sites,
-          contractors: const [
-            'John Doe',
-            'Supplier Team',
-            'Safety Officer',
-            'Electrician Team',
-          ],
-        ),
+        // TaskPage(
+        //   key: const PageStorageKey('Task'),
+        //   selectedSiteId: _selectedSiteId,
+        //   onSiteChanged: _onSiteChanged,
+        //   sites: _sites,
+        //   contractors: const [
+        //     'John Doe',
+        //     'Supplier Team',
+        //     'Safety Officer',
+        //     'Electrician Team',
+        //   ],
+        // ),
         MaterialScreen(
           key: const PageStorageKey('materials'),
           selectedSiteId: _selectedSiteId,
@@ -324,7 +324,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       appBar: _currentIndex == 0
           ? AppBar(
               iconTheme: const IconThemeData(color: Colors.white),
-              toolbarHeight: 90,
+              toolbarHeight: 80,
               elevation: 0,
               backgroundColor: Colors.transparent,
               flexibleSpace: Container(
@@ -332,15 +332,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   borderRadius: BorderRadius.vertical(
                     bottom: Radius.circular(25),
                   ),
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Color(0xFF6f88e2),
-                      Color(0xFF5a73d1),
-                      Color(0xFF4a63c0),
-                    ],
-                  ),
+                 gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Color(0xFF4a63c0),
+                    Color(0xFF3a53b0),
+                    Color(0xFF2a43a0),
+                  ],
+                ),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black12,
@@ -357,8 +357,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     'Dashboard',
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
+                      fontSize: 26,
+                      fontWeight: FontWeight.w500,
                       letterSpacing: 0.5,
                     ),
                   ),
@@ -367,9 +367,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     Text(
                       widget.companyName!,
                       style: const TextStyle(
-                        fontSize: 16,
+                        fontSize: 15,
                         fontWeight: FontWeight.w500,
-                        color: Colors.white70,
+                        color: Color.fromARGB(202, 255, 255, 255),
                       ),
                     ),
                 ],
@@ -892,7 +892,7 @@ class DashboardContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: Colors.white,
+      color: const Color(0xFFF8FAFC),
       child: Column(
         children: [
           _buildSiteSelector(),
@@ -908,18 +908,18 @@ class DashboardContent extends StatelessWidget {
 
   Widget _buildSiteSelector() {
     return Container(
-      margin: const EdgeInsets.all(16),
+      margin: const EdgeInsets.fromLTRB(20, 16, 20, 8),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 15,
+            offset: const Offset(0, 4),
           ),
         ],
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: Colors.grey.shade100),
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -967,10 +967,10 @@ class DashboardContent extends StatelessWidget {
       color: const Color(0xFF4a63c0),
       backgroundColor: Colors.white,
       child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 20),
         child: Column(
           children: [
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             _buildSummaryGrid(dashboardData!),
             const SizedBox(height: 24),
             _buildRecentActivities(),
@@ -988,41 +988,41 @@ class DashboardContent extends StatelessWidget {
         'title': 'Inventory',
         'value': data.totalPicking.toString(),
         'subtitle': 'Items in stock',
-        'color': const Color.fromARGB(255, 175, 61, 141),
-        'bgColor': const Color.fromARGB(255, 175, 61, 141).withOpacity(0.1),
+        'color': const Color(0xFF6366F1),
+        
       },
       {
         'icon': Icons.groups_outlined,
         'title': 'Workers',
         'value': data.totalWorkers.toString(),
         'subtitle': 'Active today',
-        'color': const Color.fromARGB(255, 13, 153, 106),
-        'bgColor': const Color(0xFF10B981).withOpacity(0.1),
+        'color': const Color(0xFF10B981),
+        
       },
       {
         'icon': Icons.fact_check_outlined,
         'title': 'Inspections',
         'value': data.totalInspection.toString(),
         'subtitle': 'Completed',
-        'color': const Color.fromARGB(255, 230, 148, 6),
-        'bgColor': const Color(0xFFF59E0B).withOpacity(0.1),
+        'color': const Color(0xFFF59E0B),
+        
       },
       {
         'icon': Icons.shopping_cart_outlined,
         'title': 'Pickings',
         'value': data.totalPicking.toString(),
         'subtitle': 'This month',
-        'color': const Color(0xFF8B5CF6),
-        'bgColor': const Color(0xFF8B5CF6).withOpacity(0.1),
+        'color': const Color(0xFFEF4444),
+        
       },
     ];
 
     return GridView.builder(
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        mainAxisSpacing: 16,
-        crossAxisSpacing: 16,
-        childAspectRatio: 1.1,
+        mainAxisSpacing: 14,
+        crossAxisSpacing: 14,
+        childAspectRatio: 1.25,
       ),
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -1030,64 +1030,81 @@ class DashboardContent extends StatelessWidget {
       itemBuilder: (context, index) {
         final item = summaryItems[index];
         return Container(
-          
           decoration: BoxDecoration(
-            color: const Color.fromARGB(255, 223, 230, 252),
-            borderRadius: BorderRadius.circular(16),
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
             boxShadow: [
+              
               BoxShadow(
-                color: Colors.black.withOpacity(0.2), // Increased opacity
-                blurRadius: 3, // Increased blur
-                offset: const Offset(0, 4), // Increased offset
-                // Added spread
+                color: Colors.black.withOpacity(0.3),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+                spreadRadius: 0,
               ),
             ],
-            border: Border.all(color: Colors.grey.shade200),
+            border: Border.all(color: Colors.grey.shade50, width: 1),
           ),
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(18),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: item['bgColor'] as Color,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    item['icon'] as IconData,
-                    color: item['color'] as Color,
-                    size: 20,
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                     
+                      
+                      child: Icon(
+                        item['icon'] as IconData,
+                        color: item['color'] as Color,
+                        size: 24,
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: (item['color'] as Color).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Icon(
+                        Icons.trending_up,
+                        color: item['color'] as Color,
+                        size: 16,
+                      ),
+                    ),
+                  ],
                 ),
+                const SizedBox(height: 4),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       item['value'] as String,
                       style: TextStyle(
-                        fontSize: 24,
+                        fontSize: 28,
                         fontWeight: FontWeight.bold,
                         color: item['color'] as Color,
+                        height: 1,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    
                     Text(
                       item['title'] as String,
                       style: const TextStyle(
                         fontSize: 16,
-                        fontWeight: FontWeight.w500,
+                        fontWeight: FontWeight.w600,
                         color: Color(0xFF1F2937),
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 2),
                     Text(
                       item['subtitle'] as String,
                       style: const TextStyle(
                         fontSize: 12,
                         color: Color(0xFF6B7280),
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ],
@@ -1135,18 +1152,19 @@ class DashboardContent extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+            spreadRadius: 0,
           ),
         ],
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: Colors.grey.shade50),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -1156,60 +1174,61 @@ class DashboardContent extends StatelessWidget {
                 const Text(
                   'Recent Activities',
                   style: TextStyle(
-                    fontSize: 18,
+                    fontSize: 20,
                     fontWeight: FontWeight.bold,
                     color: Color(0xFF1F2937),
                   ),
                 ),
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
+                    horizontal: 14,
+                    vertical: 8,
                   ),
                   decoration: BoxDecoration(
                     color: const Color(0xFF4a63c0).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(25),
                   ),
-                  child: Text(
+                  child: const Text(
                     'Today',
                     style: TextStyle(
                       fontSize: 12,
-                      color: const Color(0xFF4a63c0),
+                      color: Color(0xFF4a63c0),
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
             ListView.separated(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: activities.length,
-              separatorBuilder: (context, index) => const SizedBox(height: 12),
+              separatorBuilder: (context, index) => const SizedBox(height: 16),
               itemBuilder: (context, index) {
                 final activity = activities[index];
                 return Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade50,
-                    borderRadius: BorderRadius.circular(12),
+                    color: const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.grey.shade100),
                   ),
                   child: Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(8),
+                        padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
                           color: (activity['color'] as Color).withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BorderRadius.circular(14),
                         ),
                         child: Icon(
                           activity['icon'] as IconData,
                           color: activity['color'] as Color,
-                          size: 20,
+                          size: 22,
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 16),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1218,7 +1237,7 @@ class DashboardContent extends StatelessWidget {
                               activity['title'] as String,
                               style: const TextStyle(
                                 fontWeight: FontWeight.w600,
-                                fontSize: 15,
+                                fontSize: 16,
                                 color: Color(0xFF1F2937),
                               ),
                             ),
@@ -1227,18 +1246,26 @@ class DashboardContent extends StatelessWidget {
                               activity['subtitle'] as String,
                               style: const TextStyle(
                                 color: Color(0xFF6B7280),
-                                fontSize: 13,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
                               ),
                             ),
                           ],
                         ),
                       ),
-                      Text(
-                        activity['time'] as String,
-                        style: const TextStyle(
-                          color: Color(0xFF9CA3AF),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          activity['time'] as String,
+                          style: const TextStyle(
+                            color: Color(0xFF6B7280),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ],

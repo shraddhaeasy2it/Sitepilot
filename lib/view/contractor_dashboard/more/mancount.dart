@@ -15,7 +15,12 @@ class ManpowerCountScreen extends StatefulWidget {
 }
 
 class _ManpowerCountScreenState extends State<ManpowerCountScreen> {
-  final List<String> categories = ['Skilled', 'Unskilled', 'Supervisor', 'Engineer'];
+  final List<String> categories = [
+    'Skilled',
+    'Unskilled',
+    'Supervisor',
+    'Engineer',
+  ];
   final Map<String, int> dailyCount = {};
 
   @override
@@ -40,13 +45,15 @@ class _ManpowerCountScreenState extends State<ManpowerCountScreen> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: categories.map((cat) => Text('$cat: ${dailyCount[cat]}')).toList(),
+          children: categories
+              .map((cat) => Text('$cat: ${dailyCount[cat]}'))
+              .toList(),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Close'),
-          )
+          ),
         ],
       ),
     );
@@ -57,18 +64,19 @@ class _ManpowerCountScreenState extends State<ManpowerCountScreen> {
     return Scaffold(
       appBar: AppBar(
         toolbarHeight: 90,
-        title: Text('Manpower Count - ${widget.siteName}',style: TextStyle(color: Colors.white),),
-        iconTheme: const IconThemeData(
-          color: Colors.white,
+        title: Text(
+          'Manpower Count - ${widget.siteName}',
+          style: TextStyle(color: Colors.white),
         ),
-        
+        iconTheme: const IconThemeData(color: Colors.white),
+
         flexibleSpace: Container(
           decoration: const BoxDecoration(
             borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: [Color(0xFF6f88e2), Color(0xFF5a73d1), Color(0xFF4a63c0)],
+              colors: [Color(0xFF4a63c0), Color(0xFF3a53b0), Color(0xFF2a43a0)],
             ),
           ),
         ),
@@ -85,12 +93,18 @@ class _ManpowerCountScreenState extends State<ManpowerCountScreen> {
                 children: [
                   Text(
                     category,
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   Row(
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.remove_circle, color: Colors.red),
+                        icon: const Icon(
+                          Icons.remove_circle,
+                          color: Colors.red,
+                        ),
                         onPressed: () => _updateCount(category, -1),
                       ),
                       Text(
@@ -102,7 +116,7 @@ class _ManpowerCountScreenState extends State<ManpowerCountScreen> {
                         onPressed: () => _updateCount(category, 1),
                       ),
                     ],
-                  )
+                  ),
                 ],
               ),
             ),

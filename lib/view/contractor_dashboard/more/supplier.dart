@@ -6,7 +6,6 @@ class SupplierLedger extends StatefulWidget {
   final String? selectedSiteId;
   final Function(String) onSiteChanged;
   final List<Site> sites;
-
   const SupplierLedger({
     super.key,
     required this.selectedSiteId,
@@ -21,9 +20,7 @@ class SupplierLedger extends StatefulWidget {
 class _SupplierLedgerState extends State<SupplierLedger> {
   final List<SupplierTransaction> _transactions = [];
   bool _isLoading = false;
-  String _selectedFilter = "All";
   String _searchQuery = "";
-
   // Form controllers
   final TextEditingController _supplierNameController = TextEditingController();
   final TextEditingController _invoiceNoController = TextEditingController();
@@ -31,13 +28,12 @@ class _SupplierLedgerState extends State<SupplierLedger> {
   final TextEditingController _dateController = TextEditingController();
   final TextEditingController _dueDateController = TextEditingController();
   String _status = "Pending";
-
   // Color constants
   static const Color primaryColor = Color(0xFF6f88e2);
   static const Color primaryLight = Color(0xFF8fa4e8);
   static const Color primaryDark = Color(0xFF5a73d1);
   static const Color backgroundColor = Color(0xFFF8F9FF);
-  static const Color cardColor = Colors.white;
+  static const Color cardColor = Color(0xFFF8F9FF); // Changed to backgroundColor
   static const Color textPrimary = Color(0xFF2D3748);
   static const Color textSecondary = Color(0xFF718096);
 
@@ -55,6 +51,19 @@ class _SupplierLedgerState extends State<SupplierLedger> {
     _dateController.dispose();
     _dueDateController.dispose();
     super.dispose();
+  }
+
+  // Helper method to get the current site name
+  String _getCurrentSiteName() {
+    if (widget.selectedSiteId == null) {
+      return 'All Sites';
+    }
+    final site = widget.sites.firstWhere(
+      (site) => site.id == widget.selectedSiteId,
+      orElse: () =>
+          Site(id: '', name: 'Unknown Site', address: '', companyId: ''),
+    );
+    return site.name;
   }
 
   void _loadTransactions() {
@@ -106,11 +115,8 @@ class _SupplierLedgerState extends State<SupplierLedger> {
           _searchQuery.isEmpty ||
           t.supplierName.toLowerCase().contains(_searchQuery.toLowerCase()) ||
           t.invoiceNo.toLowerCase().contains(_searchQuery.toLowerCase());
-      final matchesFilter =
-          _selectedFilter == "All" || t.status == _selectedFilter;
-      return matchesSearch && matchesFilter;
+      return matchesSearch;
     }).toList();
-
     // Sort by payment due date (overdue first, then due soon, then pending)
     filtered.sort((a, b) {
       if (a.status == "Overdue" && b.status != "Overdue") return -1;
@@ -119,109 +125,32 @@ class _SupplierLedgerState extends State<SupplierLedger> {
       if (a.status == "Pending" && b.status == "Due Soon") return 1;
       return a.paymentDue.compareTo(b.paymentDue);
     });
-
     return filtered;
   }
 
-  Widget _buildSiteDropdown() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(10),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: DropdownButtonFormField<String>(
-        value: widget.selectedSiteId,
+  Widget _buildSearchBar() {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: TextField(
         decoration: InputDecoration(
-          labelText: 'Select Site',
-          prefixIcon: const Icon(
-            Icons.location_on_outlined,
-            color: primaryColor,
-          ),
+          hintText: 'Search supplier...',
+          prefixIcon: const Icon(Icons.search),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
             borderSide: BorderSide.none,
           ),
           filled: true,
-          fillColor: cardColor,
+          fillColor: Colors.white,
+          contentPadding: const EdgeInsets.symmetric(
+            vertical: 0,
+            horizontal: 16,
+          ),
         ),
-        items: widget.sites.map((site) {
-          return DropdownMenuItem<String>(
-            value: site.id,
-            child: Text(site.name),
-          );
-        }).toList(),
         onChanged: (value) {
-          if (value != null) {
-            widget.onSiteChanged(value);
-          }
+          setState(() {
+            _searchQuery = value;
+          });
         },
-      ),
-    );
-  }
-
-  Widget _buildSearchFilterRow() {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Row(
-        children: [
-          Expanded(
-            child: TextField(
-              decoration: InputDecoration(
-                hintText: 'Search supplier...',
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide.none,
-                ),
-                filled: true,
-                fillColor: Colors.white,
-                contentPadding: const EdgeInsets.symmetric(
-                  vertical: 0,
-                  horizontal: 16,
-                ),
-              ),
-              onChanged: (value) {
-                setState(() {
-                  _searchQuery = value;
-                });
-              },
-            ),
-          ),
-          const SizedBox(width: 10),
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                value: _selectedFilter,
-                items: ["All", "Pending", "Due Soon", "Overdue", "Paid"].map((
-                  String value,
-                ) {
-                  return DropdownMenuItem<String>(
-                    value: value,
-                    child: Text(value),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _selectedFilter = value!;
-                  });
-                },
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -235,99 +164,130 @@ class _SupplierLedgerState extends State<SupplierLedger> {
     } else if (transaction.status == "Paid") {
       statusColor = Colors.green;
     }
-
+    
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       elevation: 2,
+      color: cardColor, // Using backgroundColor for card
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  transaction.supplierName,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: statusColor.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    transaction.status,
-                    style: TextStyle(
-                      color: statusColor,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              "Invoice: ${transaction.invoiceNo}",
-              style: TextStyle(color: Colors.grey[600]),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text("Amount", style: TextStyle(color: Colors.grey[600])),
-                    Text(
-                      NumberFormat.currency(
-                        symbol: 'Rs ',
-                      ).format(transaction.amount),
+      child: InkWell(
+        onTap: () => _showEditTransactionBottomSheet(transaction),
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      transaction.supplierName,
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
-                        fontSize: 16,
+                        fontSize: 18,
                       ),
                     ),
-                  ],
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text("Due Date", style: TextStyle(color: Colors.grey[600])),
-                    Text(
-                      DateFormat('MMM dd, yyyy').format(transaction.paymentDue),
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: transaction.status == "Overdue"
-                            ? Colors.red
-                            : null,
+                  ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: statusColor.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          transaction.status,
+                          style: TextStyle(
+                            color: statusColor,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            if (transaction.status == "Overdue" ||
-                transaction.status == "Due Soon")
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton.icon(
-                  onPressed: () => _markAsPaid(transaction),
-                  icon: const Icon(Icons.check_circle, size: 18),
-                  label: const Text("Mark as Paid"),
-                  style: TextButton.styleFrom(foregroundColor: primaryColor),
-                ),
+                      const SizedBox(width: 8),
+                      // Delete button
+                      GestureDetector(
+                        onTap: () {
+                          _showDeleteConfirmationDialog(transaction);
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: Colors.red.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Icon(
+                            Icons.delete,
+                            color: Colors.red,
+                            size: 18,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-          ],
+              const SizedBox(height: 8),
+              Text(
+                "Invoice: ${transaction.invoiceNo}",
+                style: TextStyle(color: Colors.grey[600]),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text("Amount", style: TextStyle(color: Colors.grey[600])),
+                      Text(
+                        NumberFormat.currency(
+                          symbol: 'Rs ',
+                        ).format(transaction.amount),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text("Due Date", style: TextStyle(color: Colors.grey[600])),
+                      Text(
+                        DateFormat('MMM dd, yyyy').format(transaction.paymentDue),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: transaction.status == "Overdue"
+                              ? Colors.red
+                              : null,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              if (transaction.status == "Overdue" ||
+                  transaction.status == "Due Soon")
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton.icon(
+                    onPressed: () => _markAsPaid(transaction),
+                    icon: const Icon(Icons.check_circle, size: 18),
+                    label: const Text("Mark as Paid"),
+                    style: TextButton.styleFrom(foregroundColor: primaryColor),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -385,7 +345,23 @@ class _SupplierLedgerState extends State<SupplierLedger> {
       'yyyy-MM-dd',
     ).format(DateTime.now().add(const Duration(days: 30)));
     _status = "Pending";
+    _showTransactionBottomSheet();
+  }
 
+  void _showEditTransactionBottomSheet(SupplierTransaction transaction) {
+    // Populate controllers with transaction data
+    _supplierNameController.text = transaction.supplierName;
+    _invoiceNoController.text = transaction.invoiceNo;
+    _amountController.text = transaction.amount.toString();
+    _dateController.text = DateFormat('yyyy-MM-dd').format(transaction.date);
+    _dueDateController.text = DateFormat('yyyy-MM-dd').format(transaction.paymentDue);
+    _status = transaction.status;
+    _showTransactionBottomSheet(transaction: transaction);
+  }
+
+  void _showTransactionBottomSheet({SupplierTransaction? transaction}) {
+    final isEditing = transaction != null;
+    
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -435,7 +411,7 @@ class _SupplierLedgerState extends State<SupplierLedger> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Icon(
-                            Icons.add_card,
+                            isEditing ? Icons.edit : Icons.add_card,
                             color: primaryColor,
                             size: 28,
                           ),
@@ -445,16 +421,16 @@ class _SupplierLedgerState extends State<SupplierLedger> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
-                                'Add New Transaction',
-                                style: TextStyle(
+                              Text(
+                                isEditing ? 'Edit Transaction' : 'Add New Transaction',
+                                style: const TextStyle(
                                   fontSize: 24,
                                   fontWeight: FontWeight.bold,
                                   color: textPrimary,
                                 ),
                               ),
                               Text(
-                                'Enter transaction details below',
+                                isEditing ? 'Update transaction details' : 'Enter transaction details below',
                                 style: TextStyle(
                                   fontSize: 14,
                                   color: textSecondary,
@@ -513,9 +489,11 @@ class _SupplierLedgerState extends State<SupplierLedger> {
                           lastDate: DateTime(2101),
                         );
                         if (pickedDate != null) {
-                          _dateController.text = DateFormat(
-                            'yyyy-MM-dd',
-                          ).format(pickedDate);
+                          setSheetState(() {
+                            _dateController.text = DateFormat(
+                              'yyyy-MM-dd',
+                            ).format(pickedDate);
+                          });
                         }
                       },
                     ),
@@ -538,9 +516,11 @@ class _SupplierLedgerState extends State<SupplierLedger> {
                           lastDate: DateTime(2101),
                         );
                         if (pickedDate != null) {
-                          _dueDateController.text = DateFormat(
-                            'yyyy-MM-dd',
-                          ).format(pickedDate);
+                          setSheetState(() {
+                            _dueDateController.text = DateFormat(
+                              'yyyy-MM-dd',
+                            ).format(pickedDate);
+                          });
                         }
                       },
                     ),
@@ -561,7 +541,7 @@ class _SupplierLedgerState extends State<SupplierLedger> {
                         );
                       }).toList(),
                       onChanged: (value) {
-                        setState(() {
+                        setSheetState(() {
                           _status = value!;
                         });
                       },
@@ -572,8 +552,8 @@ class _SupplierLedgerState extends State<SupplierLedger> {
                       decoration: BoxDecoration(
                         gradient: const LinearGradient(
                           colors: [primaryColor, primaryDark],
-                          begin: Alignment.centerLeft,
-                          end: Alignment.centerRight,
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
                         ),
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
@@ -592,16 +572,21 @@ class _SupplierLedgerState extends State<SupplierLedger> {
                             borderRadius: BorderRadius.circular(16),
                           ),
                         ),
-                        icon: const Icon(Icons.add, color: Colors.white),
-                        label: const Text(
-                          'Add Transaction',
-                          style: TextStyle(
+                        icon: Icon(
+                          isEditing ? Icons.update : Icons.add,
+                          color: Colors.white,
+                        ),
+                        label: Text(
+                          isEditing ? 'Update Transaction' : 'Add Transaction',
+                          style: const TextStyle(
                             color: Colors.white,
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
-                        onPressed: _addTransaction,
+                        onPressed: () => isEditing 
+                            ? _updateTransaction(transaction!) 
+                            : _addTransaction(),
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -633,7 +618,6 @@ class _SupplierLedgerState extends State<SupplierLedger> {
       );
       return;
     }
-
     final newTransaction = SupplierTransaction(
       supplierName: _supplierNameController.text,
       invoiceNo: _invoiceNoController.text,
@@ -642,11 +626,9 @@ class _SupplierLedgerState extends State<SupplierLedger> {
       paymentDue: DateFormat('yyyy-MM-dd').parse(_dueDateController.text),
       status: _status,
     );
-
     setState(() {
       _transactions.add(newTransaction);
     });
-
     Navigator.pop(context);
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -656,11 +638,104 @@ class _SupplierLedgerState extends State<SupplierLedger> {
     );
   }
 
-  void _markAsPaid(SupplierTransaction transaction) {
+  void _updateTransaction(SupplierTransaction transaction) {
+    if (_supplierNameController.text.isEmpty ||
+        _invoiceNoController.text.isEmpty ||
+        _amountController.text.isEmpty ||
+        _dateController.text.isEmpty ||
+        _dueDateController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Please fill all fields"),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+    
+    final index = _transactions.indexOf(transaction);
     setState(() {
-      transaction.status = "Paid";
+      _transactions[index] = SupplierTransaction(
+        supplierName: _supplierNameController.text,
+        invoiceNo: _invoiceNoController.text,
+        date: DateFormat('yyyy-MM-dd').parse(_dateController.text),
+        amount: double.tryParse(_amountController.text) ?? 0,
+        paymentDue: DateFormat('yyyy-MM-dd').parse(_dueDateController.text),
+        status: _status,
+      );
     });
+    Navigator.pop(context);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Transaction updated successfully"),
+        backgroundColor: Colors.green,
+      ),
+    );
+  }
 
+  void _showDeleteConfirmationDialog(SupplierTransaction transaction) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Transaction'),
+        content: Text('Are you sure you want to delete the transaction with ${transaction.supplierName}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _deleteTransaction(transaction);
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _deleteTransaction(SupplierTransaction transaction) {
+    final index = _transactions.indexOf(transaction);
+    setState(() {
+      _transactions.remove(transaction);
+    });
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Transaction with ${transaction.supplierName} deleted successfully'),
+        backgroundColor: Colors.green,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+        action: SnackBarAction(
+          label: 'Undo',
+          textColor: Colors.white,
+          onPressed: () {
+            setState(() {
+              _transactions.insert(index, transaction);
+            });
+          },
+        ),
+      ),
+    );
+  }
+
+  void _markAsPaid(SupplierTransaction transaction) {
+    final index = _transactions.indexOf(transaction);
+    setState(() {
+      _transactions[index] = SupplierTransaction(
+        supplierName: transaction.supplierName,
+        invoiceNo: transaction.invoiceNo,
+        date: transaction.date,
+        amount: transaction.amount,
+        paymentDue: transaction.paymentDue,
+        status: "Paid",
+      );
+    });
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text("Marked ${transaction.invoiceNo} as Paid"),
@@ -712,47 +787,63 @@ class _SupplierLedgerState extends State<SupplierLedger> {
     return Scaffold(
       backgroundColor: backgroundColor,
       appBar: AppBar(
-        iconTheme: const IconThemeData(color: Colors.white),
-        backgroundColor: Colors.transparent,
         elevation: 0,
-        toolbarHeight: 90,
-        flexibleSpace: ClipRRect(
-          borderRadius: const BorderRadius.vertical(
-            bottom: Radius.circular(16),
-          ),
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Color(0xFF4a63c0),
-                  Color(0xFF3a53b0),
-                  Color(0xFF2a43a0),
-                ],
+        toolbarHeight: 80,
+        backgroundColor: Colors.transparent,
+        title: RichText(
+          text: TextSpan(
+            children: [
+              const TextSpan(
+                text: 'Supplier Ledger - ',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-            ),
+              TextSpan(
+                text: _getCurrentSiteName(),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w400,
+                ),
+              ),
+            ],
           ),
         ),
-        title: const Text(
-          'Supplier Ledger',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        centerTitle: true,
+        iconTheme: const IconThemeData(color: Colors.white),
         actions: [
           IconButton(
-            icon: const Icon(Icons.file_download, color: Colors.white),
+            icon: const Icon(Icons.download),
             onPressed: _exportStatements,
-            tooltip: 'Export Statements',
           ),
         ],
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            borderRadius: const BorderRadius.vertical(
+              bottom: Radius.circular(24),
+            ),
+            gradient: const LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color(0xFF4a63c0), Color(0xFF3a53b0), Color(0xFF2a43a0)],
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: primaryColor.withOpacity(0.3),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+        ),
       ),
       body: _isLoading
           ? Center(child: CircularProgressIndicator(color: primaryColor))
           : Column(
               children: [
-                _buildSiteDropdown(),
-                _buildSearchFilterRow(),
+                _buildSearchBar(),
                 Expanded(
                   child: _filteredTransactions.isEmpty
                       ? _buildEmptyState()
@@ -795,13 +886,13 @@ class _SupplierLedgerState extends State<SupplierLedger> {
 }
 
 class SupplierTransaction {
-  String supplierName;
-  String invoiceNo;
-  DateTime date;
-  double amount;
-  DateTime paymentDue;
-  String status;
-
+  final String supplierName;
+  final String invoiceNo;
+  final DateTime date;
+  final double amount;
+  final DateTime paymentDue;
+  final String status;
+  
   SupplierTransaction({
     required this.supplierName,
     required this.invoiceNo,

@@ -6,7 +6,6 @@ class WorkersScreen extends StatefulWidget {
   final String? selectedSiteId;
   final Function(String) onSiteChanged;
   final List<Site> sites;
-
   const WorkersScreen({
     super.key,
     required this.selectedSiteId,
@@ -18,12 +17,14 @@ class WorkersScreen extends StatefulWidget {
   State<WorkersScreen> createState() => _WorkersScreenState();
 }
 
-class _WorkersScreenState extends State<WorkersScreen> with TickerProviderStateMixin {
+class _WorkersScreenState extends State<WorkersScreen>
+    with TickerProviderStateMixin {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   String _selectedFilter = 'All';
   late String _selectedSiteId;
   AnimationController? _animationController;
+  String? _searchQueryForSites;
 
   // Worker data
   List<Map<String, dynamic>> workers = [
@@ -109,48 +110,183 @@ class _WorkersScreenState extends State<WorkersScreen> with TickerProviderStateM
 
   // Calculate summary data
   int get totalWorkers => filteredWorkers.length;
-  int get presentToday => filteredWorkers.where((w) => w['status'] == 'Present').length;
-  int get absentToday => filteredWorkers.where((w) => w['status'] == 'Absent').length;
+  int get presentToday =>
+      filteredWorkers.where((w) => w['status'] == 'Present').length;
+  int get absentToday =>
+      filteredWorkers.where((w) => w['status'] == 'Absent').length;
   int get lateToday => filteredWorkers.where((w) => w['late'] == true).length;
 
   // Filter workers based on search and filters
   List<Map<String, dynamic>> get filteredWorkers {
     return workers.where((worker) {
-      final matchesSearch = worker['name'].toString().toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          worker['role'].toString().toLowerCase().contains(_searchQuery.toLowerCase());
-      
-      final matchesFilter = _selectedFilter == 'All' || worker['status'] == _selectedFilter;
-      
-      final matchesSite = _selectedSiteId.isEmpty || worker['siteId'] == _selectedSiteId;
-      
+      final matchesSearch =
+          worker['name'].toString().toLowerCase().contains(
+            _searchQuery.toLowerCase(),
+          ) ||
+          worker['role'].toString().toLowerCase().contains(
+            _searchQuery.toLowerCase(),
+          );
+
+      final matchesFilter =
+          _selectedFilter == 'All' || worker['status'] == _selectedFilter;
+
+      final matchesSite =
+          _selectedSiteId.isEmpty || worker['siteId'] == _selectedSiteId;
+
       return matchesSearch && matchesFilter && matchesSite;
     }).toList();
+  }
+
+  void _showSiteSelectorBottomSheet() {
+    setState(() {
+      _searchQueryForSites = ''; // Reset search query when opening
+    });
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.6,
+          minChildSize: 0.4,
+          maxChildSize: 0.9,
+          expand: false,
+          builder: (context, scrollController) {
+            return Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+              child: Column(
+                children: [
+                  // Handle bar
+                  Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  // Title
+                  Text(
+                    'Select Site',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey[800],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  // Search bar
+                  TextField(
+                    onChanged: (value) {
+                      setState(() {
+                        _searchQueryForSites = value;
+                      });
+                    },
+                    decoration: InputDecoration(
+                      hintText: 'Search sites...',
+                      prefixIcon: const Icon(Icons.search),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  // List of sites
+                  Expanded(
+                    child: ListView.builder(
+                      controller: scrollController,
+                      itemCount: widget.sites.length,
+                      itemBuilder: (context, index) {
+                        final site = widget.sites[index];
+                        // Filter sites based on search query
+                        if (_searchQueryForSites != null &&
+                            _searchQueryForSites!.isNotEmpty &&
+                            !site.name.toLowerCase().contains(
+                              _searchQueryForSites!.toLowerCase(),
+                            )) {
+                          return const SizedBox.shrink();
+                        }
+                        return ListTile(
+                          title: Text(
+                            site.name,
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                          onTap: () {
+                            setState(() {
+                              _selectedSiteId = site.id;
+                            });
+                            widget.onSiteChanged(site.id);
+                            Navigator.pop(context);
+                          },
+                          trailing: _selectedSiteId == site.id
+                              ? const Icon(
+                                  Icons.check_circle,
+                                  color: Color(0xFF4a63c0),
+                                )
+                              : null,
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        iconTheme: const IconThemeData(
-          color: Colors.white,
-        ),
-        toolbarHeight: 90,
+        iconTheme: const IconThemeData(color: Colors.white),
+        toolbarHeight: 80,
         elevation: 0,
         backgroundColor: Colors.transparent,
-        title: const Column(
+        title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Worker',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
-                fontSize: 30,
+            GestureDetector(
+              onTap: widget.sites.isEmpty ? null : _showSiteSelectorBottomSheet,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    widget.sites.isEmpty
+                        ? 'No Sites'
+                        : (_selectedSiteId.isEmpty
+                              ? 'All Sites'
+                              : widget.sites
+                                    .firstWhere(
+                                      (site) => site.id == _selectedSiteId,
+                                      orElse: () => Site(
+                                        id: '',
+                                        name: 'Unknown Site',
+                                        address: '',
+                                      ),
+                                    )
+                                    .name),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 30,
+                    ),
+                  ),
+                  if (widget.sites.isNotEmpty) const SizedBox(width: 8),
+                  if (widget.sites.isNotEmpty)
+                    const Icon(Icons.keyboard_arrow_down, color: Colors.white),
+                ],
               ),
             ),
-            SizedBox(height: 4),
-            Text(
+            const SizedBox(height: 4),
+            const Text(
               'Manage worker details',
               style: TextStyle(
                 color: Colors.white70,
@@ -170,9 +306,10 @@ class _WorkersScreenState extends State<WorkersScreen> with TickerProviderStateM
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  Color(0xFF6f88e2),
-                  Color(0xFF5a73d1),
-                  Color(0xFF4a63c0),
+                   Color(0xFF4a63c0),
+                      Color(0xFF3a53b0),
+                      Color(0xFF2a43a0),
+                
                 ],
               ),
             ),
@@ -182,7 +319,6 @@ class _WorkersScreenState extends State<WorkersScreen> with TickerProviderStateM
       body: SingleChildScrollView(
         child: Column(
           children: [
-            _buildSiteSelector(),
             _buildSummaryCards(),
             _buildSearchAndFilters(),
             Padding(
@@ -193,77 +329,12 @@ class _WorkersScreenState extends State<WorkersScreen> with TickerProviderStateM
         ),
       ),
       floatingActionButton: _buildFloatingActionButton(),
-      
-    );
-  }
-
-  Widget _buildSiteSelector() {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 20,
-            spreadRadius: 0,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-        child: DropdownButtonFormField<String>(
-          value: _selectedSiteId.isNotEmpty ? _selectedSiteId : null,
-          decoration: const InputDecoration(
-            labelText: 'Filter by Site',
-            labelStyle: TextStyle(
-              color: Color(0xFF64748B),
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-            ),
-            border: InputBorder.none,
-            prefixIcon: Icon(
-              Icons.location_on,
-              color: Color(0xFF667EEA),
-              size: 20,
-            ),
-          ),
-          items: [
-            const DropdownMenuItem<String>(
-              value: '',
-              child: Text('All Sites'),
-            ),
-            ...widget.sites.map((site) {
-              return DropdownMenuItem<String>(
-                value: site.id,
-                child: Text(site.name),
-              );
-            }),
-          ],
-          onChanged: (String? newValue) {
-            if (newValue != null) {
-              setState(() {
-                _selectedSiteId = newValue;
-              });
-              widget.onSiteChanged(newValue);
-            }
-          },
-          dropdownColor: Colors.white,
-          style: const TextStyle(
-            color: Color(0xFF1E293B),
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ),
     );
   }
 
   Widget _buildSummaryCards() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
       child: Row(
         children: [
           Expanded(
@@ -271,7 +342,7 @@ class _WorkersScreenState extends State<WorkersScreen> with TickerProviderStateM
               title: 'Total',
               value: totalWorkers.toString(),
               icon: Icons.people_outline_rounded,
-              color: const Color.fromARGB(255, 43, 84, 196),
+              color: const Color(0xFF4a63c0),
             ),
           ),
           const SizedBox(width: 12),
@@ -280,7 +351,7 @@ class _WorkersScreenState extends State<WorkersScreen> with TickerProviderStateM
               title: 'Present',
               value: presentToday.toString(),
               icon: Icons.check_circle_outline_rounded,
-              color: const Color.fromARGB(255, 10, 161, 55),
+              color: const Color(0xFF0aa137),
             ),
           ),
           const SizedBox(width: 12),
@@ -289,7 +360,7 @@ class _WorkersScreenState extends State<WorkersScreen> with TickerProviderStateM
               title: 'Absent',
               value: absentToday.toString(),
               icon: Icons.cancel_outlined,
-              color: const Color.fromARGB(255, 233, 75, 27),
+              color: const Color(0xFFe94b1b),
             ),
           ),
           const SizedBox(width: 12),
@@ -298,7 +369,7 @@ class _WorkersScreenState extends State<WorkersScreen> with TickerProviderStateM
               title: 'Late',
               value: lateToday.toString(),
               icon: Icons.schedule_rounded,
-              color: const Color.fromARGB(255, 231, 147, 21),
+              color: const Color(0xFFe79315),
             ),
           ),
         ],
@@ -315,36 +386,28 @@ class _WorkersScreenState extends State<WorkersScreen> with TickerProviderStateM
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 20,
-            spreadRadius: 0,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        border: Border.all(color: Colors.grey.withOpacity(0.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(icon, color: color, size: 24),
-          const SizedBox(height: 4),
+          const SizedBox(height: 8),
           Text(
             value,
             style: TextStyle(
-              fontSize: 18,
+              fontSize: 22,
               fontWeight: FontWeight.bold,
               color: color,
             ),
           ),
-          const SizedBox(height: 12),
           const SizedBox(height: 4),
           Text(
             title,
             style: const TextStyle(
-              fontSize: 12,
+              fontSize: 14,
               color: Color(0xFF64748B),
               fontWeight: FontWeight.w500,
             ),
@@ -356,21 +419,14 @@ class _WorkersScreenState extends State<WorkersScreen> with TickerProviderStateM
 
   Widget _buildSearchAndFilters() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       child: Column(
         children: [
           Container(
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(12),
               color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.04),
-                  blurRadius: 20,
-                  spreadRadius: 0,
-                  offset: const Offset(0, 4),
-                ),
-              ],
+              border: Border.all(color: Colors.grey.withOpacity(0.3)),
             ),
             child: TextField(
               controller: _searchController,
@@ -441,22 +497,13 @@ class _WorkersScreenState extends State<WorkersScreen> with TickerProviderStateM
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         decoration: BoxDecoration(
-          gradient: isSelected
-              ? const LinearGradient(
-                  colors: [Color(0xFF667EEA), Color(0xFF4a63c0),],
-                )
-              : null,
-          color: isSelected ? null : Colors.white,
+          color: isSelected ? const Color(0xFF4a63c0) : Colors.white,
           borderRadius: BorderRadius.circular(18),
-          boxShadow: [
-            if (isSelected)
-              BoxShadow(
-                color: const Color(0xFF667EEA).withOpacity(0.3),
-                blurRadius: 8,
-                spreadRadius: 0,
-                offset: const Offset(0, 2),
-              ),
-          ],
+          border: Border.all(
+            color: isSelected
+                ? const Color(0xFF4a63c0)
+                : Colors.grey.withOpacity(0.3),
+          ),
         ),
         child: Material(
           color: Colors.transparent,
@@ -505,58 +552,47 @@ class _WorkersScreenState extends State<WorkersScreen> with TickerProviderStateM
 
   Widget _buildWorkerCard(Map<String, dynamic> worker) {
     return Container(
-      height: 150,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 24,
-            spreadRadius: 0,
-            offset: const Offset(0, 8),
-          ),
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 12,
-            spreadRadius: 0,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        border: Border.all(color: Colors.grey.withOpacity(0.2)),
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: () => _editWorker(worker),
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Row(
               children: [
                 // Avatar Section
                 Container(
-                  width: 58,
-                  height: 58,
+                  width: 50,
+                  height: 50,
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: _getStatusGradient(worker['status']),
-                    ),
                     shape: BoxShape.circle,
+                    border: Border.all(
+                      color: _getStatusGradient(
+                        worker['status'],
+                      ).first, // use first color
+                      width: 2, // border thickness
+                    ),
                   ),
                   child: Center(
                     child: Text(
                       worker['avatar'],
                       style: const TextStyle(
-                        color: Colors.white,
+                        color: Color.fromARGB(255, 87, 87, 87),
                         fontWeight: FontWeight.w700,
-                        fontSize: 20,
+                        fontSize: 18,
                         letterSpacing: -0.5,
                       ),
                     ),
                   ),
                 ),
                 const SizedBox(width: 16),
-                
+
                 // Info Section
                 Expanded(
                   child: Column(
@@ -570,7 +606,7 @@ class _WorkersScreenState extends State<WorkersScreen> with TickerProviderStateM
                             child: Text(
                               worker['name'],
                               style: const TextStyle(
-                                fontSize: 18,
+                                fontSize: 16,
                                 fontWeight: FontWeight.w700,
                                 color: Color(0xFF1E293B),
                                 letterSpacing: -0.4,
@@ -579,29 +615,29 @@ class _WorkersScreenState extends State<WorkersScreen> with TickerProviderStateM
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: 4),
                           _buildStatusIndicator(worker['status']),
                         ],
                       ),
                       const SizedBox(height: 4),
-                      
+
                       Text(
                         worker['role'],
                         style: const TextStyle(
                           fontSize: 14,
                           color: Color(0xFF64748B),
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.w500,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 6),
-                      
+
                       Row(
                         children: [
                           Icon(
                             Icons.location_on_rounded,
-                            size: 16,
+                            size: 14,
                             color: const Color(0xFF94A3B8),
                           ),
                           const SizedBox(width: 4),
@@ -623,7 +659,7 @@ class _WorkersScreenState extends State<WorkersScreen> with TickerProviderStateM
                   ),
                 ),
                 const SizedBox(width: 16),
-                
+
                 // Right Section - Time & Actions
                 Column(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -645,14 +681,17 @@ class _WorkersScreenState extends State<WorkersScreen> with TickerProviderStateM
                             style: TextStyle(
                               fontSize: 12,
                               color: Colors.grey[700],
-                              fontWeight: FontWeight.w700,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ],
                       ),
                     ] else ...[
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFFF1F5F9),
                           borderRadius: BorderRadius.circular(8),
@@ -678,22 +717,22 @@ class _WorkersScreenState extends State<WorkersScreen> with TickerProviderStateM
                         ),
                       ),
                     ],
-                    
+
                     const SizedBox(height: 8),
-                    
+
                     // Action Buttons
                     Row(
                       children: [
                         _buildActionButton(
                           icon: Icons.chat_bubble_outline_rounded,
                           onPressed: () => _startChat(worker),
-                          color: const Color.fromARGB(255, 54, 54, 54),
+                          color: const Color(0xFF4a63c0),
                         ),
-                        const SizedBox(width: 20),
+                        const SizedBox(width: 16),
                         _buildActionButton(
                           icon: Icons.edit_outlined,
                           onPressed: () => _editWorker(worker),
-                          color: const Color.fromARGB(255, 56, 56, 56),
+                          color: const Color(0xFF4a63c0),
                         ),
                       ],
                     ),
@@ -716,12 +755,8 @@ class _WorkersScreenState extends State<WorkersScreen> with TickerProviderStateM
       color: Colors.transparent,
       child: InkWell(
         onTap: onPressed,
-        borderRadius: BorderRadius.circular(10),
-        child: Icon(
-          icon,
-          size: 22,
-          color: color,
-        ),
+        borderRadius: BorderRadius.circular(8),
+        child: Icon(icon, size: 20, color: color),
       ),
     );
   }
@@ -731,19 +766,11 @@ class _WorkersScreenState extends State<WorkersScreen> with TickerProviderStateM
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          width: 10,
-          height: 10,
+          width: 8,
+          height: 8,
           decoration: BoxDecoration(
             color: _getStatusColor(status),
             shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: _getStatusColor(status).withOpacity(0.5),
-                blurRadius: 3,
-                spreadRadius: 0,
-                offset: const Offset(0, 1),
-              ),
-            ],
           ),
         ),
         const SizedBox(width: 6),
@@ -751,8 +778,8 @@ class _WorkersScreenState extends State<WorkersScreen> with TickerProviderStateM
           status,
           style: TextStyle(
             color: _getStatusColor(status),
-            fontSize: 15,
-            fontWeight: FontWeight.w700,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
             letterSpacing: -0.2,
           ),
         ),
@@ -763,24 +790,36 @@ class _WorkersScreenState extends State<WorkersScreen> with TickerProviderStateM
   List<Color> _getStatusGradient(String status) {
     switch (status) {
       case 'Present':
-        return [const Color.fromARGB(255, 37, 218, 157), const Color.fromARGB(255, 40, 209, 155)];
+        return [
+          const Color.fromARGB(255, 67, 209, 79),
+          const Color.fromARGB(255, 31, 189, 26),
+        ];
       case 'Absent':
-        return [const Color.fromARGB(255, 253, 106, 106), const Color.fromARGB(255, 247, 98, 98)];
+        return [
+          const Color.fromARGB(255, 223, 85, 43),
+          const Color.fromARGB(255, 233, 77, 30),
+        ];
       case 'Late':
-        return [const Color.fromARGB(255, 243, 167, 37), const Color.fromARGB(255, 231, 139, 34)];
+        return [
+          const Color.fromARGB(255, 221, 150, 43),
+          const Color.fromARGB(255, 204, 130, 20),
+        ];
       default:
-        return [const Color.fromARGB(255, 108, 166, 247), const Color.fromARGB(255, 90, 154, 243)];
+        return [
+          const Color.fromARGB(255, 57, 129, 230),
+          const Color.fromARGB(255, 34, 104, 201),
+        ];
     }
   }
 
   Color _getStatusColor(String status) {
     switch (status) {
       case 'Present':
-        return const Color.fromARGB(255, 31, 211, 151);
+        return const Color(0xFF0aa137);
       case 'Absent':
-        return const Color.fromARGB(255, 245, 78, 78);
+        return const Color(0xFFe94b1b);
       case 'Late':
-        return const Color.fromARGB(255, 245, 166, 30);
+        return const Color(0xFFe79315);
       default:
         return const Color(0xFF64748B);
     }
@@ -791,42 +830,27 @@ class _WorkersScreenState extends State<WorkersScreen> with TickerProviderStateM
       width: 56,
       height: 56,
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF667EEA), Color(0xFF4a63c0),],
-        ),
+        color: const Color(0xFF4a63c0),
         borderRadius: BorderRadius.circular(28),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF667EEA).withOpacity(0.4),
-            blurRadius: 16,
-            spreadRadius: 0,
-            offset: const Offset(0, 4),
-          ),
-        ],
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: _addNewWorker,
           borderRadius: BorderRadius.circular(28),
-          child: const Icon(
-            Icons.add_rounded,
-            color: Colors.white,
-            size: 24,
-          ),
+          child: const Icon(Icons.add_rounded, color: Colors.white, size: 24),
         ),
       ),
     );
   }
 
- void _startChat(Map<String, dynamic> worker) {
+  void _startChat(Map<String, dynamic> worker) {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => WorkerChatScreen(worker: worker),
-      ),
+      MaterialPageRoute(builder: (context) => WorkerChatScreen(worker: worker)),
     );
   }
+
   void _editWorker(Map<String, dynamic> worker) {
     showModalBottomSheet(
       context: context,
@@ -844,14 +868,14 @@ class _WorkersScreenState extends State<WorkersScreen> with TickerProviderStateM
         child: SingleChildScrollView(
           scrollDirection: Axis.vertical,
           child: Container(
-             
             child: WorkerEditForm(
-              
               worker: worker,
               sites: widget.sites,
               onWorkerUpdated: (updatedWorker) {
                 setState(() {
-                  final index = workers.indexWhere((w) => w['id'] == updatedWorker['id']);
+                  final index = workers.indexWhere(
+                    (w) => w['id'] == updatedWorker['id'],
+                  );
                   if (index != -1) {
                     workers[index] = updatedWorker;
                   }
@@ -867,16 +891,29 @@ class _WorkersScreenState extends State<WorkersScreen> with TickerProviderStateM
 
   void _addNewWorker() {
     final existingIds = workers.map((w) => int.tryParse(w['id']) ?? 0).toList();
-    final nextId = existingIds.isEmpty ? 1 : existingIds.reduce((a, b) => a > b ? a : b) + 1;
-    
+    final nextId = existingIds.isEmpty
+        ? 1
+        : existingIds.reduce((a, b) => a > b ? a : b) + 1;
+
     final newWorker = {
       'id': nextId.toString(),
       'name': 'New Worker',
       'role': 'Laborer',
-      'siteId': _selectedSiteId.isNotEmpty ? _selectedSiteId : widget.sites.isNotEmpty ? widget.sites.first.id : '',
-      'site': _selectedSiteId.isNotEmpty 
-          ? widget.sites.firstWhere((s) => s.id == _selectedSiteId, orElse: () => widget.sites.first).name
-          : widget.sites.isNotEmpty ? widget.sites.first.name : 'Unassigned',
+      'siteId': _selectedSiteId.isNotEmpty
+          ? _selectedSiteId
+          : widget.sites.isNotEmpty
+          ? widget.sites.first.id
+          : '',
+      'site': _selectedSiteId.isNotEmpty
+          ? widget.sites
+                .firstWhere(
+                  (s) => s.id == _selectedSiteId,
+                  orElse: () => widget.sites.first,
+                )
+                .name
+          : widget.sites.isNotEmpty
+          ? widget.sites.first.name
+          : 'Unassigned',
       'status': 'Present',
       'avatar': 'NW',
       'timeIn': '08:00 AM',
@@ -884,7 +921,6 @@ class _WorkersScreenState extends State<WorkersScreen> with TickerProviderStateM
       'phone': '+1 555-000-0000',
       'email': 'new.worker@example.com',
     };
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -919,7 +955,6 @@ class WorkerEditForm extends StatefulWidget {
   final Map<String, dynamic> worker;
   final List<Site> sites;
   final Function(Map<String, dynamic>) onWorkerUpdated;
-
   const WorkerEditForm({
     super.key,
     required this.worker,
@@ -939,7 +974,6 @@ class _WorkerEditFormState extends State<WorkerEditForm> {
   late TextEditingController _emailController;
   late String _selectedSiteId;
   late String _selectedStatus;
-
   final List<String> _roles = [
     'Welder',
     'Supervisor',
@@ -952,7 +986,6 @@ class _WorkerEditFormState extends State<WorkerEditForm> {
     'Foreman',
     'Engineer',
   ];
-
   final List<String> _statuses = ['Present', 'Absent', 'Late', 'On Leave'];
 
   @override
@@ -988,9 +1021,7 @@ class _WorkerEditFormState extends State<WorkerEditForm> {
           .name;
       updatedWorker['status'] = _selectedStatus;
       updatedWorker['avatar'] = _generateAvatar(_nameController.text.trim());
-
       widget.onWorkerUpdated(updatedWorker);
-
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -1028,7 +1059,7 @@ class _WorkerEditFormState extends State<WorkerEditForm> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  widget.worker['id'] == '' ?'Add New Worker' : ' Edit Worker',
+                  widget.worker['id'] == '' ? 'Add New Worker' : ' Edit Worker',
                   style: const TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
@@ -1042,9 +1073,9 @@ class _WorkerEditFormState extends State<WorkerEditForm> {
             ),
             const SizedBox(height: 14),
             _buildProfileSection(),
-            
+
             _buildPersonalInfoSection(),
-            
+
             _buildWorkInfoSection(),
             const SizedBox(height: 10),
             _buildSaveButton(),
@@ -1461,7 +1492,7 @@ class _WorkerEditFormState extends State<WorkerEditForm> {
   Color _getStatusColor(String status) {
     switch (status) {
       case 'Present':
-        return Colors.green.shade600;
+        return const Color.fromARGB(255, 88, 190, 93);
       case 'Absent':
         return Colors.red.shade600;
       case 'Late':

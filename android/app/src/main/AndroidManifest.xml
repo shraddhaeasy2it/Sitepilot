@@ -7,7 +7,7 @@
 
 
     <application
-        android:label="ecoteam_app"
+        android:label="SitePilot"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         

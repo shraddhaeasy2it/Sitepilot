@@ -1311,15 +1311,30 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
     return Scaffold(
       backgroundColor: backgroundColor,
       appBar: AppBar(
-        toolbarHeight: 70,
-        title: Text(
-          'Inventory - ${widget.siteName}',
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-            letterSpacing: -0.5,
-          ),
+        toolbarHeight: 80,
+        title: RichText(
+  text: TextSpan(
+    children: [
+      const TextSpan(
+        text: 'Inventory - ',
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 20, // keep title size bigger
+          fontWeight: FontWeight.w600,
         ),
+      ),
+      TextSpan(
+        text: widget.siteName,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 16, // smaller font size only for siteName
+          fontWeight: FontWeight.w400,
+        ),
+      ),
+    ],
+  ),
+),
+
         iconTheme: const IconThemeData(color: Colors.white),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -1435,6 +1450,7 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
 
   Widget _buildCategoryFilter() {
     final categories = ['All', 'Building Material', 'Structural'];
+    
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -1547,16 +1563,19 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
                               color: isLowStock
-                                  ? errorColor.withOpacity(0.1)
-                                  : primaryColor.withOpacity(0.1),
+                                  ? primaryColor.withOpacity(0.1)
+                                  : Colors.grey.withOpacity(
+                                      0.1,
+                                    ), // or any fallback color
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Icon(
                               item['icon'] ?? Icons.inventory_2_rounded,
-                              color: isLowStock ? errorColor : primaryColor,
+                              color: primaryColor,
                               size: 20,
                             ),
                           ),
+
                           const SizedBox(width: 12),
                           Expanded(
                             child: Column(

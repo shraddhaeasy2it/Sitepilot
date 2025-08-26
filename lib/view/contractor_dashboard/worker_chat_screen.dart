@@ -102,7 +102,8 @@ class _WorkerChatScreenState extends State<WorkerChatScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        toolbarHeight: 90,
+        toolbarHeight: 80,
+          iconTheme: const IconThemeData(color: Colors.white),
         title: Row(
           children: [
             CircleAvatar(
@@ -123,6 +124,7 @@ class _WorkerChatScreenState extends State<WorkerChatScreen> {
                   Text(
                     widget.worker['name'],
                     style: const TextStyle(
+                      color: Colors.white,
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                     ),
@@ -136,21 +138,35 @@ class _WorkerChatScreenState extends State<WorkerChatScreen> {
             ),
           ],
         ),
-        backgroundColor: Colors.blue,
-        foregroundColor: Colors.white,
         actions: [
           IconButton(
-            icon: const Icon(Icons.call),
+            icon: const Icon(Icons.call, color: Colors.white),
             onPressed: () => _makeCall(),
             tooltip: 'Call Worker',
           ),
           IconButton(
-            icon: const Icon(Icons.video_call),
+            icon: const Icon(Icons.video_call, color: Colors.white),
             onPressed: () => _makeVideoCall(),
             tooltip: 'Video Call',
           ),
         ],
+
+        // Apply gradient using flexibleSpace
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color(0xFF4a63c0), Color(0xFF3a53b0), Color(0xFF2a43a0)],
+            ),
+            borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
+          ),
+        ),
+        backgroundColor:
+            Colors.transparent, // keep transparent so gradient shows
+        elevation: 0, // remove shadow if needed
       ),
+
       body: Column(
         children: [
           _buildWorkerInfo(),

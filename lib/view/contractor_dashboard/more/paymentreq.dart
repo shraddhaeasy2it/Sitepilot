@@ -43,6 +43,11 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final isSmallScreen = screenWidth < 360;
+    final isLargeScreen = screenWidth > 600;
+
     return Theme(
       data: Theme.of(context).copyWith(
         colorScheme: ColorScheme.light(
@@ -52,11 +57,30 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
       ),
       child: Scaffold(
         appBar: AppBar(
-          toolbarHeight: 80,
-          title: Text(
-            'Payment Requests - ${widget.siteName}',
-            style: TextStyle(color: Colors.white),
+          toolbarHeight: screenHeight * 0.1, // Responsive toolbar height
+          title: RichText(
+            text: TextSpan(
+              children: [
+                const TextSpan(
+                  text: 'Payments - ',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20, // keep title size bigger
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                TextSpan(
+                  text: widget.siteName,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16, // smaller font size only for siteName
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+              ],
+            ),
           ),
+
           iconTheme: const IconThemeData(color: Colors.white),
           backgroundColor: Colors.transparent,
           flexibleSpace: Container(
@@ -79,32 +103,43 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.payment, size: 48, color: Colors.grey.shade400),
-                    const SizedBox(height: 16),
+                    Icon(
+                      Icons.payment,
+                      size: screenHeight * 0.08, // Responsive icon size
+                      color: Colors.grey.shade400,
+                    ),
+                    SizedBox(height: screenHeight * 0.02),
                     Text(
                       "No payment requests yet",
                       style: TextStyle(
-                        fontSize: 18,
+                        fontSize: isSmallScreen ? 16 : 18,
                         color: Colors.grey.shade600,
                       ),
+                      textAlign: TextAlign.center,
                     ),
                   ],
                 ),
               )
             : ListView.builder(
                 itemCount: _requests.length,
-                padding: const EdgeInsets.all(16),
+                padding: EdgeInsets.all(
+                  screenWidth * 0.04,
+                ), // Responsive padding
                 itemBuilder: (context, index) {
                   final req = _requests[index];
                   return Card(
                     elevation: 2,
-                    margin: const EdgeInsets.only(bottom: 12),
+                    margin: EdgeInsets.only(bottom: screenHeight * 0.015),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: ListTile(
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: screenWidth * 0.04,
+                        vertical: screenHeight * 0.01,
+                      ),
                       leading: Container(
-                        padding: const EdgeInsets.all(8),
+                        padding: EdgeInsets.all(screenWidth * 0.03),
                         decoration: BoxDecoration(
                           color: _getStatusColor(
                             req['status'],
@@ -114,21 +149,30 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
                         child: Icon(
                           Icons.payment,
                           color: _getStatusColor(req['status']),
+                          size: isSmallScreen ? 20 : 24,
                         ),
                       ),
                       title: Text(
                         '₹${req['amount'].toStringAsFixed(2)} - ${req['category']}',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: isSmallScreen ? 14 : 16,
+                        ),
                       ),
                       subtitle: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(req['description']),
-                          const SizedBox(height: 4),
+                          Text(
+                            req['description'],
+                            style: TextStyle(fontSize: isSmallScreen ? 12 : 14),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          SizedBox(height: screenHeight * 0.005),
                           Text(
                             'Date: ${req['date']}',
                             style: TextStyle(
-                              fontSize: 12,
+                              fontSize: isSmallScreen ? 10 : 12,
                               color: Colors.grey.shade600,
                             ),
                           ),
@@ -137,12 +181,15 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
                       trailing: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          _buildStatusTag(req['status']),
+                          _buildStatusTag(req['status'], isSmallScreen),
                           if (req['document'] != null)
-                            const Icon(Icons.attachment, size: 18),
+                            Icon(
+                              Icons.attachment,
+                              size: isSmallScreen ? 16 : 18,
+                            ),
                         ],
                       ),
-                      onTap: () => _showDetailDialog(req, index),
+                      onTap: () => _showDetailDialog(req, index, screenWidth),
                     ),
                   );
                 },
@@ -150,7 +197,11 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
         floatingActionButton: FloatingActionButton(
           onPressed: _showAddRequestDialog,
           backgroundColor: const Color(0xFF6f88e2),
-          child: const Icon(Icons.add, color: Colors.white),
+          child: Icon(
+            Icons.add,
+            color: Colors.white,
+            size: screenHeight * 0.035,
+          ),
         ),
       ),
     );
@@ -169,9 +220,12 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
     }
   }
 
-  Widget _buildStatusTag(String status) {
+  Widget _buildStatusTag(String status, bool isSmallScreen) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: EdgeInsets.symmetric(
+        horizontal: isSmallScreen ? 6 : 8,
+        vertical: isSmallScreen ? 2 : 4,
+      ),
       decoration: BoxDecoration(
         color: _getStatusColor(status).withOpacity(0.2),
         borderRadius: BorderRadius.circular(12),
@@ -180,7 +234,7 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
         status,
         style: TextStyle(
           color: _getStatusColor(status),
-          fontSize: 12,
+          fontSize: isSmallScreen ? 10 : 12,
           fontWeight: FontWeight.bold,
         ),
       ),
@@ -200,6 +254,10 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
       isDismissible: false,
       enableDrag: false,
       builder: (_) {
+        final screenWidth = MediaQuery.of(context).size.width;
+        final screenHeight = MediaQuery.of(context).size.height;
+        final isSmallScreen = screenWidth < 360;
+
         return StatefulBuilder(
           builder: (context, setModalState) => Container(
             decoration: const BoxDecoration(
@@ -212,13 +270,16 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
               left: 0,
               right: 0,
             ),
+            constraints: BoxConstraints(
+              maxHeight: screenHeight * 0.9, // Limit height on small screens
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 // Header with gradient
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.all(24),
+                  padding: EdgeInsets.all(screenWidth * 0.06),
                   decoration: const BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.topLeft,
@@ -233,42 +294,46 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
                     children: [
                       // Handle bar
                       Container(
-                        width: 40,
+                        width: screenWidth * 0.1,
                         height: 4,
                         decoration: BoxDecoration(
                           color: Colors.white.withOpacity(0.3),
                           borderRadius: BorderRadius.circular(2),
                         ),
                       ),
-                      const SizedBox(height: 20),
+                      SizedBox(height: screenHeight * 0.02),
                       Row(
                         children: [
                           Container(
-                            padding: const EdgeInsets.all(12),
+                            padding: EdgeInsets.all(screenWidth * 0.03),
                             decoration: BoxDecoration(
                               color: Colors.white.withOpacity(0.2),
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            child: const Icon(
+                            child: Icon(
                               Icons.payment,
                               color: Colors.white,
-                              size: 24,
+                              size: isSmallScreen ? 20 : 24,
                             ),
                           ),
-                          const SizedBox(width: 16),
-                          const Expanded(
+                          SizedBox(width: screenWidth * 0.04),
+                          Expanded(
                             child: Text(
                               'New Payment Request',
                               style: TextStyle(
                                 color: Colors.white,
-                                fontSize: 22,
+                                fontSize: isSmallScreen ? 18 : 22,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
                           ),
                           IconButton(
                             onPressed: () => Navigator.pop(context),
-                            icon: const Icon(Icons.close, color: Colors.white),
+                            icon: Icon(
+                              Icons.close,
+                              color: Colors.white,
+                              size: isSmallScreen ? 20 : 24,
+                            ),
                           ),
                         ],
                       ),
@@ -277,15 +342,15 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
                 ),
 
                 // Form content
-                Flexible(
+                Expanded(
                   child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(24),
+                    padding: EdgeInsets.all(screenWidth * 0.06),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // Category Selection
-                        _buildSectionTitle('Category'),
-                        const SizedBox(height: 12),
+                        _buildSectionTitle('Category', isSmallScreen),
+                        SizedBox(height: screenHeight * 0.012),
                         Container(
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(12),
@@ -301,20 +366,25 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
                                   children: [
                                     Icon(
                                       _getCategoryIcon(cat),
-                                      size: 20,
+                                      size: isSmallScreen ? 18 : 20,
                                       color: const Color(0xFF6f88e2),
                                     ),
-                                    const SizedBox(width: 12),
-                                    Text(cat),
+                                    SizedBox(width: screenWidth * 0.03),
+                                    Text(
+                                      cat,
+                                      style: TextStyle(
+                                        fontSize: isSmallScreen ? 14 : 16,
+                                      ),
+                                    ),
                                   ],
                                 ),
                               );
                             }).toList(),
-                            decoration: const InputDecoration(
+                            decoration: InputDecoration(
                               border: InputBorder.none,
                               contentPadding: EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 16,
+                                horizontal: screenWidth * 0.04,
+                                vertical: screenHeight * 0.02,
                               ),
                             ),
                             onChanged: (val) {
@@ -325,11 +395,11 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
                           ),
                         ),
 
-                        const SizedBox(height: 24),
+                        SizedBox(height: screenHeight * 0.024),
 
                         // Amount
-                        _buildSectionTitle('Amount'),
-                        const SizedBox(height: 12),
+                        _buildSectionTitle('Amount', isSmallScreen),
+                        SizedBox(height: screenHeight * 0.012),
                         Container(
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(12),
@@ -339,26 +409,27 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
                           child: TextField(
                             controller: _amountController,
                             keyboardType: TextInputType.number,
-                            decoration: const InputDecoration(
+                            decoration: InputDecoration(
                               prefixIcon: Icon(
                                 Icons.currency_rupee,
-                                color: Color(0xFF6f88e2),
+                                color: const Color(0xFF6f88e2),
+                                size: isSmallScreen ? 20 : 24,
                               ),
                               hintText: 'Enter amount',
                               border: InputBorder.none,
                               contentPadding: EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 16,
+                                horizontal: screenWidth * 0.04,
+                                vertical: screenHeight * 0.02,
                               ),
                             ),
                           ),
                         ),
 
-                        const SizedBox(height: 24),
+                        SizedBox(height: screenHeight * 0.024),
 
                         // Description
-                        _buildSectionTitle('Description'),
-                        const SizedBox(height: 12),
+                        _buildSectionTitle('Description', isSmallScreen),
+                        SizedBox(height: screenHeight * 0.012),
                         Container(
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(12),
@@ -368,40 +439,45 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
                           child: TextField(
                             controller: _descriptionController,
                             maxLines: 3,
-                            decoration: const InputDecoration(
+                            decoration: InputDecoration(
                               prefixIcon: Padding(
                                 padding: EdgeInsets.only(bottom: 40),
                                 child: Icon(
                                   Icons.description,
-                                  color: Color(0xFF6f88e2),
+                                  color: const Color(0xFF6f88e2),
+                                  size: isSmallScreen ? 20 : 24,
                                 ),
                               ),
                               hintText: 'Enter description...',
                               border: InputBorder.none,
                               contentPadding: EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 16,
+                                horizontal: screenWidth * 0.04,
+                                vertical: screenHeight * 0.02,
                               ),
                             ),
                           ),
                         ),
 
-                        const SizedBox(height: 24),
+                        SizedBox(height: screenHeight * 0.024),
 
                         // Document Upload
                         _buildSectionTitle(
                           'Invoice/Payment Proof',
+                          isSmallScreen,
                           isRequired: true,
                         ),
-                        const SizedBox(height: 12),
-                        _buildEnhancedDocumentUploadField(setModalState),
+                        SizedBox(height: screenHeight * 0.012),
+                        _buildEnhancedDocumentUploadField(
+                          setModalState,
+                          isSmallScreen,
+                        ),
 
-                        const SizedBox(height: 32),
+                        SizedBox(height: screenHeight * 0.032),
 
                         // Submit Button
                         Container(
                           width: double.infinity,
-                          height: 56,
+                          height: screenHeight * 0.065,
                           decoration: BoxDecoration(
                             gradient: const LinearGradient(
                               begin: Alignment.topLeft,
@@ -423,17 +499,21 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
                             child: InkWell(
                               borderRadius: BorderRadius.circular(12),
                               onTap: _validateAndSubmitRequest,
-                              child: const Center(
+                              child: Center(
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    Icon(Icons.send, color: Colors.white),
-                                    SizedBox(width: 12),
+                                    Icon(
+                                      Icons.send,
+                                      color: Colors.white,
+                                      size: isSmallScreen ? 20 : 24,
+                                    ),
+                                    SizedBox(width: screenWidth * 0.03),
                                     Text(
                                       'Submit Request',
                                       style: TextStyle(
                                         color: Colors.white,
-                                        fontSize: 16,
+                                        fontSize: isSmallScreen ? 14 : 16,
                                         fontWeight: FontWeight.w600,
                                       ),
                                     ),
@@ -444,7 +524,7 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
                           ),
                         ),
 
-                        const SizedBox(height: 16),
+                        SizedBox(height: screenHeight * 0.016),
                       ],
                     ),
                   ),
@@ -472,15 +552,19 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
     }
   }
 
-  Widget _buildSectionTitle(String title, {bool isRequired = false}) {
+  Widget _buildSectionTitle(
+    String title,
+    bool isSmallScreen, {
+    bool isRequired = false,
+  }) {
     return Row(
       children: [
         Text(
           title,
-          style: const TextStyle(
-            fontSize: 16,
+          style: TextStyle(
+            fontSize: isSmallScreen ? 14 : 16,
             fontWeight: FontWeight.w600,
-            color: Color(0xFF2d3748),
+            color: const Color(0xFF2d3748),
           ),
         ),
         if (isRequired)
@@ -496,7 +580,12 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
     );
   }
 
-  Widget _buildEnhancedDocumentUploadField(StateSetter setModalState) {
+  Widget _buildEnhancedDocumentUploadField(
+    StateSetter setModalState,
+    bool isSmallScreen,
+  ) {
+    final screenWidth = MediaQuery.of(context).size.width;
+
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
@@ -518,73 +607,79 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
             setModalState(() {});
           },
           child: Padding(
-            padding: const EdgeInsets.all(20),
+            padding: EdgeInsets.all(screenWidth * 0.05),
             child: Column(
               children: [
                 if (_selectedFile == null) ...[
                   Container(
-                    padding: const EdgeInsets.all(16),
+                    padding: EdgeInsets.all(screenWidth * 0.04),
                     decoration: BoxDecoration(
                       color: const Color(0xFF6f88e2).withOpacity(0.1),
                       borderRadius: BorderRadius.circular(50),
                     ),
                     child: Icon(
                       Icons.cloud_upload_outlined,
-                      size: 32,
+                      size: isSmallScreen ? 28 : 32,
                       color: _showUploadError
                           ? Colors.red
                           : const Color(0xFF6f88e2),
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  SizedBox(height: screenWidth * 0.04),
                   Text(
                     'Upload Document',
                     style: TextStyle(
-                      fontSize: 16,
+                      fontSize: isSmallScreen ? 14 : 16,
                       fontWeight: FontWeight.w600,
                       color: _showUploadError
                           ? Colors.red
                           : const Color(0xFF2d3748),
                     ),
+                    textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: screenWidth * 0.02),
                   Text(
                     'PDF or Image (JPG, PNG)',
-                    style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+                    style: TextStyle(
+                      fontSize: isSmallScreen ? 12 : 14,
+                      color: Colors.grey.shade600,
+                    ),
+                    textAlign: TextAlign.center,
                   ),
                 ] else ...[
                   Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(12),
+                        padding: EdgeInsets.all(screenWidth * 0.03),
                         decoration: BoxDecoration(
                           color: const Color(0xFF6f88e2).withOpacity(0.1),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.insert_drive_file,
-                          color: Color(0xFF6f88e2),
-                          size: 24,
+                          color: const Color(0xFF6f88e2),
+                          size: isSmallScreen ? 20 : 24,
                         ),
                       ),
-                      const SizedBox(width: 16),
+                      SizedBox(width: screenWidth * 0.04),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
                               _selectedFile!.path.split('/').last,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontWeight: FontWeight.w600,
-                                color: Color(0xFF2d3748),
+                                color: const Color(0xFF2d3748),
+                                fontSize: isSmallScreen ? 12 : 14,
                               ),
                               overflow: TextOverflow.ellipsis,
                             ),
-                            const SizedBox(height: 4),
+                            SizedBox(height: screenWidth * 0.01),
                             Text(
                               'Tap to change file',
                               style: TextStyle(
-                                fontSize: 12,
+                                fontSize: isSmallScreen ? 10 : 12,
                                 color: Colors.grey.shade600,
                               ),
                             ),
@@ -598,13 +693,17 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
                             _showUploadError = true;
                           });
                         },
-                        icon: Icon(Icons.close, color: Colors.grey.shade600),
+                        icon: Icon(
+                          Icons.close,
+                          color: Colors.grey.shade600,
+                          size: isSmallScreen ? 18 : 24,
+                        ),
                       ),
                     ],
                   ),
                 ],
                 if (_isUploading) ...[
-                  const SizedBox(height: 16),
+                  SizedBox(height: screenWidth * 0.04),
                   const LinearProgressIndicator(
                     backgroundColor: Colors.grey,
                     valueColor: AlwaysStoppedAnimation<Color>(
@@ -707,249 +806,350 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
     );
   }
 
-  void _showDetailDialog(Map<String, dynamic> req, int index) {
+  void _showDetailDialog(
+    Map<String, dynamic> req,
+    int index,
+    double screenWidth,
+  ) {
+    final isSmallScreen = screenWidth < 360;
+
     showDialog(
       context: context,
       builder: (_) => StatefulBuilder(
         builder: (context, setState) {
-          return AlertDialog(
-            title: Text(
-              'Payment Request - ₹${req['amount'].toStringAsFixed(2)}',
-            ),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Category: ${req['category']}'),
-                  const SizedBox(height: 8),
-                  Text('Description: ${req['description']}'),
-                  const SizedBox(height: 8),
-                  Text('Date: ${req['date']}'),
-                  const SizedBox(height: 8),
-                  Row(
+          return Dialog(
+            insetPadding: EdgeInsets.all(
+              screenWidth * 0.05,
+            ), // Responsive margin
+            child: Container(
+              constraints: BoxConstraints(
+                maxWidth: 500, // Limit maximum width on large screens
+              ),
+              child: AlertDialog(
+                title: Text(
+                  'Payment Request - ₹${req['amount'].toStringAsFixed(2)}',
+                  style: TextStyle(fontSize: isSmallScreen ? 18 : 20),
+                ),
+                content: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Status: '),
-                      _buildStatusTag(req['status']),
+                      Text(
+                        'Category: ${req['category']}',
+                        style: TextStyle(fontSize: isSmallScreen ? 14 : 16),
+                      ),
+                      SizedBox(height: screenWidth * 0.03),
+                      Text(
+                        'Description: ${req['description']}',
+                        style: TextStyle(fontSize: isSmallScreen ? 14 : 16),
+                      ),
+                      SizedBox(height: screenWidth * 0.03),
+                      Text(
+                        'Date: ${req['date']}',
+                        style: TextStyle(fontSize: isSmallScreen ? 14 : 16),
+                      ),
+                      SizedBox(height: screenWidth * 0.03),
+                      Row(
+                        children: [
+                          Text(
+                            'Status: ',
+                            style: TextStyle(fontSize: isSmallScreen ? 14 : 16),
+                          ),
+                          _buildStatusTag(req['status'], isSmallScreen),
+                        ],
+                      ),
+
+                      if (req['document'] != null) ...[
+                        SizedBox(height: screenWidth * 0.03),
+                        InkWell(
+                          onTap: () {
+                            if (req['file'] != null) {
+                              showDialog(
+                                context: context,
+                                builder: (_) =>
+                                    Dialog(child: Image.file(req['file'])),
+                              );
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('File not available'),
+                                ),
+                              );
+                            }
+                          },
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.attachment,
+                                size: isSmallScreen ? 14 : 16,
+                              ),
+                              SizedBox(width: screenWidth * 0.02),
+                              Expanded(
+                                child: Text(
+                                  req['document'],
+                                  style: TextStyle(
+                                    color: const Color(0xFF6f88e2),
+                                    decoration: TextDecoration.underline,
+                                    fontSize: isSmallScreen ? 12 : 14,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                      if (req['utr'] != null) ...[
+                        SizedBox(height: screenWidth * 0.03),
+                        Text(
+                          'UTR: ${req['utr']}',
+                          style: TextStyle(fontSize: isSmallScreen ? 14 : 16),
+                        ),
+                      ],
                     ],
                   ),
-
-                  if (req['document'] != null) ...[
-                    const SizedBox(height: 8),
-                    InkWell(
-                      onTap: () {
-                        if (req['file'] != null) {
-                          showDialog(
-                            context: context,
-                            builder: (_) =>
-                                Dialog(child: Image.file(req['file'])),
-                          );
-                        } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('File not available')),
-                          );
-                        }
-                      },
-                      child: Row(
-                        children: [
-                          const Icon(Icons.attachment, size: 16),
-                          const SizedBox(width: 4),
-                          Text(
-                            req['document'],
-                            style: TextStyle(
-                              color: const Color(0xFF6f88e2),
-                              decoration: TextDecoration.underline,
-                            ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: Text(
+                      'Close',
+                      style: TextStyle(fontSize: isSmallScreen ? 14 : 16),
+                    ),
+                  ),
+                  if (req['status'] == 'Pending') ...[
+                    TextButton(
+                      onPressed: () {
+                        setState(() {
+                          _requests[index]['status'] = 'Rejected';
+                        });
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Payment request rejected'),
+                            backgroundColor: Colors.red,
                           ),
-                        ],
+                        );
+                      },
+                      child: Text(
+                        'Reject',
+                        style: TextStyle(
+                          color: Colors.red,
+                          fontSize: isSmallScreen ? 14 : 16,
+                        ),
+                      ),
+                    ),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF6f88e2),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: isSmallScreen ? 12 : 16,
+                          vertical: isSmallScreen ? 8 : 12,
+                        ),
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _requests[index]['status'] = 'Approved';
+                        });
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Payment request approved'),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                      },
+                      child: Text(
+                        'Approve',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: isSmallScreen ? 14 : 16,
+                        ),
                       ),
                     ),
                   ],
-                  if (req['utr'] != null) ...[
-                    const SizedBox(height: 8),
-                    Text('UTR: ${req['utr']}'),
+                  if (req['status'] == 'Approved') ...[
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF6f88e2),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: isSmallScreen ? 12 : 16,
+                          vertical: isSmallScreen ? 8 : 12,
+                        ),
+                      ),
+                      onPressed: () {
+                        Navigator.pop(context);
+                        _showUploadUTRDialog(req, index, screenWidth);
+                      },
+                      child: Text(
+                        'Mark as Paid',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: isSmallScreen ? 12 : 14,
+                        ),
+                      ),
+                    ),
                   ],
                 ],
               ),
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Close'),
-              ),
-              if (req['status'] == 'Pending') ...[
-                TextButton(
-                  onPressed: () {
-                    setState(() {
-                      _requests[index]['status'] = 'Rejected';
-                    });
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Payment request rejected'),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
-                  },
-                  child: const Text(
-                    'Reject',
-                    style: TextStyle(color: Colors.red),
-                  ),
-                ),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF6f88e2),
-                  ),
-                  onPressed: () {
-                    setState(() {
-                      _requests[index]['status'] = 'Approved';
-                    });
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Payment request approved'),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
-                  },
-                  child: const Text(
-                    'Approve',
-                    style: TextStyle(color: Colors.white),
-                  ),
-                ),
-              ],
-              if (req['status'] == 'Approved') ...[
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF6f88e2),
-                  ),
-                  onPressed: () {
-                    Navigator.pop(context);
-                    _showUploadUTRDialog(req, index);
-                  },
-                  child: const Text(
-                    'Mark as Paid',
-                    style: TextStyle(color: Colors.white),
-                  ),
-                ),
-              ],
-            ],
           );
         },
       ),
     );
   }
 
-  void _showUploadUTRDialog(Map<String, dynamic> req, int index) {
+  void _showUploadUTRDialog(
+    Map<String, dynamic> req,
+    int index,
+    double screenWidth,
+  ) {
+    final isSmallScreen = screenWidth < 360;
+
     showDialog(
       context: context,
       builder: (_) => StatefulBuilder(
         builder: (context, setState) {
-          return AlertDialog(
-            title: const Text('Payment Confirmation'),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: _utrController,
-                    decoration: const InputDecoration(
-                      labelText: 'UTR/Reference Number *',
-                      border: OutlineInputBorder(),
+          return Dialog(
+            insetPadding: EdgeInsets.all(screenWidth * 0.05),
+            child: Container(
+              constraints: BoxConstraints(maxWidth: 500),
+              child: AlertDialog(
+                title: Text(
+                  'Payment Confirmation',
+                  style: TextStyle(fontSize: isSmallScreen ? 18 : 20),
+                ),
+                content: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextField(
+                        controller: _utrController,
+                        decoration: InputDecoration(
+                          labelText: 'UTR/Reference Number *',
+                          border: const OutlineInputBorder(),
+                          labelStyle: TextStyle(
+                            fontSize: isSmallScreen ? 14 : 16,
+                          ),
+                        ),
+                        style: TextStyle(fontSize: isSmallScreen ? 14 : 16),
+                      ),
+                      SizedBox(height: screenWidth * 0.04),
+                      Text(
+                        'Upload Payment Receipt one more time',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w500,
+                          fontSize: isSmallScreen ? 14 : 16,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      SizedBox(height: screenWidth * 0.03),
+                      InkWell(
+                        onTap: _pickDocument,
+                        child: Container(
+                          width: double.infinity,
+                          padding: EdgeInsets.all(screenWidth * 0.04),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey, width: 1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.upload_file,
+                                color: const Color(0xFF6f88e2),
+                                size: isSmallScreen ? 20 : 24,
+                              ),
+                              SizedBox(width: screenWidth * 0.04),
+                              Expanded(
+                                child: Text(
+                                  _selectedFile?.path.split('/').last ??
+                                      'Tap to upload receipt (PDF/Image)',
+                                  style: TextStyle(
+                                    color: Colors.grey.shade600,
+                                    fontSize: isSmallScreen ? 12 : 14,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              if (_selectedFile != null)
+                                IconButton(
+                                  icon: Icon(
+                                    Icons.close,
+                                    size: isSmallScreen ? 16 : 18,
+                                  ),
+                                  onPressed: () {
+                                    setState(() {
+                                      _selectedFile = null;
+                                    });
+                                  },
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: Text(
+                      'Cancel',
+                      style: TextStyle(fontSize: isSmallScreen ? 14 : 16),
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Upload Payment Receipt one more time',
-                    style: TextStyle(fontWeight: FontWeight.w500),
-                  ),
-                  const SizedBox(height: 8),
-                  InkWell(
-                    onTap: _pickDocument,
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey, width: 1),
-                        borderRadius: BorderRadius.circular(8),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF6f88e2),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: isSmallScreen ? 12 : 16,
+                        vertical: isSmallScreen ? 8 : 12,
                       ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.upload_file,
-                            color: const Color(0xFF6f88e2),
+                    ),
+                    onPressed: () {
+                      if (_utrController.text.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Please enter Payment ID'),
+                            backgroundColor: Colors.red,
                           ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Text(
-                              _selectedFile?.path.split('/').last ??
-                                  'Tap to upload receipt (PDF/Image)',
-                              style: TextStyle(color: Colors.grey.shade600),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          if (_selectedFile != null)
-                            IconButton(
-                              icon: const Icon(Icons.close, size: 18),
-                              onPressed: () {
-                                setState(() {
-                                  _selectedFile = null;
-                                });
-                              },
-                            ),
-                        ],
+                        );
+                        return;
+                      }
+
+                      setState(() {
+                        _requests[index]['utr'] = _utrController.text;
+                        _requests[index]['status'] = 'Paid';
+                        if (_selectedFile != null) {
+                          _requests[index]['document'] = _selectedFile!.path
+                              .split('/')
+                              .last;
+                          _requests[index]['file'] = _selectedFile;
+                        }
+                      });
+                      _utrController.clear();
+                      _selectedFile = null;
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Payment marked as paid'),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    },
+                    child: Text(
+                      'Confirm Payment',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: isSmallScreen ? 11 : 12,
                       ),
                     ),
                   ),
                 ],
               ),
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cancel'),
-              ),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF6f88e2),
-                ),
-                onPressed: () {
-                  if (_utrController.text.isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Please enter Payment ID'),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
-                    return;
-                  }
-
-                  setState(() {
-                    _requests[index]['utr'] = _utrController.text;
-                    _requests[index]['status'] = 'Paid';
-                    if (_selectedFile != null) {
-                      _requests[index]['document'] = _selectedFile!.path
-                          .split('/')
-                          .last;
-                      _requests[index]['file'] = _selectedFile;
-                    }
-                  });
-                  _utrController.clear();
-                  _selectedFile = null;
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Payment marked as paid'),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
-                },
-                child: const Text(
-                  'Confirm Payment',
-                  style: TextStyle(color: Colors.white),
-                ),
-              ),
-            ],
           );
         },
       ),

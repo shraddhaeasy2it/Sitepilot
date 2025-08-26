@@ -228,6 +228,8 @@ class _DocumentStorageScreenState extends State<DocumentStorageScreen>
   final _formKey = GlobalKey<FormState>();
   bool _isGridView = true;
   String? _openedCategory;
+  
+  var _getSiteName;
 
   @override
   void initState() {
@@ -495,26 +497,20 @@ class _DocumentStorageScreenState extends State<DocumentStorageScreen>
     }
 
     return Scaffold(
-      backgroundColor: DocumentStorageConstants.backgroundColor,
-      body: CustomScrollView(
-        slivers: [
-          _buildAppBar(),
-          SliverToBoxAdapter(
-            child: FadeTransition(
-              opacity: _fadeAnimation,
-              child: SlideTransition(
-                position: _slideAnimation,
-                child: Column(
-                  children: [
-                    _buildSelectors(),
-                    _buildDocumentsList(),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
+     appBar: _buildAppBar(context), // ✅ use AppBar instead of sliver
+body: FadeTransition(
+  opacity: _fadeAnimation,
+  child: SlideTransition(
+    position: _slideAnimation,
+    child: Column(
+      children: [
+        _buildSelectors(),
+        _buildDocumentsList(),
+      ],
+    ),
+  ),
+),
+
       floatingActionButton: _selectedSiteId != null && _selectedFolderId != null
           ? _buildFloatingActionButton()
           : null,
@@ -553,105 +549,91 @@ class _DocumentStorageScreenState extends State<DocumentStorageScreen>
       ),
     );
   }
-
-  SliverAppBar _buildAppBar() {
-    return SliverAppBar(
-      expandedHeight: 100,
-      floating: false,
-      pinned: true,
-      elevation: 0,
-      backgroundColor: Colors.transparent,
-      automaticallyImplyLeading: false,
-      flexibleSpace: Container(
-        decoration: const BoxDecoration(
-        gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Color(0xFF4a63c0),
-                    Color(0xFF3a53b0),
-                    Color(0xFF2a43a0),
-                  ],
-                ),
-          borderRadius: BorderRadius.vertical(
-            bottom: Radius.circular(16),
-          ),
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                    const SizedBox(width: 8),
-                    const Text(
-                      'Document Storage',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 20,
-                      ),
-                    ),
-                  ],
-                ),
-                Row(
-                  children: [
-                    IconButton(
-                      icon: Icon(
-                        _isGridView
-                            ? Icons.view_list_rounded
-                            : Icons.grid_view_rounded,
-                        color: Colors.white,
-                      ),
-                      tooltip: _isGridView
-                          ? "Switch to List View"
-                          : "Switch to Grid View",
-                      onPressed: () {
-                        setState(() {
-                          _isGridView = !_isGridView;
-                        });
-                      },
-                    ),
-                    if (_selectedSiteId != null)
-                      IconButton(
-                        icon: const Icon(
-                          Icons.create_new_folder_rounded,
-                          color: Colors.white,
-                        ),
-                        onPressed: _addFolder,
-                        tooltip: "Add Folder",
-                      ),
-                    if (_isUploading)
-                      const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2,
-                        ),
-                      ),
-                  ],
-                ),
-              ],
+PreferredSizeWidget _buildAppBar(BuildContext context) {
+  return AppBar(
+    toolbarHeight: 80,
+    automaticallyImplyLeading: false,
+    title: RichText(
+      overflow: TextOverflow.ellipsis,
+      text: TextSpan(
+        children: [
+          const TextSpan(
+            text: 'Document Storage - ',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
             ),
           ),
-        ),
+          TextSpan(
+            text: _getSiteName ,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w400,
+            ),
+          ),
+        ],
       ),
-    );
-  }
+    ),
+    leading: IconButton(
+      icon: const Icon(Icons.arrow_back, color: Colors.white),
+      onPressed: () => Navigator.pop(context),
+    ),
+    actions: [
+      IconButton(
+        icon: Icon(
+          _isGridView ? Icons.view_list_rounded : Icons.grid_view_rounded,
+          color: Colors.white,
+        ),
+        tooltip: _isGridView ? "Switch to List View" : "Switch to Grid View",
+        onPressed: () {
+          setState(() {
+            _isGridView = !_isGridView;
+          });
+        },
+      ),
+      if (_selectedSiteId != null)
+        IconButton(
+          icon: const Icon(Icons.create_new_folder_rounded, color: Colors.white),
+          onPressed: _addFolder,
+          tooltip: "Add Folder",
+        ),
+      if (_isUploading)
+        const SizedBox(
+          width: 20,
+          height: 20,
+          child: CircularProgressIndicator(
+            color: Colors.white,
+            strokeWidth: 2,
+          ),
+        ),
+    ],
+    backgroundColor: Colors.transparent,
+    flexibleSpace: Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Color(0xFF4a63c0),
+            Color(0xFF3a53b0),
+            Color(0xFF2a43a0),
+          ],
+        ),
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
+      ),
+    ),
+    elevation: 0,
+  );
+}
 
   Widget _buildSelectors() {
     return Container(
       margin: const EdgeInsets.fromLTRB(15, 0, 15, 15),
       child: Column(
         children: [
-          if (_sites.isNotEmpty) _buildSiteSelector(),
+          // if (_sites.isNotEmpty) _buildSiteSelector(),
           if (_selectedSiteId != null) _buildFolderSelector(),
         ],
       ),
@@ -660,7 +642,6 @@ class _DocumentStorageScreenState extends State<DocumentStorageScreen>
 
   Widget _buildSiteSelector() {
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         color: DocumentStorageConstants.cardColor,
@@ -670,43 +651,6 @@ class _DocumentStorageScreenState extends State<DocumentStorageScreen>
             color: DocumentStorageConstants.primaryColor.withOpacity(0.08),
             blurRadius: 10,
             offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          const Icon(
-            Icons.location_on_rounded,
-            color: DocumentStorageConstants.primaryColor,
-            size: 20,
-          ),
-          const SizedBox(width: 8),
-          const Text(
-            'Site:',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: DocumentStorageConstants.textPrimary,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                value: _selectedSiteId,
-                hint: const Text("Select"),
-                isExpanded: true,
-                items: _sites
-                    .map(
-                      (site) => DropdownMenuItem(
-                        value: site.id,
-                        child: Text(site.name),
-                      ),
-                    )
-                    .toList(),
-                onChanged: _onSiteChanged,
-              ),
-            ),
           ),
         ],
       ),
@@ -734,7 +678,6 @@ class _DocumentStorageScreenState extends State<DocumentStorageScreen>
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
                     color: DocumentStorageConstants.primaryColor.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(6),

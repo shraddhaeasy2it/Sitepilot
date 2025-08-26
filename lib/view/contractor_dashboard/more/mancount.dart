@@ -63,11 +63,30 @@ class _ManpowerCountScreenState extends State<ManpowerCountScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        toolbarHeight: 90,
-        title: Text(
-          'Manpower Count - ${widget.siteName}',
-          style: TextStyle(color: Colors.white),
+        toolbarHeight: 80,
+      title: RichText(
+  text: TextSpan(
+    children: [
+      const TextSpan(
+        text: 'ManPower - ',
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 20, // keep title size bigger
+          fontWeight: FontWeight.w600,
         ),
+      ),
+      TextSpan(
+        text: widget.siteName,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 16, // smaller font size only for siteName
+          fontWeight: FontWeight.w400,
+        ),
+      ),
+    ],
+  ),
+),
+
         iconTheme: const IconThemeData(color: Colors.white),
 
         flexibleSpace: Container(

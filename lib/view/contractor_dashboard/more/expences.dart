@@ -75,25 +75,43 @@ class _MachineryDetailScreenState extends State<MachineryDetailScreen>
       return true;
     }).toList();
 
+    final statusBarHeight = MediaQuery.of(context).padding.top;
+    final appBarHeight = statusBarHeight + kToolbarHeight;
+
     return Scaffold(
       backgroundColor: surfaceColor,
-      extendBodyBehindAppBar: true,
+      extendBodyBehindAppBar: false,
       appBar: AppBar(
         elevation: 0,
-        toolbarHeight: 90,
+        toolbarHeight: 80,
         backgroundColor: Colors.transparent,
-        title: Text(
-          'Machinery - ${widget.siteName}',
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-          ),
+       title: RichText(
+  text: TextSpan(
+    children: [
+      const TextSpan(
+        text: 'Machinery Expense - ',
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 20, // keep title size bigger
+          fontWeight: FontWeight.w600,
         ),
+      ),
+      TextSpan(
+        text: widget.siteName,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 16, // smaller font size only for siteName
+          fontWeight: FontWeight.w400,
+        ),
+      ),
+    ],
+  ),
+),
+
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
           Container(
-            margin: const EdgeInsets.only(right: 16, top: 8, bottom: 8),
+            margin: const EdgeInsets.only(right: 16, top: 12, bottom: 8),
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.2),
               borderRadius: BorderRadius.circular(12),
@@ -157,7 +175,6 @@ class _MachineryDetailScreenState extends State<MachineryDetailScreen>
         ),
         child: Column(
           children: [
-            const SizedBox(height: 133), // Space for app bar
             _buildStatsRow(),
             const SizedBox(height: 16),
             Expanded(
@@ -173,7 +190,7 @@ class _MachineryDetailScreenState extends State<MachineryDetailScreen>
         child: FloatingActionButton.extended(
           onPressed: () {
             _editingIndex = null;
-            _showEntryTypeDialog(siteOptions);
+            _showEntryTypeBottomSheet(siteOptions);
           },
           backgroundColor: primaryColor,
           foregroundColor: Colors.white,
@@ -365,79 +382,34 @@ class _MachineryDetailScreenState extends State<MachineryDetailScreen>
         return AnimatedContainer(
           duration: Duration(milliseconds: 300 + (index * 50)),
           curve: Curves.easeOutBack,
-          child: Dismissible(
-            key: UniqueKey(),
-            background: _buildSwipeBackground(
-              color: const Color.fromARGB(255, 115, 161, 240),
-              icon: Icons.edit,
-              alignLeft: true,
-              label: 'Edit',
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 16),
+            decoration: BoxDecoration(
+              color: cardColor,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.08),
+                  blurRadius: 20,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
-            secondaryBackground: _buildSwipeBackground(
-              color: Colors.red[600]!,
-              icon: Icons.delete,
-              alignLeft: false,
-              label: 'Delete',
-            ),
-            confirmDismiss: (direction) async {
-              if (direction == DismissDirection.startToEnd) {
-                // Edit
-                _editingIndex = actualIndex;
-                final existing = _entries[actualIndex];
-                if (existing['type'] == 'Fuel') {
-                  _machineController.text = existing['machine'];
-                  _litersController.text = existing['liters'].toString();
-                  _rateController.text = existing['rate'].toString();
-                  _showFuelEntryForm(isEditing: true);
-                } else {
-                  _machineController.text = existing['machine'];
-                  _advanceController.text = existing['advance'].toString();
-                  _dieselUsedController.text = existing['diesel'].toString();
-                  _showRentalEntryForm(
-                    Provider.of<CompanySiteProvider>(
-                      context,
-                      listen: false,
-                    ).sites.map((site) => site.name).toList(),
-                    isEditing: true,
-                    fromSiteInit: existing['fromSite'],
-                    toSiteInit: existing['toSite'],
-                  );
-                }
-                return false;
-              } else {
-                _deleteEntry(actualIndex);
-                return true;
-              }
-            },
-            child: Container(
-              margin: const EdgeInsets.only(bottom: 16),
-              decoration: BoxDecoration(
-                color: cardColor,
+            child: Material(
+              color: Colors.transparent,
+              borderRadius: BorderRadius.circular(20),
+              child: InkWell(
                 borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.08),
-                    blurRadius: 20,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Material(
-                color: Colors.transparent,
-                borderRadius: BorderRadius.circular(20),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(20),
-                  onTap: () => _showEntryDetails(entry),
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Row(
-                      children: [
-                        _buildEntryIcon(entry['type']),
-                        const SizedBox(width: 16),
-                        Expanded(child: _buildEntryContent(entry)),
-                        Icon(Icons.chevron_right, color: Colors.grey[400]),
-                      ],
-                    ),
+                onTap: () => _editEntry(actualIndex),
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Row(
+                    children: [
+                      _buildEntryIcon(entry['type']),
+                      const SizedBox(width: 16),
+                      Expanded(child: _buildEntryContent(entry, actualIndex)),
+                      Icon(Icons.chevron_right, color: Colors.grey[400]),
+                    ],
                   ),
                 ),
               ),
@@ -464,7 +436,7 @@ class _MachineryDetailScreenState extends State<MachineryDetailScreen>
     );
   }
 
-  Widget _buildEntryContent(Map<String, dynamic> entry) {
+  Widget _buildEntryContent(Map<String, dynamic> entry, int index) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -498,6 +470,11 @@ class _MachineryDetailScreenState extends State<MachineryDetailScreen>
                       : Colors.blue[700],
                 ),
               ),
+            ),
+            const SizedBox(width: 10),
+            IconButton(
+              icon: Icon(Icons.delete, color: Colors.red[400], size: 20),
+              onPressed: () => _deleteEntry(index),
             ),
           ],
         ),
@@ -570,162 +547,31 @@ class _MachineryDetailScreenState extends State<MachineryDetailScreen>
     );
   }
 
-  Widget _buildSwipeBackground({
-    required Color color,
-    required IconData icon,
-    required bool alignLeft,
-    required String label,
-  }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      alignment: alignLeft ? Alignment.centerLeft : Alignment.centerRight,
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: Colors.white, size: 28),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  void _editEntry(int index) {
+    _editingIndex = index;
+    final entry = _entries[index];
 
-  void _showEntryDetails(Map<String, dynamic> entry) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[300],
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Row(
-                children: [
-                  _buildEntryIcon(entry['type']),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          entry['machine'],
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Text(
-                          '${entry['type']} Entry • ${entry['date']}',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              const Divider(),
-              const SizedBox(height: 16),
-              ..._buildDetailRows(entry),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  List<Widget> _buildDetailRows(Map<String, dynamic> entry) {
     if (entry['type'] == 'Fuel') {
-      return [
-        _buildDetailRow('Liters', '${entry['liters']} L', Icons.water_drop),
-        _buildDetailRow(
-          'Rate per Liter',
-          '₹${entry['rate']}',
-          Icons.currency_rupee,
-        ),
-        _buildDetailRow('Total Amount', '₹${entry['total']}', Icons.calculate),
-      ];
+      _machineController.text = entry['machine'];
+      _litersController.text = entry['liters'].toString();
+      _rateController.text = entry['rate'].toString();
+      _showFuelEntryForm(isEditing: true);
     } else {
-      return [
-        _buildDetailRow('Advance Paid', '₹${entry['advance']}', Icons.payment),
-        _buildDetailRow(
-          'Diesel Supplied',
-          '${entry['diesel']} L',
-          Icons.local_gas_station,
-        ),
-        if (entry['fromSite'] != null)
-          _buildDetailRow('From Site', entry['fromSite'], Icons.location_on),
-        if (entry['toSite'] != null)
-          _buildDetailRow('To Site', entry['toSite'], Icons.flag),
-      ];
+      _machineController.text = entry['machine'];
+      _advanceController.text = entry['advance'].toString();
+      _dieselUsedController.text = entry['diesel'].toString();
+      final siteProvider = Provider.of<CompanySiteProvider>(
+        context,
+        listen: false,
+      );
+      final siteOptions = siteProvider.sites.map((site) => site.name).toList();
+      _showRentalEntryForm(
+        siteOptions,
+        isEditing: true,
+        fromSiteInit: entry['fromSite'],
+        toSiteInit: entry['toSite'],
+      );
     }
-  }
-
-  Widget _buildDetailRow(String label, String value, IconData icon) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Row(
-        children: [
-          Icon(icon, size: 20, color: primaryColor),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                Text(
-                  value,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
   }
 
   void _deleteEntry(int index) {
@@ -759,66 +605,77 @@ class _MachineryDetailScreenState extends State<MachineryDetailScreen>
     );
   }
 
-  void _showEntryTypeDialog(List<String> siteOptions) {
-    showDialog(
+  void _showEntryTypeBottomSheet(List<String> siteOptions) {
+    showModalBottomSheet(
       context: context,
-      builder: (context) => Dialog(
-        backgroundColor: Colors.transparent,
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(24),
-          ),
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: primaryColor.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(Icons.add, color: primaryColor, size: 24),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+          left: 16,
+          right: 16,
+          top: 24,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: primaryColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  const SizedBox(width: 16),
-                  const Expanded(
-                    child: Text(
-                      'Add New Entry',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                  child: Icon(Icons.add, color: primaryColor, size: 24),
+                ),
+                const SizedBox(width: 16),
+                const Expanded(
+                  child: Text(
+                    'Add New Entry',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              _buildEntryTypeCard(
-                title: 'Fuel Entry',
-                subtitle: 'Track fuel consumption and costs',
-                icon: Icons.local_gas_station,
-                color: Colors.orange[600]!,
-                onTap: () {
-                  Navigator.pop(context);
-                  _showFuelEntryForm();
-                },
-              ),
-              const SizedBox(height: 12),
-              _buildEntryTypeCard(
-                title: 'Rental Entry',
-                subtitle: 'Track machinery rental and diesel supply',
-                icon: Icons.settings,
-                color: Colors.blue[600]!,
-                onTap: () {
-                  Navigator.pop(context);
-                  _showRentalEntryForm(siteOptions);
-                },
-              ),
-            ],
-          ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            _buildEntryTypeCard(
+              title: 'Fuel Entry',
+              subtitle: 'Track fuel consumption and costs',
+              icon: Icons.local_gas_station,
+              color: Colors.orange[600]!,
+              onTap: () {
+                Navigator.pop(context);
+                _showFuelEntryForm();
+              },
+            ),
+            const SizedBox(height: 12),
+            _buildEntryTypeCard(
+              title: 'Rental Entry',
+              subtitle: 'Track machinery rental and diesel supply',
+              icon: Icons.settings,
+              color: Colors.blue[600]!,
+              onTap: () {
+                Navigator.pop(context);
+                _showRentalEntryForm(siteOptions);
+              },
+            ),
+            SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
+          ],
         ),
       ),
     );
@@ -1040,6 +897,9 @@ class _MachineryDetailScreenState extends State<MachineryDetailScreen>
                           ),
                         ),
                       ),
+                      SizedBox(
+                        height: MediaQuery.of(context).padding.bottom + 16,
+                      ),
                     ],
                   );
                 },
@@ -1244,6 +1104,9 @@ class _MachineryDetailScreenState extends State<MachineryDetailScreen>
                             ),
                           ),
                         ),
+                      ),
+                      SizedBox(
+                        height: MediaQuery.of(context).padding.bottom + 16,
                       ),
                     ],
                   );

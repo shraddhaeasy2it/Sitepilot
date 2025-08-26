@@ -150,33 +150,49 @@ class _MoreScreenState extends State<MoreScreen> {
         )
         .name;
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        toolbarHeight: 90,
-        title: Text(
-          'Construction Hub',
-          style: TextStyle(color: Colors.white, fontSize: 28,fontWeight: FontWeight.bold), 
-        ),
-        iconTheme: const IconThemeData(
-          color: Colors.white, // Back arrow white
-        ),
+        elevation: 0,
+        toolbarHeight: 80,
         backgroundColor: Colors.transparent,
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Color(0xFF4a63c0),
-                    Color(0xFF3a53b0),
-                    Color(0xFF2a43a0),
-                  ],
+        title: RichText(
+            text: TextSpan(
+              children: [
+                const TextSpan(
+                  text: 'Construction Hub- ',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20, // keep title size bigger
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-            borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
+                TextSpan(
+                  text: _getSiteName(),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16, // smaller font size only for siteName
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+        iconTheme: const IconThemeData(color: Colors.white),
+      
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            borderRadius: const BorderRadius.vertical(
+              bottom: Radius.circular(24),
+            ),
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color(0xFF4a63c0), Color(0xFF3a53b0), Color(0xFF2a43a0)],
+            ),
           ),
         ),
       ),
@@ -204,8 +220,7 @@ class _MoreScreenState extends State<MoreScreen> {
           return ListView(
             padding: EdgeInsets.all(16),
             children: [
-              _buildSiteDropdown(),
-              const SizedBox(height: 16),
+              const SizedBox(height: 6),
               Text(
                 'Management Modules',
                 style: TextStyle(
@@ -235,54 +250,6 @@ class _MoreScreenState extends State<MoreScreen> {
       ),
     );
   }
-
-  Widget _buildSiteDropdown() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.location_on_outlined, color: Colors.blue[600], size: 20),
-          const SizedBox(width: 12),
-          Expanded(
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                isExpanded: true,
-                value: _selectedSiteId.isNotEmpty ? _selectedSiteId : null,
-                hint: const Text('Select Site', style: TextStyle(fontSize: 14)),
-                items: widget.sites.map((site) {
-                  return DropdownMenuItem<String>(
-                    value: site.id,
-                    child: Text(
-                      site.name,
-                      style: const TextStyle(fontSize: 14),
-                    ),
-                  );
-                }).toList(),
-                onChanged: (String? newValue) {
-                  if (newValue != null) {
-                    setState(() => _selectedSiteId = newValue);
-                    widget.onSiteChanged(newValue);
-                  }
-                },
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildModuleCard(Map<String, dynamic> module) {
     return LayoutBuilder(
       builder: (context, constraints) {

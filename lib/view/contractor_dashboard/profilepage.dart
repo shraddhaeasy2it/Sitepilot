@@ -1,7 +1,10 @@
+import 'package:ecoteam_app/view/auth/login.dart';
+import 'package:ecoteam_app/view/auth/login_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -188,59 +191,77 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
       ),
     );
   }
-  void _showLogoutConfirmation() {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Row(
-            children: [
-              Container(
-                padding: EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Color(0xFFFEF2F2),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(Icons.warning_amber_outlined, color: Color(0xFFEF4444)),
-              ),
-              SizedBox(width: 12),
-              Text('Confirm Logout', 
-                style: TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF1E293B))),
-            ],
-          ),
-          content: Text(
-            'Are you sure you want to sign out? You will need to log in again to access your account.',
-            style: TextStyle(color: Color(0xFF64748B), height: 1.5),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text('Cancel', style: TextStyle(color: Color(0xFF64748B))),
-            ),
+void _showLogoutConfirmation() {
+  showDialog(
+    context: context,
+    builder: (context) {
+      return AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
             Container(
+              padding: EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Color(0xFFEF4444),
-                borderRadius: BorderRadius.circular(12),
+                color: Color(0xFFFEF2F2),
+                borderRadius: BorderRadius.circular(8),
               ),
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  _showSnackBar('Signed out successfully');
-                  // Add actual logout logic here
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.transparent,
-                  shadowColor: Colors.transparent,
-                ),
-                child: Text('Sign Out', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-              ),
+              child: Icon(Icons.warning_amber_outlined, color: Color(0xFFEF4444)),
+            ),
+            SizedBox(width: 12),
+            Text(
+              'Confirm Logout',
+              style: TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF1E293B)),
             ),
           ],
-        );
-      },
-    );
-  }
+        ),
+        content: Text(
+          'Are you sure you want to sign out? You will need to log in again to access your account.',
+          style: TextStyle(color: Color(0xFF64748B), height: 1.5),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel', style: TextStyle(color: Color(0xFF64748B))),
+          ),
+          Container(
+            decoration: BoxDecoration(
+              color: Color(0xFFEF4444),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: ElevatedButton(
+              onPressed: () async {
+                Navigator.pop(context); // Close the dialog
+
+                // Clear login info
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.clear();
+
+                // Show snack or toast
+                _showSnackBar('Signed out successfully');
+
+                // Navigate to login screen
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (context) => const LoginSelectorPage()),
+                  (Route<dynamic> route) => false,
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                shadowColor: Colors.transparent,
+              ),
+              child: Text(
+                'Sign Out',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ),
+        ],
+      );
+    },
+  );
+}
+
  Widget _buildSettingItem(IconData icon, String label, Widget trailing) {
     return Padding(
       padding: EdgeInsets.symmetric(vertical: 12),

@@ -35,10 +35,9 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
         final newSiteData = SiteData(
           id: site.id,
           name: site.name,
-          imageUrl:
-              'https://images.unsplash.com/photo-1487958449943-2429e8be8625?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60',
+          imageUrl: 'assets/building-icon.png',
           imageBytes: _siteImages[site.id],
-          status: 'Active',
+          status: 'Status',
           progress: 0.25,
           startDate: '2023-05-10',
           endDate: '2023-11-30',
@@ -167,9 +166,9 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                       Icon(
                         Icons.business,
                         color: Colors.white70,
-                        size: isSmallScreen ? 20 : 24,
+                        size: isSmallScreen ? 19 : 21,
                       ),
-                      SizedBox(width: isSmallScreen ? 3 : 6),
+                      SizedBox(width: isSmallScreen ? 2 : 3),
                       if (isLoading)
                         SizedBox(
                           width: isSmallScreen ? 120 : 150,
@@ -323,18 +322,31 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Color(0xFF4a63c0),
-        onPressed: () => _showAddSiteBottomSheet(),
-        child: Icon(
-          Icons.add,
-          size: isSmallScreen ? 24 : 28,
-          color: Colors.white,
+       floatingActionButton: _buildFloatingActionButton(),
+    );
+  }
+  Widget _buildFloatingActionButton() {
+    return Container(
+      width: 48,
+      height: 48,
+      decoration: BoxDecoration(
+        color: const Color(0xFF4a63c0),
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: _showAddSiteBottomSheet,
+          borderRadius: BorderRadius.circular(24),
+          child: const Icon(
+            Icons.add,
+            color: Colors.white,
+            size: 20,
+          ),
         ),
       ),
     );
   }
-
   Widget _buildListView(bool isSmallScreen, bool isMediumScreen) {
     return ListView.builder(
       padding: EdgeInsets.symmetric(
@@ -407,6 +419,12 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                 site,
               ),
               _buildStatusOption('On Hold', Icons.pause, Colors.orange, site),
+              _buildStatusOption(
+                'Planning',
+                Icons.schedule_outlined,
+                const Color.fromARGB(255, 173, 67, 206),
+                site,
+              ),
               _buildStatusOption('Completed', Icons.check, Colors.blue, site),
             ],
           ),
@@ -530,7 +548,7 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
               child: Text(
                 currentCompany ?? 'Select Company',
                 style: TextStyle(
-                  fontSize: isSmallScreen ? 14 : 16,
+                  fontSize: isSmallScreen ? 9 : 12.5,
                   fontWeight: FontWeight.w600,
                   color: Colors.white,
                 ),
@@ -541,7 +559,7 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
             Icon(
               Icons.keyboard_arrow_down,
               color: Colors.white,
-              size: isSmallScreen ? 12 : 15,
+              size: isSmallScreen ? 1 : 12,
             ),
           ],
         ),
@@ -901,71 +919,79 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
 
                 // Image
                 Center(
-                  child: GestureDetector(
-                    onTap: () async {
-                      final bytes = await _pickImage();
-                      if (bytes != null) {
-                        setState(() {
-                          imageBytes = bytes;
-                        });
-                      }
-                    },
-                    child: Container(
-                      width: 120,
-                      height: 120,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
-                        color: Colors.grey.shade100,
-                        border: Border.all(
-                          color: Colors.grey.shade300,
-                          width: 1,
+                  
+                  child: Stack(
+                    
+                    children:[ 
+                      GestureDetector(
+                      onTap: () async {
+                        final bytes = await _pickImage();
+                        if (bytes != null) {
+                          setState(() {
+                            imageBytes = bytes;
+                          });
+                        }
+                      },
+                      child: Container(
+                        width: 120,
+                        height: 120,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          color: Colors.grey.shade100,
+                          border: Border.all(
+                            color: Colors.grey.shade300,
+                            width: 1,
+                          ),
                         ),
-                      ),
-                      child: imageBytes != null
-                          ? ClipRRect(
-                              borderRadius: BorderRadius.circular(16),
-                              child: Image.memory(
-                                imageBytes!,
-                                fit: BoxFit.cover,
-                              ),
-                            )
-                          : (site.imageUrl != null
-                                ? ClipRRect(
-                                    borderRadius: BorderRadius.circular(16),
-                                    child: Image.network(
-                                      site.imageUrl!,
-                                      fit: BoxFit.cover,
-                                      errorBuilder:
-                                          (context, error, stackTrace) {
-                                            return Center(
-                                              child: Icon(
-                                                Icons.construction,
-                                                size: 40,
-                                                color: Colors.grey.shade400,
-                                              ),
-                                            );
-                                          },
-                                    ),
-                                  )
-                                : Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(
-                                        Icons.add_a_photo,
-                                        size: 30,
-                                        color: Colors.grey.shade400,
+                        child: imageBytes != null
+                            ? ClipRRect(
+                                borderRadius: BorderRadius.circular(16),
+                                child: Image.memory(
+                                  imageBytes!,
+                                  fit: BoxFit.cover,
+                                ),
+                              )
+                            : (site.imageUrl != null
+                                  ? ClipRRect(
+                                      borderRadius: BorderRadius.circular(16),
+                                      child: Image.asset(
+                                        site.imageUrl!,
+                                        fit: BoxFit.cover,
+                                        errorBuilder:
+                                            (context, error, stackTrace) {
+                                              return Center(
+                                                child: Icon(
+                                                  Icons.business,
+                                                  size: 40,
+                                                  color: Colors.grey.shade400,
+                                                ),
+                                              );
+                                            },
                                       ),
-                                      SizedBox(height: 8),
-                                      Text(
-                                        'Add Photo',
-                                        style: TextStyle(
-                                          color: Colors.grey.shade600,
-                                          fontSize: 12,
+                                    )
+                                  : Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          Icons.add_a_photo,
+                                          size: 30,
+                                          color: Colors.grey.shade400,
                                         ),
-                                      ),
-                                    ],
-                                  )),
+                                        SizedBox(height: 8),
+                                        Text(
+                                          'Add Photo',
+                                          style: TextStyle(
+                                            color: Colors.grey.shade600,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ],
+                                    )),
+                      ),
+                      
                     ),
+                    Icon(Icons.add_a_photo_outlined),
+                    ]
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -1108,7 +1134,7 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
         decoration: InputDecoration(
           labelText: label,
           labelStyle: TextStyle(color: Colors.grey.shade600),
-          prefixIcon: Icon(icon, color: Color(0xFF4a63c0)),
+          
           suffixIcon: isDateField
               ? Icon(Icons.calendar_today, color: Color(0xFF4a63c0))
               : null,
@@ -1143,36 +1169,7 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
           ),
         ],
       ),
-      child: DropdownButtonFormField<String>(
-        value: value,
-        decoration: InputDecoration(
-          labelText: 'Status',
-          labelStyle: TextStyle(color: Colors.grey.shade600),
-          prefixIcon: Icon(Icons.timeline, color: Color(0xFF4a63c0)),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide.none,
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: Color(0xFF4a63c0), width: 2),
-          ),
-          filled: true,
-          fillColor: Colors.white,
-        ),
-        items: ['Planning', 'Active', 'On Hold', 'Completed']
-            .map(
-              (status) => DropdownMenuItem(
-                value: status,
-                child: Text(status, style: TextStyle(fontSize: 14)),
-              ),
-            )
-            .toList(),
-        onChanged: onChanged,
-        dropdownColor: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        icon: Icon(Icons.keyboard_arrow_down, color: Color(0xFF4a63c0)),
-      ),
+      
     );
   }
 
@@ -1232,9 +1229,9 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                       });
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red.shade600,
+                      backgroundColor: const Color.fromARGB(255, 214, 69, 66),
                     ),
-                    child: const Text('Delete'),
+                    child: const Text('Delete',style: TextStyle(color: Colors.white),),
                   ),
                 ],
               ),
@@ -1323,26 +1320,34 @@ class SiteCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cardWidth = isGridView
-        ? null
-        : MediaQuery.of(context).size.width - 30;
-    final cardHeight = isGridView ? null : 160.0;
-
     return Container(
       width: isGridView ? (isSmallScreen ? 160 : 180) : double.infinity,
-      height: isGridView ? (isSmallScreen ? 220 : 240) : null,
+      height: isGridView
+          ? (isSmallScreen ? 250 : 250)
+          : 170,
+           // Reduced height for list view
       margin: EdgeInsets.symmetric(
-        horizontal: isGridView ? (isSmallScreen ? 4 : 6) : 0,
-        vertical: isGridView ? (isSmallScreen ? 4 : 6) : 8,
+        horizontal: isGridView ? (isSmallScreen ? 4: 6) : 1,
+        vertical: isGridView
+            ? (isSmallScreen ? 4 : 6)
+            : 6, // Reduced vertical margin
       ),
       child: Card(
-        elevation: 2,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        color: const Color(0xFFF8FAFC),
+        elevation: 0, // Remove shadow
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+          side: BorderSide(
+            color: const Color.fromARGB(255, 202, 208, 228),
+            width: 1,
+          ),
+        ),
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(8),
           child: Padding(
-            padding: EdgeInsets.all(isGridView ? (isSmallScreen ? 8 : 12) : 16),
+            padding: EdgeInsets.all(isGridView ? (isSmallScreen ? 9 : 13) : 12),
+            // Reduced padding for list view
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -1352,15 +1357,19 @@ class SiteCard extends StatelessWidget {
                   children: [
                     // Site Image - Compact in grid view
                     Container(
-                      width: isGridView ? (isSmallScreen ? 50 : 55) : 70,
-                      height: isGridView ? (isSmallScreen ? 50 : 55) : 70,
+                      width: isGridView
+                          ? (isSmallScreen ? 50 : 55)
+                          : 65, // Reduced size for list view
+                      height: isGridView
+                          ? (isSmallScreen ? 50 : 55)
+                          : 65, // Reduced size for list view
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
-                        color: Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(8),
+                        color: const Color.fromARGB(255, 221, 229, 253),
                       ),
                       child: site.imageBytes != null
                           ? ClipRRect(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(8),
                               child: Image.memory(
                                 site.imageBytes!,
                                 fit: BoxFit.cover,
@@ -1368,22 +1377,21 @@ class SiteCard extends StatelessWidget {
                             )
                           : (site.imageUrl != null
                                 ? ClipRRect(
-                                    borderRadius: BorderRadius.circular(12),
-                                    child: Image.network(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Image.asset(
                                       site.imageUrl!,
                                       fit: BoxFit.cover,
-                                      errorBuilder:
-                                          (context, error, stackTrace) {
-                                            return Center(
-                                              child: Icon(
-                                                Icons.construction,
-                                                size: isGridView
-                                                    ? (isSmallScreen ? 20 : 22)
-                                                    : 30,
-                                                color: Colors.grey.shade400,
-                                              ),
-                                            );
-                                          },
+                                      errorBuilder: (context, error, stackTrace) {
+                                        return Center(
+                                          child: Icon(
+                                            Icons.construction,
+                                            size: isGridView
+                                                ? (isSmallScreen ? 20 : 22)
+                                                : 22, // Reduced size for list view
+                                            color: Colors.grey.shade400,
+                                          ),
+                                        );
+                                      },
                                     ),
                                   )
                                 : Center(
@@ -1391,24 +1399,27 @@ class SiteCard extends StatelessWidget {
                                       Icons.construction,
                                       size: isGridView
                                           ? (isSmallScreen ? 20 : 22)
-                                          : 30,
+                                          : 22, // Reduced size for list view
                                       color: Colors.grey.shade400,
                                     ),
                                   )),
                     ),
 
-                    SizedBox(width: isGridView ? (isSmallScreen ? 6 : 8) : 12),
+                    SizedBox(width: isGridView ? (isSmallScreen ? 9 : 12) : 13),
 
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          SizedBox(height: (isSmallScreen ? 12 : 14),),
                           Text(
                             site.name,
                             style: TextStyle(
                               fontSize: isGridView
-                                  ? (isSmallScreen ? 14 : 16)
-                                  : (isSmallScreen ? 16 : 20),
+                                  ? (isSmallScreen ? 13 : 15)
+                                  : (isSmallScreen
+                                        ? 15
+                                        : 18), // Slightly smaller font
                               fontWeight: FontWeight.bold,
                               color: Color(0xFF2A2A2A),
                             ),
@@ -1416,69 +1427,30 @@ class SiteCard extends StatelessWidget {
                             overflow: TextOverflow.ellipsis,
                           ),
 
-                          SizedBox(height: isGridView ? 6 : 8),
+                          SizedBox(
+                            height: isGridView ? 5 : 6,
+                          ), // Reduced spacing
 
                           Text(
                             site.address,
                             style: TextStyle(
                               fontSize: isGridView
                                   ? (isSmallScreen ? 9 : 10)
-                                  : (isSmallScreen ? 10 : 12),
+                                  : (isSmallScreen
+                                        ? 11
+                                        : 12), // Slightly smaller font
                               color: Colors.grey.shade600,
                             ),
-                            maxLines: isGridView ? 2 : 2,
+                            maxLines: isGridView
+                                ? 2
+                                : 1, // Reduced to 1 line for list view
                             overflow: TextOverflow.ellipsis,
                           ),
 
-                          SizedBox(height: isGridView ? 12 : 14),
-
+                          SizedBox(
+                            height: isGridView ? 8 : 10,
+                          ), // Reduced spacing
                           // Status chip - Compact in grid view
-                          GestureDetector(
-                            onTap: onStatusTap,
-                            child: Container(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: isGridView
-                                    ? (isSmallScreen ? 4 : 6)
-                                    : 8,
-                                vertical: isGridView
-                                    ? (isSmallScreen ? 1 : 2)
-                                    : 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: _getStatusColor(
-                                  site.status,
-                                ).withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: _getStatusColor(site.status),
-                                  width: 1,
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    _getStatusIcon(site.status),
-                                    size: isGridView
-                                        ? (isSmallScreen ? 8 : 10)
-                                        : 12,
-                                    color: _getStatusColor(site.status),
-                                  ),
-                                  SizedBox(width: isGridView ? 2 : 4),
-                                  Text(
-                                    site.status,
-                                    style: TextStyle(
-                                      fontSize: isGridView
-                                          ? (isSmallScreen ? 8 : 10)
-                                          : 12,
-                                      fontWeight: FontWeight.w600,
-                                      color: _getStatusColor(site.status),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
                         ],
                       ),
                     ),
@@ -1489,51 +1461,12 @@ class SiteCard extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.end,
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          // Edit Icon
-                          IconButton(
-                            onPressed: onEdit,
-                            icon: Icon(
-                              Icons.edit,
-                              size: isSmallScreen ? 20 : 22,
-                              color: const Color.fromARGB(255, 95, 95, 95),
-                            ),
-                          ),
-
-                          // Delete Icon
-                          IconButton(
-                            onPressed: onDelete,
-                            icon: Icon(
-                              Icons.delete_outline_rounded,
-                              size: isSmallScreen ? 20 : 22,
-                              color: const Color.fromARGB(255, 248, 117, 108),
-                            ),
-                          ),
-                        ],
-                      ),
-                  ],
-                ),
-
-                SizedBox(height: isGridView ? (isSmallScreen ? 6 : 8) : 12),
-                Divider(
-                  height: isGridView ? (isSmallScreen ? 8 : 12) : 16,
-                  thickness: 1,
-                  color: const Color.fromARGB(255, 184, 184, 184),
-                ),
-                SizedBox(height: isGridView ? (isSmallScreen ? 4 : 6) : 8),
-                // Progress bar, dates, and action buttons row
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    // Progress bar for both grid and list views
-                    if (!isGridView) // Progress bar for list view
-                      Row(
-                        children: [
                           Stack(
                             alignment: Alignment.center,
                             children: [
                               SizedBox(
-                                width: 37,
-                                height: 37,
+                                width: 32, // Reduced size
+                                height: 32, // Reduced size
                                 child: CircularProgressIndicator(
                                   value: site.progress,
                                   backgroundColor: Colors.grey.shade200,
@@ -1546,19 +1479,98 @@ class SiteCard extends StatelessWidget {
                               Text(
                                 '${(site.progress * 100).round()}%',
                                 style: TextStyle(
-                                  fontSize: 9,
+                                  fontSize: 11, // Reduced font size
                                   fontWeight: FontWeight.bold,
                                   color: Color(0xFF4a63c0),
                                 ),
                               ),
                             ],
                           ),
-                          SizedBox(width: 6),
-                          Text(
-                            'Complete',
-                            style: TextStyle(
-                              fontSize: isSmallScreen ? 10 : 12,
-                              color: Colors.grey.shade600,
+                          SizedBox(width: isSmallScreen ? 12 : 17),
+                          GestureDetector(
+                            onTap: onEdit,
+                            child: Icon(
+                              Icons.edit,
+                              size: isSmallScreen ? 17 : 19,
+                              color: const Color.fromARGB(255, 91, 95, 119),
+                            ),
+                          ),
+                          SizedBox(width: isSmallScreen ? 10 : 15), // small gap
+                          GestureDetector(
+                            onTap: onDelete,
+                            child: Icon(
+                              Icons.delete_outline_rounded,
+                              size: isSmallScreen ? 17 : 19,
+                              color: const Color.fromARGB(255, 248, 117, 108),
+                            ),
+                          ),
+                        ],
+                      ),
+                  ],
+                ),
+
+                SizedBox(
+                  height: isGridView ? (isSmallScreen ? 6 : 8) : 8,
+                ), // Reduced spacing
+                Divider(
+                  height: isGridView
+                      ? (isSmallScreen ? 8 : 12)
+                      : 12, // Reduced height
+                  thickness: 1,
+                  color: const Color.fromARGB(255, 227, 227, 233),
+                ),
+                SizedBox(
+                  height: isGridView ? (isSmallScreen ? 4 : 6) : 6,
+                ), // Reduced spacing
+                // Progress bar, dates, and action buttons row
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // Progress bar for both grid and list views
+                    if (!isGridView) // Progress bar for list view
+                      Row(
+                        children: [
+                          GestureDetector(
+                            onTap: onStatusTap,
+                            child: Container(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: isGridView
+                                    ? (isSmallScreen ? 5 : 7)
+                                    : 6,
+                                vertical: isGridView
+                                    ? (isSmallScreen ? 2 : 3)
+                                    : 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: _getStatusColor(
+                                  site.status,
+                                ).withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(
+                                  color: _getStatusColor(
+                                    site.status,
+                                  ).withOpacity(0.1),
+                                  width: 1,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  SizedBox(
+                                    width: isGridView ? 2 : 3,
+                                  ), // Reduced spacing
+                                  Text(
+                                    site.status,
+                                    style: TextStyle(
+                                      fontSize: isGridView
+                                          ? (isSmallScreen ? 8 : 10)
+                                          : 13, // Reduced font size
+                                      fontWeight: FontWeight.w600,
+                                      color: _getStatusColor(site.status),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ],
@@ -1639,16 +1651,29 @@ class SiteCard extends StatelessWidget {
 
                     // Dates - Always at the end (right side)
                     if (!isGridView) // Dates for list view
-                      Text(
-                        '${site.startDate}       ${site.endDate}',
-                        style: TextStyle(
-                          fontSize: isSmallScreen ? 12 : 14,
-                          color: Colors.grey.shade600,
-                        ),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.calendar_today,
+                            color: const Color.fromARGB(255, 114, 114, 138),
+                            size: 18,
+                          ),
+                          SizedBox(width: isSmallScreen ? 3 : 4),
+                          Text(
+                            '${site.startDate}     ${site.endDate}', // Changed to more compact format
+                            style: TextStyle(
+                              fontSize: isSmallScreen
+                                  ? 12
+                                  : 13, // Reduced font size
+                              color: const Color.fromARGB(255, 116, 119, 148),
+                            ),
+                          ),
+                        ],
                       ),
                   ],
                 ),
-                SizedBox(height: isSmallScreen ? 5 : 10),
+                SizedBox(height: isSmallScreen ? 3 : 5),
+                // Reduced spacing
                 if (isGridView) // Dates for grid view
                   Text(
                     '${site.startDate}    ${site.endDate}',
@@ -1668,15 +1693,15 @@ class SiteCard extends StatelessWidget {
   Color _getStatusColor(String status) {
     switch (status.toLowerCase()) {
       case 'active':
-        return const Color.fromARGB(255, 59, 122, 61);
+        return const Color.fromARGB(255, 74, 146, 77);
       case 'on hold':
-        return Colors.orange;
+        return const Color.fromARGB(255, 211, 151, 61);
       case 'completed':
-        return Colors.blue;
+        return const Color.fromARGB(255, 72, 116, 211);
       case 'planning':
-        return Colors.purple;
+        return const Color.fromARGB(255, 181, 78, 199);
       default:
-        return Colors.grey;
+        return const Color.fromARGB(255, 71, 87, 156);
     }
   }
 
@@ -1694,12 +1719,6 @@ class SiteCard extends StatelessWidget {
         return Icons.help;
     }
   }
-
-  // String _formatDateCompact(String date) {
-  //   // Simple implementation - you might want to use a date parsing/formatting library
-  //   if (date.length >= 8) {
-  //     return '${date.substring(5, 7)}/${date.substring(8)}'; // Shows "MM/DD" format
-  //   }
-  //   return date;
-  // }
 }
+
+// Placeholder for SiteData class (you should have this defined elsewhere)

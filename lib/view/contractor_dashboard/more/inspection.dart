@@ -1099,18 +1099,51 @@ class _InspectionPageState extends State<InspectionPage> {
     return Scaffold(
       backgroundColor: backgroundColor,
       appBar: AppBar(
-        toolbarHeight: screenHeight * 0.1,
-        title: const Text('Inspection', style: TextStyle(color: Colors.white)),
-        iconTheme: const IconThemeData(color: Colors.white),
+        elevation: 0,
+        toolbarHeight: 80,
         backgroundColor: Colors.transparent,
+        title: RichText(
+  text: TextSpan(
+    children: [
+      const TextSpan(
+        text: 'Inspection - ',
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 20, // keep title size bigger
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      TextSpan(
+        text: widget.siteName,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 16, // smaller font size only for siteName
+          fontWeight: FontWeight.w400,
+        ),
+      ),
+    ],
+  ),
+),
+
+        iconTheme: const IconThemeData(color: Colors.white),
+       
         flexibleSpace: Container(
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
+            borderRadius: const BorderRadius.vertical(
+              bottom: Radius.circular(24),
+            ),
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: [Color(0xFF4a63c0), Color(0xFF3a53b0), Color(0xFF2a43a0)],
             ),
-            borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
+            boxShadow: [
+              BoxShadow(
+                color: primaryColor.withOpacity(0.3),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
           ),
         ),
       ),

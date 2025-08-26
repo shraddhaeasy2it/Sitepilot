@@ -7,7 +7,6 @@ import 'dart:io';
 class PaymentsDetailScreen extends StatefulWidget {
   final String siteId;
   final String siteName;
-
   const PaymentsDetailScreen({
     super.key,
     required this.siteId,
@@ -23,11 +22,9 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
   final _amountController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _utrController = TextEditingController();
-
   String _selectedCategory = 'Material';
   final List<String> _categories = ['Material', 'Rental', 'Manpower', 'Misc'];
   File? _selectedFile;
-
   bool _isUploading = false;
   bool _showUploadError = false;
 
@@ -47,7 +44,6 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
     final screenHeight = MediaQuery.of(context).size.height;
     final isSmallScreen = screenWidth < 360;
     final isLargeScreen = screenWidth > 600;
-
     return Theme(
       data: Theme.of(context).copyWith(
         colorScheme: ColorScheme.light(
@@ -80,7 +76,6 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
               ],
             ),
           ),
-
           iconTheme: const IconThemeData(color: Colors.white),
           backgroundColor: Colors.transparent,
           flexibleSpace: Container(
@@ -246,7 +241,6 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
       _selectedFile = null;
       _showUploadError = false;
     });
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -257,7 +251,6 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
         final screenWidth = MediaQuery.of(context).size.width;
         final screenHeight = MediaQuery.of(context).size.height;
         final isSmallScreen = screenWidth < 360;
-
         return StatefulBuilder(
           builder: (context, setModalState) => Container(
             decoration: const BoxDecoration(
@@ -270,9 +263,7 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
               left: 0,
               right: 0,
             ),
-            constraints: BoxConstraints(
-              maxHeight: screenHeight * 0.9, // Limit height on small screens
-            ),
+            height: screenHeight * 0.5, // Set to half screen height
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -340,7 +331,6 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
                     ],
                   ),
                 ),
-
                 // Form content
                 Expanded(
                   child: SingleChildScrollView(
@@ -394,9 +384,7 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
                             },
                           ),
                         ),
-
                         SizedBox(height: screenHeight * 0.024),
-
                         // Amount
                         _buildSectionTitle('Amount', isSmallScreen),
                         SizedBox(height: screenHeight * 0.012),
@@ -424,9 +412,7 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
                             ),
                           ),
                         ),
-
                         SizedBox(height: screenHeight * 0.024),
-
                         // Description
                         _buildSectionTitle('Description', isSmallScreen),
                         SizedBox(height: screenHeight * 0.012),
@@ -457,9 +443,7 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
                             ),
                           ),
                         ),
-
                         SizedBox(height: screenHeight * 0.024),
-
                         // Document Upload
                         _buildSectionTitle(
                           'Invoice/Payment Proof',
@@ -471,9 +455,7 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
                           setModalState,
                           isSmallScreen,
                         ),
-
                         SizedBox(height: screenHeight * 0.032),
-
                         // Submit Button
                         Container(
                           width: double.infinity,
@@ -523,7 +505,6 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
                             ),
                           ),
                         ),
-
                         SizedBox(height: screenHeight * 0.016),
                       ],
                     ),
@@ -585,7 +566,6 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
     bool isSmallScreen,
   ) {
     final screenWidth = MediaQuery.of(context).size.width;
-
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
@@ -730,12 +710,10 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
       );
       return;
     }
-
     setState(() {
       _isUploading = true;
       _showUploadError = false;
     });
-
     try {
       final picker = ImagePicker();
       final pickedFile = await picker.pickImage(
@@ -744,7 +722,6 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
         maxHeight: 1080,
         imageQuality: 85,
       );
-
       if (pickedFile != null) {
         setState(() {
           _selectedFile = File(pickedFile.path);
@@ -766,10 +743,8 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
   void _validateAndSubmitRequest() {
     final amount = double.tryParse(_amountController.text);
     final description = _descriptionController.text.trim();
-
     if (amount == null || description.isEmpty || _selectedFile == null) {
       setState(() => _showUploadError = _selectedFile == null);
-
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please fill all required fields and upload document'),
@@ -778,7 +753,6 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
       );
       return;
     }
-
     setState(() {
       _requests.add({
         'category': _selectedCategory,
@@ -790,13 +764,11 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
         'file': _selectedFile,
         'utr': null,
       });
-
       _amountController.clear();
       _descriptionController.clear();
       _selectedFile = null;
       _showUploadError = false;
     });
-
     Navigator.pop(context);
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -812,7 +784,6 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
     double screenWidth,
   ) {
     final isSmallScreen = screenWidth < 360;
-
     showDialog(
       context: context,
       builder: (_) => StatefulBuilder(
@@ -859,7 +830,6 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
                           _buildStatusTag(req['status'], isSmallScreen),
                         ],
                       ),
-
                       if (req['document'] != null) ...[
                         SizedBox(height: screenWidth * 0.03),
                         InkWell(
@@ -1006,7 +976,6 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
     double screenWidth,
   ) {
     final isSmallScreen = screenWidth < 360;
-
     showDialog(
       context: context,
       builder: (_) => StatefulBuilder(
@@ -1118,7 +1087,6 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
                         );
                         return;
                       }
-
                       setState(() {
                         _requests[index]['utr'] = _utrController.text;
                         _requests[index]['status'] = 'Paid';

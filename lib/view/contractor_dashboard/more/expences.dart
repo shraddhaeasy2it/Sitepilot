@@ -85,38 +85,33 @@ class _MachineryDetailScreenState extends State<MachineryDetailScreen>
         elevation: 0,
         toolbarHeight: 80,
         backgroundColor: Colors.transparent,
-       title: RichText(
-  text: TextSpan(
-    children: [
-      const TextSpan(
-        text: 'Machinery Expense - ',
-        style: TextStyle(
-          color: Colors.white,
-          fontSize: 20, // keep title size bigger
-          fontWeight: FontWeight.w600,
+        title: RichText(
+          text: TextSpan(
+            children: [
+              const TextSpan(
+                text: 'Machinery Expense - ',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20, // keep title size bigger
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              TextSpan(
+                text: widget.siteName,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16, // smaller font size only for siteName
+                  fontWeight: FontWeight.w400,
+                ),
+              ),
+            ],
+          ),
         ),
-      ),
-      TextSpan(
-        text: widget.siteName,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 16, // smaller font size only for siteName
-          fontWeight: FontWeight.w400,
-        ),
-      ),
-    ],
-  ),
-),
 
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
-          Container(
-            margin: const EdgeInsets.only(right: 16, top: 12, bottom: 8),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.white.withOpacity(0.3)),
-            ),
+          Padding(
+            padding: const EdgeInsets.only(right: 14),
             child: PopupMenuButton<String>(
               onSelected: (val) => setState(() => _filter = val),
               itemBuilder: (_) => [
@@ -135,7 +130,7 @@ class _MachineryDetailScreenState extends State<MachineryDetailScreen>
               icon: const Icon(
                 Icons.filter_list,
                 color: Colors.white,
-                size: 20,
+                size: 24,
               ),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -144,6 +139,7 @@ class _MachineryDetailScreenState extends State<MachineryDetailScreen>
             ),
           ),
         ],
+
         flexibleSpace: Container(
           decoration: BoxDecoration(
             borderRadius: const BorderRadius.vertical(
@@ -248,7 +244,7 @@ class _MachineryDetailScreenState extends State<MachineryDetailScreen>
     });
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
         children: [
           Expanded(

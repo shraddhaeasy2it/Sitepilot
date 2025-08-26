@@ -1,5 +1,4 @@
 import 'package:ecoteam_app/services/company_site_provider.dart';
-import 'package:ecoteam_app/view/contractor_dashboard/dashboard_page.dart';
 import 'package:ecoteam_app/view/contractor_dashboard/home_page.dart';
 import 'package:ecoteam_app/view/landing_page/splash_screen.dart';
 import 'package:flutter/material.dart';
@@ -39,59 +38,51 @@ class ResponsiveWrapper extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        // Breakpoints
-        if (constraints.maxWidth >= 900) {
-          // Desktop
-          return const DesktopHomePage();
-        } else if (constraints.maxWidth >= 600) {
-          // Tablet
-          return const TabletHomePage();
+        double width = constraints.maxWidth;
+
+        if (width >= 400) {
+          // 📱 Large Mobile (big phones)
+          return const LargeMobilePage();
         } else {
-          // Mobile
-          return Scaffold(
-            
-            body: HomePagescreen(), // Your contractor dashboard home
-          );
+          // 📱 Small Mobile (compact layout)
+          return const SmallMobilePage();
         }
       },
     );
   }
 }
 
-// Example Pages
-class DesktopHomePage extends StatelessWidget {
-  const DesktopHomePage({super.key});
+/// ---------------------------
+/// Different Mobile Views
+/// ---------------------------
+
+/// Large Mobile (like iPhone Pro Max, Pixel 7 Pro, etc.)
+class LargeMobilePage extends StatelessWidget {
+  const LargeMobilePage({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Row(
-        children: [
-          Expanded(
-            flex: 2,
-            child: Container(
-              
-              child: const Center(child: Text("Sidebar / Menu")),
-            ),
-          ),
-          Expanded(
-            flex: 5,
-            child: HomePagescreen(), // Your contractor dashboard home
-          ),
+      appBar: AppBar(title: const Text("Large Mobile View")),
+      body: const HomePagescreen(),
+      bottomNavigationBar: BottomNavigationBar(
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
         ],
       ),
     );
   }
 }
 
-class TabletHomePage extends StatelessWidget {
-  const TabletHomePage({super.key});
+/// Small Mobile (like older phones, iPhone SE, etc.)
+class SmallMobilePage extends StatelessWidget {
+  const SmallMobilePage({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Tablet View")),
-      body: HomePagescreen(),
+      body: const HomePagescreen(), // Or SplashScreen() if you want
     );
   }
 }

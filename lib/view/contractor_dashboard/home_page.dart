@@ -20,7 +20,7 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
   final Map<String, Uint8List?> _siteImages = {};
   final Map<String, SiteData> _siteDataMap = {};
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  bool _isGridView = false; // Toggle between grid and list view
+  bool _isGridView = false;
 
   List<String> get companies => _companyProvider.companies;
   String? currentCompany;
@@ -28,7 +28,6 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
   List<SiteData> get sites {
     final providerSites = _companyProvider.sites;
     return providerSites.map((site) {
-      // Use existing site data if available, otherwise create new
       if (_siteDataMap.containsKey(site.id)) {
         return _siteDataMap[site.id]!;
       } else {
@@ -58,7 +57,6 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
       if (_companyProvider.companies.isEmpty) {
         await _companyProvider.loadCompanies();
       }
-
       if (_companyProvider.companies.isNotEmpty) {
         setState(() {
           currentCompany = _companyProvider.companies.first;
@@ -73,7 +71,6 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
       if (selectedSite.id.isEmpty) {
         throw Exception('Site ID is empty');
       }
-
       final site = Site(
         id: selectedSite.id,
         name: selectedSite.name,
@@ -82,7 +79,6 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
             ? currentCompany ?? ''
             : selectedSite.companyId,
       );
-
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -122,15 +118,12 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
   Widget build(BuildContext context) {
     final companyProvider = Provider.of<CompanySiteProvider>(context);
     final isLoading = companyProvider.companies.isEmpty;
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isSmallScreen = screenWidth < 360;
-    final isMediumScreen = screenWidth >= 360 && screenWidth < 414;
 
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: PreferredSize(
-        preferredSize: Size.fromHeight(isSmallScreen ? 80 : 90),
+        preferredSize: const Size.fromHeight(80),
         child: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
@@ -151,7 +144,7 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                 ),
               ),
               child: AppBar(
-                toolbarHeight: isSmallScreen ? 80 : 90,
+                toolbarHeight: 90,
                 backgroundColor: Colors.transparent,
                 elevation: 0,
                 shape: const RoundedRectangleBorder(
@@ -160,29 +153,29 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                   ),
                 ),
                 title: Padding(
-                  padding: EdgeInsets.only(top: isSmallScreen ? 8 : 12),
+                  padding: const EdgeInsets.only(top: 12),
                   child: Row(
                     children: [
-                      Icon(
+                      const Icon(
                         Icons.business,
                         color: Colors.white70,
-                        size: isSmallScreen ? 19 : 21,
+                        size: 20,
                       ),
-                      SizedBox(width: isSmallScreen ? 2 : 3),
+                      const SizedBox(width: 3),
                       if (isLoading)
                         SizedBox(
-                          width: isSmallScreen ? 120 : 150,
+                          width: 150,
                           child: Row(
                             children: [
-                              Text(
+                              const Text(
                                 'Loading...',
                                 style: TextStyle(
-                                  fontSize: isSmallScreen ? 16 : 18,
+                                  fontSize: 18,
                                   fontWeight: FontWeight.w600,
                                   color: Colors.white,
                                 ),
                               ),
-                              SizedBox(width: isSmallScreen ? 6 : 10),
+                              const SizedBox(width: 10),
                               SizedBox(
                                 width: 20,
                                 height: 20,
@@ -195,29 +188,23 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                           ),
                         )
                       else
-                        _buildCustomCompanyDropdown(isSmallScreen),
+                        _buildCustomCompanyDropdown(),
                     ],
                   ),
                 ),
                 actions: [
                   IconButton(
-                    icon: Icon(
-                      Icons.notifications,
-                      size: isSmallScreen ? 20 : 24,
-                    ),
+                    icon: const Icon(Icons.notifications, size: 24),
                     onPressed: () {},
                     color: Colors.white,
                   ),
-                  SizedBox(width: isSmallScreen ? 2 : 5),
+                  const SizedBox(width: 5),
                   IconButton(
                     onPressed: _navigateToChatScreen,
-                    icon: Icon(
-                      Icons.chat_rounded,
-                      size: isSmallScreen ? 20 : 24,
-                    ),
+                    icon: const Icon(Icons.chat_rounded, size: 24),
                     color: Colors.white,
                   ),
-                  SizedBox(width: isSmallScreen ? 2 : 5),
+                  const SizedBox(width: 5),
                   GestureDetector(
                     onTap: () {
                       Navigator.push(
@@ -227,15 +214,15 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                         ),
                       );
                     },
-                    child: CircleAvatar(
+                    child: const CircleAvatar(
                       backgroundColor: Colors.white,
                       backgroundImage: AssetImage('assets/avtar.jpg'),
-                      radius: isSmallScreen ? 16 : 18,
+                      radius: 18,
                     ),
                   ),
-                  SizedBox(width: isSmallScreen ? 12 : 16),
+                  const SizedBox(width: 16),
                 ],
-                iconTheme: IconThemeData(color: Colors.white),
+                iconTheme: const IconThemeData(color: Colors.white),
               ),
             ),
           ),
@@ -244,27 +231,28 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
       body: Column(
         children: [
           Padding(
-            padding: EdgeInsets.all(isSmallScreen ? 16 : 20),
+            padding: const EdgeInsets.all(20),
             child: Row(
               children: [
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
+                      const SizedBox(height: 8),
+                      const Text(
                         'Sites Overview',
                         style: TextStyle(
-                          fontSize: isSmallScreen ? 24 : 28,
+                          fontSize: 28,
                           fontWeight: FontWeight.bold,
                           color: Color(0xFF2A2A2A),
                           letterSpacing: -0.5,
                         ),
                       ),
-                      SizedBox(height: isSmallScreen ? 6 : 8),
+                      const SizedBox(height: 8),
                       Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: isSmallScreen ? 12 : 16,
-                          vertical: isSmallScreen ? 6 : 8,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
                         ),
                         decoration: BoxDecoration(
                           color: Color(0xFF4a63c0).withOpacity(0.1),
@@ -272,8 +260,8 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                         ),
                         child: Text(
                           '${sites.length} active sites',
-                          style: TextStyle(
-                            fontSize: isSmallScreen ? 12 : 14,
+                          style: const TextStyle(
+                            fontSize: 14,
                             fontWeight: FontWeight.w600,
                             color: Color(0xFF4a63c0),
                           ),
@@ -293,8 +281,8 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                       },
                       icon: Icon(
                         Icons.list,
-                        color: !_isGridView ? Color(0xFF4a63c0) : Colors.grey,
-                        size: isSmallScreen ? 20 : 24,
+                        color: Color(0xFF4a63c0),
+                        size: 24,
                       ),
                     ),
                     SizedBox(width: 8),
@@ -304,27 +292,20 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                           _isGridView = true;
                         });
                       },
-                      icon: Icon(
-                        Icons.grid_view,
-                        color: _isGridView ? Color(0xFF4a63c0) : Colors.grey,
-                        size: isSmallScreen ? 20 : 24,
-                      ),
+                      icon: Icon(Icons.grid_view, color: Colors.grey, size: 24),
                     ),
                   ],
                 ),
               ],
             ),
           ),
-          Expanded(
-            child: _isGridView
-                ? _buildGridView(isSmallScreen, isMediumScreen)
-                : _buildListView(isSmallScreen, isMediumScreen),
-          ),
+          Expanded(child: _isGridView ? _buildGridView() : _buildListView()),
         ],
       ),
-       floatingActionButton: _buildFloatingActionButton(),
+      floatingActionButton: _buildFloatingActionButton(),
     );
   }
+
   Widget _buildFloatingActionButton() {
     return Container(
       width: 48,
@@ -338,21 +319,15 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
         child: InkWell(
           onTap: _showAddSiteBottomSheet,
           borderRadius: BorderRadius.circular(24),
-          child: const Icon(
-            Icons.add,
-            color: Colors.white,
-            size: 20,
-          ),
+          child: const Icon(Icons.add, color: Colors.white, size: 20),
         ),
       ),
     );
   }
-  Widget _buildListView(bool isSmallScreen, bool isMediumScreen) {
+
+  Widget _buildListView() {
     return ListView.builder(
-      padding: EdgeInsets.symmetric(
-        horizontal: isSmallScreen ? 8 : 12,
-        vertical: isSmallScreen ? 6 : 8,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       itemCount: sites.length,
       itemBuilder: (context, index) {
         return SiteCard(
@@ -361,25 +336,20 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
           onEdit: () => _showEditSiteBottomSheet(sites[index]),
           onDelete: () => _showDeleteSiteDialog(sites[index]),
           onStatusTap: () => _showStatusSelectionBottomSheet(sites[index]),
-          isSmallScreen: isSmallScreen,
-          isMediumScreen: isMediumScreen,
           isGridView: false,
         );
       },
     );
   }
 
-  Widget _buildGridView(bool isSmallScreen, bool isMediumScreen) {
+  Widget _buildGridView() {
     return GridView.builder(
-      padding: EdgeInsets.symmetric(
-        horizontal: isSmallScreen ? 8 : 12,
-        vertical: isSmallScreen ? 6 : 8,
-      ),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
         childAspectRatio: 0.85,
-        crossAxisSpacing: isSmallScreen ? 8 : 12,
-        mainAxisSpacing: isSmallScreen ? 8 : 12,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
       ),
       itemCount: sites.length,
       itemBuilder: (context, index) {
@@ -389,8 +359,6 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
           onEdit: () => _showEditSiteBottomSheet(sites[index]),
           onDelete: () => _showDeleteSiteDialog(sites[index]),
           onStatusTap: () => _showStatusSelectionBottomSheet(sites[index]),
-          isSmallScreen: isSmallScreen,
-          isMediumScreen: isMediumScreen,
           isGridView: true,
         );
       },
@@ -402,16 +370,16 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
       context: context,
       builder: (context) {
         return Container(
-          padding: EdgeInsets.all(16),
+          padding: const EdgeInsets.all(16),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
+              const Text(
                 'Update Status',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
               _buildStatusOption(
                 'Active',
                 Icons.play_arrow,
@@ -443,7 +411,6 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
       leading: Icon(icon, color: color),
       title: Text(status),
       onTap: () {
-        // Update the site status in our data map
         setState(() {
           _siteDataMap[site.id] = SiteData(
             id: site.id,
@@ -475,18 +442,21 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Select Image Source'),
+          title: const Text('Select Image Source'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
-                leading: Icon(Icons.camera_alt, color: Color(0xFF4a63c0)),
-                title: Text('Camera'),
+                leading: const Icon(Icons.camera_alt, color: Color(0xFF4a63c0)),
+                title: const Text('Camera'),
                 onTap: () => Navigator.pop(context, ImageSource.camera),
               ),
               ListTile(
-                leading: Icon(Icons.photo_library, color: Color(0xFF4a63c0)),
-                title: Text('Gallery'),
+                leading: const Icon(
+                  Icons.photo_library,
+                  color: Color(0xFF4a63c0),
+                ),
+                title: const Text('Gallery'),
                 onTap: () => Navigator.pop(context, ImageSource.gallery),
               ),
             ],
@@ -494,7 +464,6 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
         );
       },
     );
-
     if (source != null) {
       final pickedFile = await picker.pickImage(source: source);
       if (pickedFile != null) {
@@ -530,36 +499,30 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
     }
   }
 
-  Widget _buildCustomCompanyDropdown(bool isSmallScreen) {
+  Widget _buildCustomCompanyDropdown() {
     return GestureDetector(
       onTap: () => _showCompanySelectionBottomSheet(),
       child: Container(
-        padding: EdgeInsets.symmetric(
-          horizontal: isSmallScreen ? 10 : 14,
-          vertical: isSmallScreen ? 10 : 12,
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              constraints: BoxConstraints(
-                maxWidth: MediaQuery.of(context).size.width * 0.5,
-              ),
+              constraints: const BoxConstraints(maxWidth: 200),
               child: Text(
                 currentCompany ?? 'Select Company',
-                style: TextStyle(
-                  fontSize: isSmallScreen ? 9 : 12.5,
+                style: const TextStyle(
+                  fontSize: 17,
                   fontWeight: FontWeight.w600,
                   color: Colors.white,
                 ),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-
-            Icon(
+            const Icon(
               Icons.keyboard_arrow_down,
               color: Colors.white,
-              size: isSmallScreen ? 1 : 12,
+              size: 10,
             ),
           ],
         ),
@@ -569,7 +532,6 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
 
   void _showCompanySelectionBottomSheet() {
     final screenHeight = MediaQuery.of(context).size.height;
-
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -578,13 +540,13 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
           constraints: BoxConstraints(maxHeight: screenHeight * 0.6),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                margin: EdgeInsets.only(top: 8),
+                margin: const EdgeInsets.only(top: 8),
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
@@ -593,19 +555,19 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                 ),
               ),
               Padding(
-                padding: EdgeInsets.all(20),
+                padding: const EdgeInsets.all(20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
+                    const Text(
                       'Select Company',
                       style: TextStyle(
-                        fontSize: 20,
+                        fontSize: 18,
                         fontWeight: FontWeight.bold,
                         color: Color(0xFF4a63c0),
                       ),
                     ),
-                    SizedBox(height: 16),
+                    const SizedBox(height: 16),
                     Container(
                       constraints: BoxConstraints(
                         maxHeight: screenHeight * 0.4,
@@ -639,8 +601,8 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
         Navigator.pop(context);
       },
       child: Container(
-        margin: EdgeInsets.only(bottom: 8),
-        padding: EdgeInsets.all(16),
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: isSelected
               ? Color(0xFF4a63c0).withOpacity(0.1)
@@ -658,7 +620,7 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
               color: isSelected ? Color(0xFF4a63c0) : Colors.grey.shade600,
               size: 18,
             ),
-            SizedBox(width: 12),
+            const SizedBox(width: 12),
             Expanded(
               child: Text(
                 company,
@@ -670,7 +632,11 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
               ),
             ),
             if (isSelected)
-              Icon(Icons.check_circle, color: Color(0xFF4a63c0), size: 20),
+              const Icon(
+                Icons.check_circle,
+                color: Color(0xFF4a63c0),
+                size: 20,
+              ),
           ],
         ),
       ),
@@ -685,7 +651,6 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
     String selectedStatus = 'Planning';
     Uint8List? imageBytes;
     final screenHeight = MediaQuery.of(context).size.height;
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -716,11 +681,11 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                     ),
                   ),
                 ),
-                SizedBox(height: 16),
+                const SizedBox(height: 16),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
+                    const Text(
                       'Add New Site',
                       style: TextStyle(
                         fontSize: 22,
@@ -735,8 +700,6 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                   ],
                 ),
                 const SizedBox(height: 16),
-
-                // Form Fields
                 _buildModernInputField(
                   controller: nameController,
                   label: 'Site Name',
@@ -759,7 +722,7 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                         isDateField: true,
                       ),
                     ),
-                    SizedBox(width: 16),
+                    const SizedBox(width: 16),
                     Expanded(
                       child: _buildModernInputField(
                         controller: endDateController,
@@ -776,8 +739,6 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                   onChanged: (value) => selectedStatus = value!,
                 ),
                 const SizedBox(height: 24),
-
-                // Add Button
                 SizedBox(
                   width: double.infinity,
                   height: 50,
@@ -792,8 +753,6 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                           companyId: _companyProvider.selectedCompanyId ?? '',
                         );
                         await _companyProvider.addSite(newSite);
-
-                        // Create and store the site data
                         final newSiteData = SiteData(
                           id: newSite.id,
                           name: newSite.name,
@@ -808,13 +767,10 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                               ? endDateController.text
                               : '2023-12-31',
                         );
-
                         _siteDataMap[newSite.id] = newSiteData;
-
                         if (imageBytes != null) {
                           _siteImages[newSite.id] = imageBytes;
                         }
-
                         Navigator.pop(context);
                         setState(() {});
                         ScaffoldMessenger.of(context).showSnackBar(
@@ -841,7 +797,7 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                     ),
                   ),
                 ),
-                SizedBox(height: 16),
+                const SizedBox(height: 16),
               ],
             ),
           ),
@@ -866,7 +822,6 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
     String selectedStatus = site.status;
     Uint8List? imageBytes = _siteImages[site.id] ?? site.imageBytes;
     final screenHeight = MediaQuery.of(context).size.height;
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -897,11 +852,11 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                     ),
                   ),
                 ),
-                SizedBox(height: 16),
+                const SizedBox(height: 16),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
+                    const Text(
                       'Edit Site',
                       style: TextStyle(
                         fontSize: 22,
@@ -916,87 +871,81 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                   ],
                 ),
                 const SizedBox(height: 16),
-
-                // Image
                 Center(
-                  
                   child: Stack(
-                    
-                    children:[ 
+                    children: [
                       GestureDetector(
-                      onTap: () async {
-                        final bytes = await _pickImage();
-                        if (bytes != null) {
-                          setState(() {
-                            imageBytes = bytes;
-                          });
-                        }
-                      },
-                      child: Container(
-                        width: 120,
-                        height: 120,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(16),
-                          color: Colors.grey.shade100,
-                          border: Border.all(
-                            color: Colors.grey.shade300,
-                            width: 1,
+                        onTap: () async {
+                          final bytes = await _pickImage();
+                          if (bytes != null) {
+                            setState(() {
+                              imageBytes = bytes;
+                            });
+                          }
+                        },
+                        child: Container(
+                          width: 120,
+                          height: 120,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(16),
+                            color: Colors.grey.shade100,
+                            border: Border.all(
+                              color: Colors.grey.shade300,
+                              width: 1,
+                            ),
                           ),
-                        ),
-                        child: imageBytes != null
-                            ? ClipRRect(
-                                borderRadius: BorderRadius.circular(16),
-                                child: Image.memory(
-                                  imageBytes!,
-                                  fit: BoxFit.cover,
-                                ),
-                              )
-                            : (site.imageUrl != null
-                                  ? ClipRRect(
-                                      borderRadius: BorderRadius.circular(16),
-                                      child: Image.asset(
-                                        site.imageUrl!,
-                                        fit: BoxFit.cover,
-                                        errorBuilder:
-                                            (context, error, stackTrace) {
-                                              return Center(
-                                                child: Icon(
-                                                  Icons.business,
-                                                  size: 40,
-                                                  color: Colors.grey.shade400,
-                                                ),
-                                              );
-                                            },
-                                      ),
-                                    )
-                                  : Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        Icon(
-                                          Icons.add_a_photo,
-                                          size: 30,
-                                          color: Colors.grey.shade400,
+                          child: imageBytes != null
+                              ? ClipRRect(
+                                  borderRadius: BorderRadius.circular(16),
+                                  child: Image.memory(
+                                    imageBytes!,
+                                    fit: BoxFit.cover,
+                                  ),
+                                )
+                              : (site.imageUrl != null
+                                    ? ClipRRect(
+                                        borderRadius: BorderRadius.circular(16),
+                                        child: Image.asset(
+                                          site.imageUrl!,
+                                          fit: BoxFit.cover,
+                                          errorBuilder:
+                                              (context, error, stackTrace) {
+                                                return const Center(
+                                                  child: Icon(
+                                                    Icons.business,
+                                                    size: 40,
+                                                    color: Colors.grey,
+                                                  ),
+                                                );
+                                              },
                                         ),
-                                        SizedBox(height: 8),
-                                        Text(
-                                          'Add Photo',
-                                          style: TextStyle(
-                                            color: Colors.grey.shade600,
-                                            fontSize: 12,
+                                      )
+                                    : Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Icon(
+                                            Icons.add_a_photo,
+                                            size: 30,
+                                            color: Colors.grey.shade400,
                                           ),
-                                        ),
-                                      ],
-                                    )),
+                                          const SizedBox(height: 8),
+                                          Text(
+                                            'Add Photo',
+                                            style: TextStyle(
+                                              color: Colors.grey.shade600,
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                        ],
+                                      )),
+                        ),
                       ),
-                      
-                    ),
-                    Icon(Icons.add_a_photo_outlined),
-                    ]
+                      const Icon(Icons.add_a_photo_outlined),
+                    ],
                   ),
                 ),
                 const SizedBox(height: 20),
-
-                // Form Fields
                 _buildModernInputField(
                   controller: nameController,
                   label: 'Site Name',
@@ -1019,7 +968,7 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                         isDateField: true,
                       ),
                     ),
-                    SizedBox(width: 16),
+                    const SizedBox(width: 16),
                     Expanded(
                       child: _buildModernInputField(
                         controller: endDateController,
@@ -1036,8 +985,6 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                   onChanged: (value) => selectedStatus = value!,
                 ),
                 const SizedBox(height: 24),
-
-                // Update Button
                 SizedBox(
                   width: double.infinity,
                   height: 50,
@@ -1051,9 +998,7 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                           address: addressController.text,
                           companyId: currentCompany ?? '',
                         );
-
                         _companyProvider.updateSite(updatedSite).then((_) {
-                          // Update the site data in our map
                           _siteDataMap[site.id] = SiteData(
                             id: site.id,
                             name: nameController.text,
@@ -1066,13 +1011,11 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                             imageUrl: site.imageUrl,
                             imageBytes: imageBytes,
                           );
-
                           if (imageBytes != null) {
                             setState(() {
                               _siteImages[site.id] = imageBytes;
                             });
                           }
-
                           setState(() {});
                           Navigator.pop(context);
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -1100,7 +1043,7 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                     ),
                   ),
                 ),
-                SizedBox(height: 16),
+                const SizedBox(height: 16),
               ],
             ),
           ),
@@ -1123,7 +1066,7 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
             color: Colors.grey.withOpacity(0.1),
             blurRadius: 10,
             spreadRadius: 2,
-            offset: Offset(0, 4),
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -1134,9 +1077,8 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
         decoration: InputDecoration(
           labelText: label,
           labelStyle: TextStyle(color: Colors.grey.shade600),
-          
           suffixIcon: isDateField
-              ? Icon(Icons.calendar_today, color: Color(0xFF4a63c0))
+              ? const Icon(Icons.calendar_today, color: Color(0xFF4a63c0))
               : null,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
@@ -1144,7 +1086,7 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: Color(0xFF4a63c0), width: 2),
+            borderSide: const BorderSide(color: Color(0xFF4a63c0), width: 2),
           ),
           filled: true,
           fillColor: Colors.white,
@@ -1165,11 +1107,10 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
             color: Colors.grey.withOpacity(0.1),
             blurRadius: 10,
             spreadRadius: 2,
-            offset: Offset(0, 4),
+            offset: const Offset(0, 4),
           ),
         ],
       ),
-      
     );
   }
 
@@ -1185,7 +1126,7 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
             children: [
               Icon(Icons.warning, size: 48, color: Colors.orange.shade600),
               const SizedBox(height: 16),
-              Text(
+              const Text(
                 'Delete Site?',
                 style: TextStyle(
                   fontSize: 20,
@@ -1215,7 +1156,6 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                           _siteImages.remove(site.id);
                           _siteDataMap.remove(site.id);
                         });
-
                         Navigator.pop(context);
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
@@ -1231,7 +1171,10 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color.fromARGB(255, 214, 69, 66),
                     ),
-                    child: const Text('Delete',style: TextStyle(color: Colors.white),),
+                    child: const Text(
+                      'Delete',
+                      style: TextStyle(color: Colors.white),
+                    ),
                   ),
                 ],
               ),
@@ -1268,7 +1211,6 @@ class SiteData {
     required this.companyId,
   });
 
-  // Add copyWith method for easier updates
   SiteData copyWith({
     String? id,
     String? name,
@@ -1302,8 +1244,6 @@ class SiteCard extends StatelessWidget {
   final VoidCallback onEdit;
   final VoidCallback onDelete;
   final VoidCallback onStatusTap;
-  final bool isSmallScreen;
-  final bool isMediumScreen;
   final bool isGridView;
 
   const SiteCard({
@@ -1313,32 +1253,25 @@ class SiteCard extends StatelessWidget {
     required this.onEdit,
     required this.onDelete,
     required this.onStatusTap,
-    required this.isSmallScreen,
-    required this.isMediumScreen,
     required this.isGridView,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: isGridView ? (isSmallScreen ? 160 : 180) : double.infinity,
-      height: isGridView
-          ? (isSmallScreen ? 250 : 250)
-          : 170,
-           // Reduced height for list view
+      width: isGridView ? 170 : double.infinity,
+      height: isGridView ? 120 : 160,
       margin: EdgeInsets.symmetric(
-        horizontal: isGridView ? (isSmallScreen ? 4: 6) : 1,
-        vertical: isGridView
-            ? (isSmallScreen ? 4 : 6)
-            : 6, // Reduced vertical margin
+        horizontal: isGridView ? 6 : 1,
+        vertical: isGridView ? 6 : 6,
       ),
       child: Card(
         color: const Color(0xFFF8FAFC),
-        elevation: 0, // Remove shadow
+        elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(8),
-          side: BorderSide(
-            color: const Color.fromARGB(255, 202, 208, 228),
+          side: const BorderSide(
+            color: Color.fromARGB(255, 202, 208, 228),
             width: 1,
           ),
         ),
@@ -1346,23 +1279,17 @@ class SiteCard extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(8),
           child: Padding(
-            padding: EdgeInsets.all(isGridView ? (isSmallScreen ? 9 : 13) : 12),
-            // Reduced padding for list view
+            padding: EdgeInsets.all(isGridView ? 7 : 12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header with image and actions
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Site Image - Compact in grid view
+                    
                     Container(
-                      width: isGridView
-                          ? (isSmallScreen ? 50 : 55)
-                          : 65, // Reduced size for list view
-                      height: isGridView
-                          ? (isSmallScreen ? 50 : 55)
-                          : 65, // Reduced size for list view
+                      width: isGridView ? 50 : 65,
+                      height: isGridView ? 50 : 65,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(8),
                         color: const Color.fromARGB(255, 221, 229, 253),
@@ -1381,81 +1308,67 @@ class SiteCard extends StatelessWidget {
                                     child: Image.asset(
                                       site.imageUrl!,
                                       fit: BoxFit.cover,
-                                      errorBuilder: (context, error, stackTrace) {
-                                        return Center(
-                                          child: Icon(
-                                            Icons.construction,
-                                            size: isGridView
-                                                ? (isSmallScreen ? 20 : 22)
-                                                : 22, // Reduced size for list view
-                                            color: Colors.grey.shade400,
-                                          ),
-                                        );
-                                      },
+                                      errorBuilder:
+                                          (context, error, stackTrace) {
+                                            return const Center(
+                                              child: Icon(
+                                                Icons.construction,
+                                                size: 22,
+                                                color: Color.fromARGB(255, 211, 93, 93),
+                                              ),
+                                            );
+                                          },
                                     ),
                                   )
-                                : Center(
-                                    child: Icon(
-                                      Icons.construction,
-                                      size: isGridView
-                                          ? (isSmallScreen ? 20 : 22)
-                                          : 22, // Reduced size for list view
-                                      color: Colors.grey.shade400,
-                                    ),
+                                : const Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.add_a_photo,
+                                        size: 24,
+                                        color: Colors.grey,
+                                      ),
+                                      SizedBox(height: 4),
+                                      Text(
+                                        'Add Photo',
+                                        style: TextStyle(
+                                          color: Colors.grey,
+                                          fontSize: 10,
+                                        ),
+                                      ),
+                                    ],
                                   )),
                     ),
-
-                    SizedBox(width: isGridView ? (isSmallScreen ? 9 : 12) : 13),
-
+                    const SizedBox(width: 13),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          SizedBox(height: (isSmallScreen ? 12 : 14),),
+                          const SizedBox(height: 12),
                           Text(
                             site.name,
-                            style: TextStyle(
-                              fontSize: isGridView
-                                  ? (isSmallScreen ? 13 : 15)
-                                  : (isSmallScreen
-                                        ? 15
-                                        : 18), // Slightly smaller font
+                            style: const TextStyle(
+                              fontSize: 18,
                               fontWeight: FontWeight.bold,
                               color: Color(0xFF2A2A2A),
                             ),
                             maxLines: isGridView ? 2 : 1,
                             overflow: TextOverflow.ellipsis,
                           ),
-
-                          SizedBox(
-                            height: isGridView ? 5 : 6,
-                          ), // Reduced spacing
-
+                          const SizedBox(height: 6),
                           Text(
                             site.address,
-                            style: TextStyle(
-                              fontSize: isGridView
-                                  ? (isSmallScreen ? 9 : 10)
-                                  : (isSmallScreen
-                                        ? 11
-                                        : 12), // Slightly smaller font
-                              color: Colors.grey.shade600,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey,
                             ),
-                            maxLines: isGridView
-                                ? 2
-                                : 1, // Reduced to 1 line for list view
+                            maxLines: isGridView ? 2 : 1,
                             overflow: TextOverflow.ellipsis,
                           ),
-
-                          SizedBox(
-                            height: isGridView ? 8 : 10,
-                          ), // Reduced spacing
-                          // Status chip - Compact in grid view
+                          const SizedBox(height: 10),
                         ],
                       ),
                     ),
-
-                    // Action menu - Icons only in list view
                     if (!isGridView)
                       Row(
                         mainAxisAlignment: MainAxisAlignment.end,
@@ -1464,12 +1377,12 @@ class SiteCard extends StatelessWidget {
                           Stack(
                             alignment: Alignment.center,
                             children: [
-                              SizedBox(
-                                width: 32, // Reduced size
-                                height: 32, // Reduced size
+                              const SizedBox(
+                                width: 32,
+                                height: 32,
                                 child: CircularProgressIndicator(
-                                  value: site.progress,
-                                  backgroundColor: Colors.grey.shade200,
+                                  value: 0.25,
+                                  backgroundColor: Colors.grey,
                                   valueColor: AlwaysStoppedAnimation<Color>(
                                     Color(0xFF4a63c0),
                                   ),
@@ -1478,68 +1391,55 @@ class SiteCard extends StatelessWidget {
                               ),
                               Text(
                                 '${(site.progress * 100).round()}%',
-                                style: TextStyle(
-                                  fontSize: 11, // Reduced font size
+                                style: const TextStyle(
+                                  fontSize: 11,
                                   fontWeight: FontWeight.bold,
                                   color: Color(0xFF4a63c0),
                                 ),
                               ),
                             ],
                           ),
-                          SizedBox(width: isSmallScreen ? 12 : 17),
+                          const SizedBox(width: 17),
                           GestureDetector(
                             onTap: onEdit,
                             child: Icon(
                               Icons.edit,
-                              size: isSmallScreen ? 17 : 19,
-                              color: const Color.fromARGB(255, 91, 95, 119),
+                              size: 19,
+                              color: Color.fromRGBO(91, 95, 119, 1),
                             ),
                           ),
-                          SizedBox(width: isSmallScreen ? 10 : 15), // small gap
+                          const SizedBox(width: 15),
                           GestureDetector(
                             onTap: onDelete,
                             child: Icon(
                               Icons.delete_outline_rounded,
-                              size: isSmallScreen ? 17 : 19,
-                              color: const Color.fromARGB(255, 248, 117, 108),
+                              size: 19,
+                              color: Color.fromARGB(255, 248, 117, 108),
                             ),
                           ),
                         ],
                       ),
                   ],
                 ),
-
-                SizedBox(
-                  height: isGridView ? (isSmallScreen ? 6 : 8) : 8,
-                ), // Reduced spacing
-                Divider(
-                  height: isGridView
-                      ? (isSmallScreen ? 8 : 12)
-                      : 12, // Reduced height
+                const SizedBox(height: 4),
+                const Divider(
+                  height: 12,
                   thickness: 1,
-                  color: const Color.fromARGB(255, 227, 227, 233),
+                  color: Color.fromARGB(255, 227, 227, 233),
                 ),
-                SizedBox(
-                  height: isGridView ? (isSmallScreen ? 4 : 6) : 6,
-                ), // Reduced spacing
-                // Progress bar, dates, and action buttons row
+                const SizedBox(height: 6),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Progress bar for both grid and list views
-                    if (!isGridView) // Progress bar for list view
+                    if (!isGridView)
                       Row(
                         children: [
                           GestureDetector(
                             onTap: onStatusTap,
                             child: Container(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: isGridView
-                                    ? (isSmallScreen ? 5 : 7)
-                                    : 6,
-                                vertical: isGridView
-                                    ? (isSmallScreen ? 2 : 3)
-                                    : 2,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
                               ),
                               decoration: BoxDecoration(
                                 color: _getStatusColor(
@@ -1556,15 +1456,11 @@ class SiteCard extends StatelessWidget {
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  SizedBox(
-                                    width: isGridView ? 2 : 3,
-                                  ), // Reduced spacing
+                                  const SizedBox(width: 3),
                                   Text(
                                     site.status,
                                     style: TextStyle(
-                                      fontSize: isGridView
-                                          ? (isSmallScreen ? 8 : 10)
-                                          : 13, // Reduced font size
+                                      fontSize: 13,
                                       fontWeight: FontWeight.w600,
                                       color: _getStatusColor(site.status),
                                     ),
@@ -1575,20 +1471,19 @@ class SiteCard extends StatelessWidget {
                           ),
                         ],
                       ),
-
-                    if (isGridView) // Progress bar and action icons for grid view
+                    if (isGridView)
                       Expanded(
                         child: Row(
                           children: [
                             Stack(
                               alignment: Alignment.center,
                               children: [
-                                SizedBox(
-                                  width: isSmallScreen ? 27 : 37,
-                                  height: isSmallScreen ? 27 : 37,
+                                const SizedBox(
+                                  width: 35,
+                                  height: 35,
                                   child: CircularProgressIndicator(
-                                    value: site.progress,
-                                    backgroundColor: Colors.grey.shade200,
+                                    value: 0.25,
+                                    backgroundColor: Colors.grey,
                                     valueColor: AlwaysStoppedAnimation<Color>(
                                       Color(0xFF4a63c0),
                                     ),
@@ -1597,15 +1492,15 @@ class SiteCard extends StatelessWidget {
                                 ),
                                 Text(
                                   '${(site.progress * 100).round()}%',
-                                  style: TextStyle(
-                                    fontSize: isSmallScreen ? 6 : 7,
+                                  style: const TextStyle(
+                                    fontSize: 7,
                                     fontWeight: FontWeight.bold,
                                     color: Color(0xFF4a63c0),
                                   ),
                                 ),
                               ],
                             ),
-                            SizedBox(width: isSmallScreen ? 3 : 4),
+                            SizedBox(width: 4),
                             Expanded(
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.end,
@@ -1614,32 +1509,22 @@ class SiteCard extends StatelessWidget {
                                     onPressed: onEdit,
                                     icon: Icon(
                                       Icons.edit,
-                                      size: isSmallScreen ? 13 : 16,
-                                      color: const Color.fromARGB(
-                                        255,
-                                        61,
-                                        61,
-                                        61,
-                                      ),
+                                      size: 16,
+                                      color: Color.fromARGB(255, 61, 61, 61),
                                     ),
                                     padding: EdgeInsets.zero,
-                                    constraints: BoxConstraints(),
+                                    constraints: const BoxConstraints(),
                                     visualDensity: VisualDensity.compact,
                                   ),
                                   IconButton(
                                     onPressed: onDelete,
                                     icon: Icon(
                                       Icons.delete_outline_rounded,
-                                      size: isSmallScreen ? 13 : 16,
-                                      color: const Color.fromARGB(
-                                        255,
-                                        221,
-                                        96,
-                                        88,
-                                      ),
+                                      size: 16,
+                                      color: Color.fromARGB(255, 221, 96, 88),
                                     ),
                                     padding: EdgeInsets.zero,
-                                    constraints: BoxConstraints(),
+                                    constraints: const BoxConstraints(),
                                     visualDensity: VisualDensity.compact,
                                   ),
                                 ],
@@ -1648,39 +1533,31 @@ class SiteCard extends StatelessWidget {
                           ],
                         ),
                       ),
-
-                    // Dates - Always at the end (right side)
-                    if (!isGridView) // Dates for list view
+                    if (!isGridView)
                       Row(
                         children: [
                           Icon(
                             Icons.calendar_today,
-                            color: const Color.fromARGB(255, 114, 114, 138),
+                            color: Color.fromARGB(255, 114, 114, 138),
                             size: 18,
                           ),
-                          SizedBox(width: isSmallScreen ? 3 : 4),
+                          SizedBox(width: 4),
                           Text(
-                            '${site.startDate}     ${site.endDate}', // Changed to more compact format
+                            '${site.startDate}     ${site.endDate}',
                             style: TextStyle(
-                              fontSize: isSmallScreen
-                                  ? 12
-                                  : 13, // Reduced font size
-                              color: const Color.fromARGB(255, 116, 119, 148),
+                              fontSize: 13,
+                              color: Color.fromARGB(255, 116, 119, 148),
                             ),
                           ),
                         ],
                       ),
                   ],
                 ),
-                SizedBox(height: isSmallScreen ? 3 : 5),
-                // Reduced spacing
-                if (isGridView) // Dates for grid view
+                const SizedBox(height: 5),
+                if (isGridView)
                   Text(
                     '${site.startDate}    ${site.endDate}',
-                    style: TextStyle(
-                      fontSize: isSmallScreen ? 10 : 12,
-                      color: Colors.grey.shade600,
-                    ),
+                    style: const TextStyle(fontSize: 10, color: Colors.grey),
                   ),
               ],
             ),
@@ -1720,5 +1597,3 @@ class SiteCard extends StatelessWidget {
     }
   }
 }
-
-// Placeholder for SiteData class (you should have this defined elsewhere)

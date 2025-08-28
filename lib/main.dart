@@ -4,6 +4,7 @@ import 'package:ecoteam_app/view/landing_page/splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+
 void main() {
   runApp(const MyApp());
 }
@@ -25,64 +26,19 @@ class MyApp extends StatelessWidget {
           useMaterial3: true,
         ),
         debugShowCheckedModeBanner: false,
-        home: const ResponsiveWrapper(),
+        home:  HomePagescreen(), // Start with splash screen
+        // Use a builder to get context for responsive design
+        builder: (context, child) {
+          return MediaQuery(
+            // Ensure text scale factor is reasonable
+            data: MediaQuery.of(context).copyWith(
+              textScaleFactor: MediaQuery.of(context).textScaleFactor.clamp(0.8, 1.2),
+            ),
+            child: child!,
+          );
+        },
       ),
     );
   }
 }
 
-class ResponsiveWrapper extends StatelessWidget {
-  const ResponsiveWrapper({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        double width = constraints.maxWidth;
-
-        if (width >= 400) {
-          // 📱 Large Mobile (big phones)
-          return const LargeMobilePage();
-        } else {
-          // 📱 Small Mobile (compact layout)
-          return const SmallMobilePage();
-        }
-      },
-    );
-  }
-}
-
-/// ---------------------------
-/// Different Mobile Views
-/// ---------------------------
-
-/// Large Mobile (like iPhone Pro Max, Pixel 7 Pro, etc.)
-class LargeMobilePage extends StatelessWidget {
-  const LargeMobilePage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text("Large Mobile View")),
-      body: const HomePagescreen(),
-      bottomNavigationBar: BottomNavigationBar(
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
-        ],
-      ),
-    );
-  }
-}
-
-/// Small Mobile (like older phones, iPhone SE, etc.)
-class SmallMobilePage extends StatelessWidget {
-  const SmallMobilePage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: const HomePagescreen(), // Or SplashScreen() if you want
-    );
-  }
-}

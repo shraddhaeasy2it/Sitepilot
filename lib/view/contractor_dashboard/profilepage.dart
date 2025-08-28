@@ -152,6 +152,7 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
       ),
     );
   }
+  
   Widget _buildSettingsCard() {
     return Container(
       decoration: BoxDecoration(
@@ -170,8 +171,6 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            
-            
             _buildSettingItem(
               Icons.logout_outlined,
               'Sign Out',
@@ -191,78 +190,79 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
       ),
     );
   }
-void _showLogoutConfirmation() {
-  showDialog(
-    context: context,
-    builder: (context) {
-      return AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(
-          children: [
-            Container(
-              padding: EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Color(0xFFFEF2F2),
-                borderRadius: BorderRadius.circular(8),
+  
+  void _showLogoutConfirmation() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Color(0xFFFEF2F2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.warning_amber_outlined, color: Color(0xFFEF4444)),
               ),
-              child: Icon(Icons.warning_amber_outlined, color: Color(0xFFEF4444)),
+              SizedBox(width: 12),
+              Text(
+                'Confirm Logout',
+                style: TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF1E293B)),
+              ),
+            ],
+          ),
+          content: Text(
+            'Are you sure you want to sign out? You will need to log in again to access your account.',
+            style: TextStyle(color: Color(0xFF64748B), height: 1.5),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('Cancel', style: TextStyle(color: Color(0xFF64748B))),
             ),
-            SizedBox(width: 12),
-            Text(
-              'Confirm Logout',
-              style: TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF1E293B)),
+            Container(
+              decoration: BoxDecoration(
+                color: Color(0xFFEF4444),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: ElevatedButton(
+                onPressed: () async {
+                  Navigator.pop(context); // Close the dialog
+
+                  // Clear login info
+                  final prefs = await SharedPreferences.getInstance();
+                  await prefs.clear();
+
+                  // Show snack or toast
+                  _showSnackBar('Signed out successfully');
+
+                  // Navigate to login screen
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (context) => const LoginSelectorPage()),
+                    (Route<dynamic> route) => false,
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  shadowColor: Colors.transparent,
+                ),
+                child: Text(
+                  'Sign Out',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                ),
+              ),
             ),
           ],
-        ),
-        content: Text(
-          'Are you sure you want to sign out? You will need to log in again to access your account.',
-          style: TextStyle(color: Color(0xFF64748B), height: 1.5),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Cancel', style: TextStyle(color: Color(0xFF64748B))),
-          ),
-          Container(
-            decoration: BoxDecoration(
-              color: Color(0xFFEF4444),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: ElevatedButton(
-              onPressed: () async {
-                Navigator.pop(context); // Close the dialog
+        );
+      },
+    );
+  }
 
-                // Clear login info
-                final prefs = await SharedPreferences.getInstance();
-                await prefs.clear();
-
-                // Show snack or toast
-                _showSnackBar('Signed out successfully');
-
-                // Navigate to login screen
-                Navigator.pushAndRemoveUntil(
-                  context,
-                  MaterialPageRoute(builder: (context) => const LoginSelectorPage()),
-                  (Route<dynamic> route) => false,
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.transparent,
-                shadowColor: Colors.transparent,
-              ),
-              child: Text(
-                'Sign Out',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-              ),
-            ),
-          ),
-        ],
-      );
-    },
-  );
-}
-
- Widget _buildSettingItem(IconData icon, String label, Widget trailing) {
+  Widget _buildSettingItem(IconData icon, String label, Widget trailing) {
     return Padding(
       padding: EdgeInsets.symmetric(vertical: 12),
       child: Row(
@@ -291,6 +291,7 @@ void _showLogoutConfirmation() {
       ),
     );
   }
+  
   Widget _buildOrganizationCard() {
     return Container(
       decoration: BoxDecoration(
@@ -313,13 +314,6 @@ void _showLogoutConfirmation() {
               children: [
                 Container(
                   padding: EdgeInsets.all(10),
-                //   decoration: BoxDecoration(
-                //     gradient: LinearGradient(
-                //       colors: [Color.fromARGB(255, 128, 148, 238),
-                // Color.fromARGB(255, 87, 104, 179),],
-                //     ),
-                //     borderRadius: BorderRadius.circular(16),
-                //   ),
                   child: Icon(Icons.business, color: const Color.fromARGB(255, 32, 32, 32), size: 24),
                 ),
                 SizedBox(width: 10),
@@ -368,71 +362,98 @@ void _showLogoutConfirmation() {
                   ),
               ],
             ),
-            // SizedBox(height: 10),
-            // Container(
-            //   height: 1,
-            //   decoration: BoxDecoration(
-            //     gradient: LinearGradient(
-            //       colors: [
-            //         Colors.transparent,
-            //         Color(0xFF667EEA).withOpacity(0.3),
-            //         Colors.transparent,
-            //       ],
-            //     ),
-            //   ),
-            // ),
             SizedBox(height: 20),
             _buildOutlineButton(
               onPressed: _showOrganizationManagementDialog,
               text: 'Manage Organizations',
               icon: Icons.settings_outlined,
-              
             ),
           ],
         ),
       ),
     );
   }
-   void _showOrganizationDialog() {
-    showDialog(
+  
+  void _showOrganizationDialog() {
+    showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (context) {
-        return AlertDialog(
-          backgroundColor: const Color.fromARGB(237, 255, 255, 255),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Text('Select Organization', 
-            style: TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF1E293B))),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: _organizations
-                .map((org) => Container(
-                      margin: EdgeInsets.only(bottom: 8),
-                      decoration: BoxDecoration(
-                        color: _currentOrg == org ? Colors.blue.shade800.withOpacity(0.1) : null,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: ListTile(
-                        title: Text(org, style: TextStyle(fontWeight: FontWeight.w500)),
-                        trailing: _currentOrg == org
-                            ? Icon(Icons.check_circle, color: Color.fromARGB(255, 97, 97, 97))
-                            : null,
-                        onTap: () {
-                          setState(() {
-                            _currentOrg = org;
-                          });
-                          Navigator.pop(context);
-                          _showSnackBar('Switched to $org');
-                        },
-                      ),
-                    ))
-                .toList(),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text('Cancel', style: TextStyle(color: Color.fromARGB(255, 81, 81, 82))),
+        return Container(
+          height: MediaQuery.of(context).size.height * 0.6,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(20),
+              topRight: Radius.circular(20),
             ),
-          ],
+          ),
+          child: Column(
+            children: [
+              Container(
+                width: 60,
+                height: 5,
+                margin: EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Select Organization',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF1E293B),
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.close),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+              ),
+              Divider(),
+              Expanded(
+                child: Scrollbar(
+                  child: ListView.builder(
+                    padding: EdgeInsets.all(16),
+                    itemCount: _organizations.length,
+                    itemBuilder: (context, index) {
+                      final org = _organizations[index];
+                      return Container(
+                        margin: EdgeInsets.only(bottom: 8),
+                        decoration: BoxDecoration(
+                          color: _currentOrg == org ? Color(0xFF6f88e2).withOpacity(0.1) : null,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: ListTile(
+                          title: Text(org, style: TextStyle(fontWeight: FontWeight.w500)),
+                          trailing: _currentOrg == org
+                              ? Icon(Icons.check_circle, color: Color(0xFF6f88e2))
+                              : null,
+                          onTap: () {
+                            setState(() {
+                              _currentOrg = org;
+                            });
+                            Navigator.pop(context);
+                            _showSnackBar('Switched to $org');
+                          },
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ],
+          ),
         );
       },
     );
@@ -441,86 +462,144 @@ void _showLogoutConfirmation() {
   void _showOrganizationManagementDialog() {
     final TextEditingController newOrgController = TextEditingController();
 
-    showDialog(
+    showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Text('Manage Organizations', 
-            style: TextStyle(fontWeight: FontWeight.w700, color: Color.fromARGB(255, 63, 66, 71))),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  decoration: BoxDecoration(
-                    color: Color(0xFFF8FAFC),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Color(0xFFE2E8F0)),
-                  ),
-                  child: DropdownButtonFormField<String>(
-                    value: _currentOrg,
-                    decoration: InputDecoration(
-                      labelText: 'Current Organization',
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    ),
-                    items: _organizations.map((org) {
-                      return DropdownMenuItem(
-                        value: org,
-                        child: Text(org),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        _currentOrg = value!;
-                      });
-                    },
-                  ),
-                ),
-                SizedBox(height: 20),
-                TextField(
-                  controller: newOrgController,
-                  decoration: InputDecoration(
-                    labelText: 'Add New Organization',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    filled: true,
-                    fillColor: Color(0xFFF8FAFC),
-                    suffixIcon: Container(
-                      margin: EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [Color.fromARGB(255, 82, 82, 177), Color.fromARGB(255, 98, 110, 221)],
-                        ),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: IconButton(
-                        icon: Icon(Icons.add, color: Colors.white),
-                        onPressed: () {
-                          if (newOrgController.text.isNotEmpty) {
-                            setState(() {
-                              _organizations.add(newOrgController.text);
-                              newOrgController.clear();
-                            });
-                            _showSnackBar('Organization added');
-                          }
-                        },
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+        return Container(
+          height: MediaQuery.of(context).size.height * 0.7,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(20),
+              topRight: Radius.circular(20),
             ),
           ),
-          actions: [
-            TextButton(
-              
-              onPressed: () => Navigator.pop(context),
-              child: Text('Close', style: TextStyle(color: Color(0xFF4a63c0))),
-            ),
-          ],
+          child: Column(
+            children: [
+              Container(
+                width: 60,
+                height: 5,
+                margin: EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Manage Organizations',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF1E293B),
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.close),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+              ),
+              Divider(),
+              Expanded(
+                child: Scrollbar(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.all(16),
+                    child: Column(
+                      children: [
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Color(0xFFF8FAFC),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Color(0xFFE2E8F0)),
+                          ),
+                          child: DropdownButtonFormField<String>(
+                            value: _currentOrg,
+                            decoration: InputDecoration(
+                              labelText: 'Current Organization',
+                              border: InputBorder.none,
+                              contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            ),
+                            items: _organizations.map((org) {
+                              return DropdownMenuItem(
+                                value: org,
+                                child: Text(org),
+                              );
+                            }).toList(),
+                            onChanged: (value) {
+                              setState(() {
+                                _currentOrg = value!;
+                              });
+                            },
+                          ),
+                        ),
+                        SizedBox(height: 20),
+                        TextField(
+                          controller: newOrgController,
+                          decoration: InputDecoration(
+                            labelText: 'Add New Organization',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            filled: true,
+                            fillColor: Color(0xFFF8FAFC),
+                            suffixIcon: Container(
+                              margin: EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color: Color(0xFF6f88e2),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: IconButton(
+                                icon: Icon(Icons.add, color: Colors.white),
+                                onPressed: () {
+                                  if (newOrgController.text.isNotEmpty) {
+                                    setState(() {
+                                      _organizations.add(newOrgController.text);
+                                      newOrgController.clear();
+                                    });
+                                    _showSnackBar('Organization added');
+                                  }
+                                },
+                              ),
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: 20),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: () => Navigator.pop(context),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Color(0xFF6f88e2),
+                              padding: EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: Text(
+                              'Save Changes',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         );
       },
     );
@@ -528,9 +607,9 @@ void _showLogoutConfirmation() {
 
   Widget _buildSliverAppBar() {
     return SliverAppBar(
-       iconTheme: const IconThemeData(
-          color: Colors.white, // Back arrow white
-        ),
+      iconTheme: const IconThemeData(
+        color: Colors.white,
+      ),
       expandedHeight: 90,
       floating: false,
       pinned: true,
@@ -652,25 +731,6 @@ void _showLogoutConfirmation() {
                           fontWeight: FontWeight.w500,
                         ),
                       ),
-                      SizedBox(height: 8),
-                      // Container(
-                      //   padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      //   decoration: BoxDecoration(
-                      //     gradient: LinearGradient(
-                      //       colors: [Color.fromARGB(255, 87, 116, 221),
-                      //         Color.fromARGB(255, 85, 113, 214),],
-                      //     ),
-                      //     borderRadius: BorderRadius.circular(20),
-                      //   ),
-                      //   child: Text(
-                      //     'Active',
-                      //     style: TextStyle(
-                      //       color: Colors.white,
-                      //       fontSize: 12,
-                      //       fontWeight: FontWeight.w600,
-                      //     ),
-                      //   ),
-                      // ),
                     ],
                   ),
                 ),
@@ -746,58 +806,105 @@ void _showLogoutConfirmation() {
       ),
     );
   }
-   void _showImagePickerDialog() {
-    showDialog(
+  
+  void _showImagePickerDialog() {
+    showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Text('Update Profile Picture', 
-            style: TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF1E293B))),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
+        return Container(
+          height: MediaQuery.of(context).size.height * 0.4,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(20),
+              topRight: Radius.circular(20),
+            ),
+          ),
+          child: Column(
             children: [
-              _buildImagePickerOption(
-                Icons.camera_alt_outlined,
-                'Take Photo',
-                () {
-                  Navigator.pop(context);
-                  _pickImage(ImageSource.camera);
-                },
-              ),
-              SizedBox(height: 8),
-              _buildImagePickerOption(
-                Icons.photo_library_outlined,
-                'Choose from Gallery',
-                () {
-                  Navigator.pop(context);
-                  _pickImage(ImageSource.gallery);
-                },
-              ),
-              if (_profileImageUrl != null) ...[
-                SizedBox(height: 8),
-                _buildImagePickerOption(
-                  Icons.delete_outline,
-                  'Remove Photo',
-                  () {
-                    setState(() {
-                      _profileImageUrl = null;
-                    });
-                    Navigator.pop(context);
-                    _showSnackBar('Profile photo removed');
-                  },
-                  isDestructive: true,
+              Container(
+                width: 60,
+                height: 5,
+                margin: EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(10),
                 ),
-              ],
+              ),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Update Profile Picture',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF1E293B),
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.close),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+              ),
+              Divider(),
+              Expanded(
+                child: Scrollbar(
+                  child: ListView(
+                    padding: EdgeInsets.all(16),
+                    children: [
+                      _buildImagePickerOption(
+                        Icons.camera_alt_outlined,
+                        'Take Photo',
+                        () {
+                          Navigator.pop(context);
+                          _pickImage(ImageSource.camera);
+                        },
+                      ),
+                      SizedBox(height: 8),
+                      _buildImagePickerOption(
+                        Icons.photo_library_outlined,
+                        'Choose from Gallery',
+                        () {
+                          Navigator.pop(context);
+                          _pickImage(ImageSource.gallery);
+                        },
+                      ),
+                      if (_profileImageUrl != null) ...[
+                        SizedBox(height: 8),
+                        _buildImagePickerOption(
+                          Icons.delete_outline,
+                          'Remove Photo',
+                          () {
+                            setState(() {
+                              _profileImageUrl = null;
+                            });
+                            Navigator.pop(context);
+                            _showSnackBar('Profile photo removed');
+                          },
+                          isDestructive: true,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
             ],
           ),
         );
       },
     );
   }
-Widget _buildImagePickerOption(IconData icon, String title, VoidCallback onTap, {bool isDestructive = false}) {
+
+  Widget _buildImagePickerOption(IconData icon, String title, VoidCallback onTap, {bool isDestructive = false}) {
     return Container(
-      margin: EdgeInsets.only(bottom: 4),
+      margin: EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
         color: isDestructive ? Color(0xFFFEF2F2) : Color(0xFFF8FAFC),
         borderRadius: BorderRadius.circular(12),
@@ -809,7 +916,7 @@ Widget _buildImagePickerOption(IconData icon, String title, VoidCallback onTap, 
         leading: Container(
           padding: EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: isDestructive ? Color(0xFFEF4444) : Color(0xFF667EEA),
+            color: isDestructive ? Color(0xFFEF4444) : Color(0xFF6f88e2),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Icon(icon, color: Colors.white, size: 20),
@@ -843,7 +950,7 @@ Widget _buildImagePickerOption(IconData icon, String title, VoidCallback onTap, 
     }
   }
 
-   Widget _buildOutlineButton({
+  Widget _buildOutlineButton({
     required VoidCallback onPressed,
     required String text,
     required IconData icon,
@@ -853,7 +960,7 @@ Widget _buildImagePickerOption(IconData icon, String title, VoidCallback onTap, 
       width: 207,
       child: OutlinedButton.icon(
         onPressed: onPressed,
-        icon: Icon(icon, color: Color.fromARGB(255, 52, 52, 53), size: 20),
+        icon: Icon(icon, color: const Color.fromARGB(255, 52, 52, 53), size: 20),
         label: Text(
           text,
           style: TextStyle(
@@ -872,192 +979,176 @@ Widget _buildImagePickerOption(IconData icon, String title, VoidCallback onTap, 
     );
   }
 
-  // Dialog methods remain largely the same but with updated styling
-void _showEditProfileDialog() {
-  final primaryColor = Color(0xFF4a63c0);
-  final accentColor = Color.fromARGB(255, 106, 130, 218);
-  final cardColor = Colors.white;
-  final borderColor = Colors.grey.shade200;
-
-  showModalBottomSheet(
-    context: context,
-    isScrollControlled: true, // Important for allowing the sheet to take up most of the screen
-    backgroundColor: Colors.transparent,
-    builder: (context) {
-      return Container(
-        decoration: BoxDecoration(
-          color: cardColor,
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(16),
-            topRight: Radius.circular(16),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 24,
-              offset: const Offset(0, 8),
+  void _showEditProfileDialog() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          height: MediaQuery.of(context).size.height * 0.85,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(20),
+              topRight: Radius.circular(20),
             ),
-          ],
-        ),
-        child: SingleChildScrollView(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom, // Adjust for keyboard
           ),
           child: Column(
-            mainAxisSize: MainAxisSize.min,
             children: [
-              // Header
               Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(24),
+                width: 60,
+                height: 5,
+                margin: EdgeInsets.symmetric(vertical: 12),
                 decoration: BoxDecoration(
-                  color: const Color.fromARGB(255, 214, 230, 248),
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(16),
-                    topRight: Radius.circular(16),
-                  ),
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              ),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Edit Profile',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        color: Color.fromARGB(255, 64, 91, 189),
-                        fontWeight: FontWeight.w600,
+                    Text(
+                      'Edit Profile',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF1E293B),
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Text('Update your professional details',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Color.fromARGB(255, 59, 85, 180),
-                      ),
+                    IconButton(
+                      icon: Icon(Icons.close),
+                      onPressed: () => Navigator.pop(context),
                     ),
                   ],
                 ),
               ),
-
-              // Form
-              Padding(
-                padding: const EdgeInsets.all(24),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    children: [
-                      _buildTextField(_nameController, 'Full Name', Icons.person_outline),
-                      const SizedBox(height: 16),
-                      _buildTextField(_positionController, 'Position', Icons.work_outline),
-                      const SizedBox(height: 16),
-                      _buildTextField(_emailController, 'Email', Icons.email_outlined, 
-                        keyboardType: TextInputType.emailAddress),
-                      const SizedBox(height: 16),
-                      _buildTextField(_phoneController, 'Phone', Icons.phone_outlined,
-                        keyboardType: TextInputType.phone),
-                      const SizedBox(height: 16),
-                      _buildTextField(_departmentController, 'Department', Icons.business_outlined),
-                      const SizedBox(height: 16),
-                      _buildTextField(_projectsController, 'Assigned Projects', Icons.assignment_outlined),
-                      const SizedBox(height: 16),
-                      _buildTextField(_skillsController, 'Skills', Icons.build_outlined, maxLines: 2),
-                      const SizedBox(height: 16),
-                      _buildTextField(_experienceController, 'Experience', Icons.work_outline),
-                      const SizedBox(height: 24),
-                      
-                      // Buttons
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
+              Divider(),
+              Expanded(
+                child: Scrollbar(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.all(16),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
                         children: [
-                          OutlinedButton(
-                            onPressed: () => Navigator.pop(context),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: Colors.grey.shade700,
-                              side: BorderSide(color: borderColor),
-                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
+                          _buildTextField(_nameController, 'Full Name', Icons.person_outline),
+                          SizedBox(height: 16),
+                          _buildTextField(_positionController, 'Position', Icons.work_outline),
+                          SizedBox(height: 16),
+                          _buildTextField(_emailController, 'Email', Icons.email_outlined, 
+                            keyboardType: TextInputType.emailAddress),
+                          SizedBox(height: 16),
+                          _buildTextField(_phoneController, 'Phone', Icons.phone_outlined,
+                            keyboardType: TextInputType.phone),
+                          SizedBox(height: 16),
+                          _buildTextField(_departmentController, 'Department', Icons.business_outlined),
+                          SizedBox(height: 16),
+                          _buildTextField(_projectsController, 'Assigned Projects', Icons.assignment_outlined),
+                          SizedBox(height: 16),
+                          _buildTextField(_skillsController, 'Skills', Icons.build_outlined, maxLines: 2),
+                          SizedBox(height: 16),
+                          _buildTextField(_experienceController, 'Experience', Icons.work_outline),
+                          SizedBox(height: 24),
+                          
+                          // Buttons
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              OutlinedButton(
+                                onPressed: () => Navigator.pop(context),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: Colors.grey.shade700,
+                                  side: BorderSide(color: Colors.grey.shade300),
+                                  padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                                child: Text('Cancel'),
                               ),
-                            ),
-                            child: const Text('Cancel'),
-                          ),
-                          const SizedBox(width: 12),
-                          ElevatedButton(
-                            onPressed: () {
-                              if (_formKey.currentState!.validate()) {
-                                setState(() {});
-                                Navigator.pop(context);
-                                _showSnackBar('Profile updated successfully');
-                              }
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: primaryColor,
-                              foregroundColor: Colors.white,
-                              elevation: 0,
-                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
+                              SizedBox(width: 12),
+                              ElevatedButton(
+                                onPressed: () {
+                                  if (_formKey.currentState!.validate()) {
+                                    setState(() {});
+                                    Navigator.pop(context);
+                                    _showSnackBar('Profile updated successfully');
+                                  }
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Color(0xFF6f88e2),
+                                  foregroundColor: Colors.white,
+                                  elevation: 0,
+                                  padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                                child: Text('Save Changes'),
                               ),
-                            ),
-                            child: const Text('Save Changes'),
+                            ],
                           ),
                         ],
                       ),
-                    ],
+                    ),
                   ),
                 ),
               ),
             ],
           ),
+        );
+      },
+    );
+  }
+
+  Widget _buildTextField(TextEditingController controller, String label, IconData icon, 
+    {TextInputType? keyboardType, int maxLines = 1}) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: keyboardType,
+      maxLines: maxLines,
+      style: TextStyle(fontSize: 14),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: TextStyle(
+          color: Colors.grey.shade600,
+          fontSize: 13,
         ),
-      );
-    },
-  );
-}
-Widget _buildTextField(TextEditingController controller, String label, IconData icon, 
-  {TextInputType? keyboardType, int maxLines = 1}) {
-  final primaryColor = Colors.blue.shade700;
-  final borderColor = Colors.grey.shade200;
-  
-  return TextFormField(
-    controller: controller,
-    keyboardType: keyboardType,
-    maxLines: maxLines,
-    style: const TextStyle(fontSize: 14),
-    decoration: InputDecoration(
-      labelText: label,
-      labelStyle: TextStyle(
-        color: Colors.grey.shade600,
-        fontSize: 13,
+        floatingLabelStyle: TextStyle(color: Color(0xFF6f88e2)),
+        prefixIcon: Icon(icon, color: Colors.grey.shade500, size: 20),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: Color(0xFF6f88e2), width: 1),
+        ),
+        filled: true,
+        fillColor: Colors.white,
+        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       ),
-      floatingLabelStyle: TextStyle(color: primaryColor),
-      prefixIcon: Icon(icon, color: Colors.grey.shade500, size: 20),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: BorderSide(color: borderColor),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: BorderSide(color: borderColor),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: BorderSide(color: primaryColor, width: 1),
-      ),
-      filled: true,
-      fillColor: Colors.white,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-    ),
-    validator: (value) {
-      if (label.contains('Name') || label.contains('Email')) {
-        if (value == null || value.isEmpty) {
-          return 'Please enter your ${label.toLowerCase()}';
+      validator: (value) {
+        if (label.contains('Name') || label.contains('Email')) {
+          if (value == null || value.isEmpty) {
+            return 'Please enter your ${label.toLowerCase()}';
+          }
+          if (label.contains('Email') && !value.contains('@')) {
+            return 'Please enter a valid email';
+          }
         }
-        if (label.contains('Email') && !value.contains('@')) {
-          return 'Please enter a valid email';
-        }
-      }
-      return null;
-    },
-  );
-}
+        return null;
+      },
+    );
+  }
+
   Widget _buildDetailItem(IconData icon, String label, String value) {
     return Padding(
       padding: EdgeInsets.symmetric(vertical: 12),
@@ -1065,14 +1156,7 @@ Widget _buildTextField(TextEditingController controller, String label, IconData 
         children: [
           Container(
             padding: EdgeInsets.all(10),
-            // decoration: BoxDecoration(
-            //   gradient: LinearGradient(
-            //     colors: [Color.fromARGB(255, 128, 148, 238),
-            //     Color.fromARGB(255, 87, 104, 179),],
-            //   ),
-            //   borderRadius: BorderRadius.circular(12),
-            // ),
-            child: Icon(icon, size: 20, color: const Color.fromARGB(255, 59, 59, 59)),
+            child: Icon(icon, size: 20, color: Color.fromARGB(255, 59, 59, 59)),
           ),
           SizedBox(width: 10),
           Expanded(
@@ -1104,7 +1188,7 @@ Widget _buildTextField(TextEditingController controller, String label, IconData 
     );
   }
 
- Widget _buildGradientButton({
+  Widget _buildGradientButton({
     required VoidCallback onPressed,
     required String text,
     required IconData icon,
@@ -1125,11 +1209,11 @@ Widget _buildTextField(TextEditingController controller, String label, IconData 
       ),
       child: ElevatedButton.icon(
         onPressed: onPressed,
-        icon: Icon(icon, color: const Color.fromARGB(255, 5, 18, 61), size: 20),
+        icon: Icon(icon, color: Color.fromARGB(255, 5, 18, 61), size: 20),
         label: Text(
           text,
           style: TextStyle(
-            color: const Color.fromARGB(255, 54, 54, 54),
+            color: Color.fromARGB(255, 54, 54, 54),
             fontWeight: FontWeight.w600,
             fontSize: 16,
           ),
@@ -1146,6 +1230,7 @@ Widget _buildTextField(TextEditingController controller, String label, IconData 
       ),
     );
   }
+  
   Widget _buildLeaveManagementCard() {
     return Container(
       decoration: BoxDecoration(
@@ -1168,7 +1253,7 @@ Widget _buildTextField(TextEditingController controller, String label, IconData 
               children: [
                 Container(
                   padding: EdgeInsets.all(5),
-                  child: Icon(Icons.calendar_today, color: const Color.fromARGB(255, 32, 32, 32), size: 24),
+                  child: Icon(Icons.calendar_today, color: Color.fromARGB(255, 32, 32, 32), size: 24),
                 ),
                 SizedBox(width: 8),
                 Text(
@@ -1373,213 +1458,244 @@ Widget _buildTextField(TextEditingController controller, String label, IconData 
     final leaveTypes = ['Annual', 'Sick', 'Emergency', 'Compensation'];
     String? selectedLeaveType;
     
-    showDialog(
+    showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setState) {
-            return Dialog(
-              backgroundColor: const Color.fromARGB(235, 255, 255, 255),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Padding(
-                padding: EdgeInsets.all(24),
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Apply for Leave',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF1E293B),
-                        ),
-                      ),
-                      SizedBox(height: 15),
-                      
-                      // Leave Type Dropdown
-                      DropdownButtonFormField<String>(
-                        decoration: InputDecoration(
-                          labelText: 'Leave Type',
-                          border: OutlineInputBorder(),
-                          filled: true,
-                          fillColor: Color(0xFFF8FAFC),
-                        ),
-                        value: selectedLeaveType,
-                        items: leaveTypes.map((type) {
-                          return DropdownMenuItem(
-                            value: type,
-                            child: Text(type),
-                          );
-                        }).toList(),
-                        onChanged: (value) {
-                          setState(() {
-                            selectedLeaveType = value;
-                          });
-                        },
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please select leave type';
-                          }
-                          return null;
-                        },
-                      ),
-                      SizedBox(height: 16),
-                      
-                      // Date Range Picker
-                      Row(
-                        children: [
-                          Expanded(
-                            child: InkWell(
-                              onTap: () async {
-                                final date = await showDatePicker(
-                                  context: context,
-                                  initialDate: DateTime.now(),
-                                  firstDate: DateTime.now(),
-                                  lastDate: DateTime.now().add(Duration(days: 365)),
-                                );
-                                if (date != null) {
-                                  setState(() {
-                                    _leaveStartDate = date;
-                                  });
-                                }
-                              },
-                              child: InputDecorator(
-                                decoration: InputDecoration(
-                                  labelText: 'Start Date',
-                                  border: OutlineInputBorder(),
-                                  filled: true,
-                                  fillColor: Color(0xFFF8FAFC),
-                                ),
-                                child: Text(
-                                  _leaveStartDate != null 
-                                      ? DateFormat('MMM dd, yyyy').format(_leaveStartDate!)
-                                      : 'Select date',
-                                ),
-                              ),
-                            ),
-                          ),
-                          SizedBox(width: 16),
-                          Expanded(
-                            child: InkWell(
-                              onTap: () async {
-                                if (_leaveStartDate == null) {
-                                  _showSnackBar('Please select start date first');
-                                  return;
-                                }
-                                final date = await showDatePicker(
-                                  context: context,
-                                  initialDate: _leaveStartDate!.add(Duration(days: 1)),
-                                  firstDate: _leaveStartDate!,
-                                  lastDate: DateTime.now().add(Duration(days: 365)),
-                                );
-                                if (date != null) {
-                                  setState(() {
-                                    _leaveEndDate = date;
-                                  });
-                                }
-                              },
-                              child: InputDecorator(
-                                decoration: InputDecoration(
-                                  labelText: 'End Date',
-                                  border: OutlineInputBorder(),
-                                  filled: true,
-                                  fillColor: Color(0xFFF8FAFC),
-                                ),
-                                child: Text(
-                                  _leaveEndDate != null 
-                                      ? DateFormat('MMM dd, yyyy').format(_leaveEndDate!)
-                                      : 'Select date',
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 16),
-                      
-                      // Reason Text Field
-                      TextField(
-                        controller: _leaveReasonController,
-                        maxLines: 3,
-                        decoration: InputDecoration(
-                          labelText: 'Reason',
-                          border: OutlineInputBorder(),
-                          filled: true,
-                          fillColor: Color(0xFFF8FAFC),
-                        ),
-                      ),
-                      SizedBox(height: 24),
-                      
-                      // Buttons
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: Text('Cancel'),
-                          ),
-                          SizedBox(width: 16),
-                          ElevatedButton(
-                            onPressed: () {
-                              if (selectedLeaveType == null) {
-                                _showSnackBar('Please select leave type');
-                                return;
-                              }
-                              if (_leaveStartDate == null || _leaveEndDate == null) {
-                                _showSnackBar('Please select date range');
-                                return;
-                              }
-                              if (_leaveReasonController.text.isEmpty) {
-                                _showSnackBar('Please enter reason for leave');
-                                return;
-                              }
-                              
-                              // Add the new leave request
-                              final newRequest = LeaveRequest(
-                                id: '00${_leaveRequests.length + 1}',
-                                type: selectedLeaveType!,
-                                startDate: _leaveStartDate!,
-                                endDate: _leaveEndDate!,
-                                status: 'Pending',
-                                reason: _leaveReasonController.text,
-                              );
-                              
-                              setState(() {
-                                _leaveRequests.insert(0, newRequest);
-                                if (selectedLeaveType != 'Compensation') {
-                                  final days = _leaveEndDate!.difference(_leaveStartDate!).inDays + 1;
-                                  _availableLeaves -= days;
-                                }
-                              });
-                              
-                              // Reset form
-                              _leaveStartDate = null;
-                              _leaveEndDate = null;
-                              _leaveReasonController.clear();
-                              
-                              Navigator.pop(context);
-                              _showSnackBar('Leave request submitted successfully');
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Color.fromARGB(255, 100, 124, 211),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                            child: Text(
-                              'Submit',
-                              style: TextStyle(color: Colors.white),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+            return Container(
+              height: MediaQuery.of(context).size.height * 0.7,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(20),
+                  topRight: Radius.circular(20),
                 ),
+              ),
+              child: Column(
+                children: [
+                  Container(
+                    width: 60,
+                    height: 5,
+                    margin: EdgeInsets.symmetric(vertical: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 20),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Apply for Leave',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF1E293B),
+                          ),
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.close),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Divider(),
+                  Expanded(
+                    child: Scrollbar(
+                      child: SingleChildScrollView(
+                        padding: EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Leave Type Dropdown
+                            DropdownButtonFormField<String>(
+                              decoration: InputDecoration(
+                                labelText: 'Leave Type',
+                                border: OutlineInputBorder(),
+                                filled: true,
+                                fillColor: Color(0xFFF8FAFC),
+                              ),
+                              value: selectedLeaveType,
+                              items: leaveTypes.map((type) {
+                                return DropdownMenuItem(
+                                  value: type,
+                                  child: Text(type),
+                                );
+                              }).toList(),
+                              onChanged: (value) {
+                                setState(() {
+                                  selectedLeaveType = value;
+                                });
+                              },
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Please select leave type';
+                                }
+                                return null;
+                              },
+                            ),
+                            SizedBox(height: 16),
+                            
+                            // Date Range Picker
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: InkWell(
+                                    onTap: () async {
+                                      final date = await showDatePicker(
+                                        context: context,
+                                        initialDate: DateTime.now(),
+                                        firstDate: DateTime.now(),
+                                        lastDate: DateTime.now().add(Duration(days: 365)),
+                                      );
+                                      if (date != null) {
+                                        setState(() {
+                                          _leaveStartDate = date;
+                                        });
+                                      }
+                                    },
+                                    child: InputDecorator(
+                                      decoration: InputDecoration(
+                                        labelText: 'Start Date',
+                                        border: OutlineInputBorder(),
+                                        filled: true,
+                                        fillColor: Color(0xFFF8FAFC),
+                                      ),
+                                      child: Text(
+                                        _leaveStartDate != null 
+                                            ? DateFormat('MMM dd, yyyy').format(_leaveStartDate!)
+                                            : 'Select date',
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(width: 16),
+                                Expanded(
+                                  child: InkWell(
+                                    onTap: () async {
+                                      if (_leaveStartDate == null) {
+                                        _showSnackBar('Please select start date first');
+                                        return;
+                                      }
+                                      final date = await showDatePicker(
+                                        context: context,
+                                        initialDate: _leaveStartDate!.add(Duration(days: 1)),
+                                        firstDate: _leaveStartDate!,
+                                        lastDate: DateTime.now().add(Duration(days: 365)),
+                                      );
+                                      if (date != null) {
+                                        setState(() {
+                                          _leaveEndDate = date;
+                                        });
+                                      }
+                                    },
+                                    child: InputDecorator(
+                                      decoration: InputDecoration(
+                                        labelText: 'End Date',
+                                        border: OutlineInputBorder(),
+                                        filled: true,
+                                        fillColor: Color(0xFFF8FAFC),
+                                      ),
+                                      child: Text(
+                                        _leaveEndDate != null 
+                                            ? DateFormat('MMM dd, yyyy').format(_leaveEndDate!)
+                                            : 'Select date',
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: 16),
+                            
+                            // Reason Text Field
+                            TextField(
+                              controller: _leaveReasonController,
+                              maxLines: 3,
+                              decoration: InputDecoration(
+                                labelText: 'Reason',
+                                border: OutlineInputBorder(),
+                                filled: true,
+                                fillColor: Color(0xFFF8FAFC),
+                              ),
+                            ),
+                            SizedBox(height: 24),
+                            
+                            // Buttons
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context),
+                                  child: Text('Cancel'),
+                                ),
+                                SizedBox(width: 16),
+                                ElevatedButton(
+                                  onPressed: () {
+                                    if (selectedLeaveType == null) {
+                                      _showSnackBar('Please select leave type');
+                                      return;
+                                    }
+                                    if (_leaveStartDate == null || _leaveEndDate == null) {
+                                      _showSnackBar('Please select date range');
+                                      return;
+                                    }
+                                    if (_leaveReasonController.text.isEmpty) {
+                                      _showSnackBar('Please enter reason for leave');
+                                      return;
+                                    }
+                                    
+                                    // Add the new leave request
+                                    final newRequest = LeaveRequest(
+                                      id: '00${_leaveRequests.length + 1}',
+                                      type: selectedLeaveType!,
+                                      startDate: _leaveStartDate!,
+                                      endDate: _leaveEndDate!,
+                                      status: 'Pending',
+                                      reason: _leaveReasonController.text,
+                                    );
+                                    
+                                    setState(() {
+                                      _leaveRequests.insert(0, newRequest);
+                                      if (selectedLeaveType != 'Compensation') {
+                                        final days = _leaveEndDate!.difference(_leaveStartDate!).inDays + 1;
+                                        _availableLeaves -= days;
+                                      }
+                                    });
+                                    
+                                    // Reset form
+                                    _leaveStartDate = null;
+                                    _leaveEndDate = null;
+                                    _leaveReasonController.clear();
+                                    
+                                    Navigator.pop(context);
+                                    _showSnackBar('Leave request submitted successfully');
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Color(0xFF6f88e2),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    'Submit',
+                                    style: TextStyle(color: Colors.white),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             );
           },
@@ -1589,50 +1705,94 @@ Widget _buildTextField(TextEditingController controller, String label, IconData 
   }
 
   void _showAllLeaveRequests() {
-    showDialog(
+    showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (context) {
-        return Dialog(
-          backgroundColor: const Color.fromARGB(235, 255, 255, 255),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+        return Container(
+          height: MediaQuery.of(context).size.height * 0.7,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(20),
+              topRight: Radius.circular(20),
+            ),
           ),
-          child: Container(
-            padding: EdgeInsets.all(16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'All Leave Requests',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                  ),
+          child: Column(
+            children: [
+              Container(
+                width: 60,
+                height: 5,
+                margin: EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                SizedBox(height: 16),
-                SizedBox(
-                  height: MediaQuery.of(context).size.height * 0.6,
-                  width: double.infinity,
+              ),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'All Leave Requests',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF1E293B),
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.close),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+              ),
+              Divider(),
+              Expanded(
+                child: Scrollbar(
                   child: ListView.builder(
+                    padding: EdgeInsets.all(16),
                     itemCount: _leaveRequests.length,
                     itemBuilder: (context, index) {
                       return _buildLeaveRequestItem(_leaveRequests[index]);
                     },
                   ),
                 ),
-                SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text('Close',style: TextStyle(color: const Color.fromARGB(255, 64, 105, 219)),),
+              ),
+              Padding(
+                padding: EdgeInsets.all(16),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Color(0xFF6f88e2),
+                      padding: EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: Text(
+                      'Close',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         );
       },
     );
   }
-void _showSnackBar(String message) {
+
+  void _showSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
@@ -1654,7 +1814,6 @@ void _showSnackBar(String message) {
       ),
     );
   }
-
 }
 
 class LeaveRequest {

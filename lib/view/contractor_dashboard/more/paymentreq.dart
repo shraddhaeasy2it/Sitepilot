@@ -44,6 +44,15 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
     final screenHeight = MediaQuery.of(context).size.height;
     final isSmallScreen = screenWidth < 360;
     final isLargeScreen = screenWidth > 600;
+    
+    // Responsive sizing factors
+    final horizontalPadding = screenWidth * 0.04;
+    final verticalPadding = screenHeight * 0.02;
+    final fieldHeight = screenHeight * 0.06;
+    final iconSize = isSmallScreen ? 18.0 : 22.0;
+    final titleFontSize = isSmallScreen ? 14.0 : 16.0;
+    final contentFontSize = isSmallScreen ? 12.0 : 14.0;
+
     return Theme(
       data: Theme.of(context).copyWith(
         colorScheme: ColorScheme.light(
@@ -53,23 +62,23 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
       ),
       child: Scaffold(
         appBar: AppBar(
-          toolbarHeight: screenHeight * 0.1, // Responsive toolbar height
+          toolbarHeight: screenHeight * 0.08,
           title: RichText(
             text: TextSpan(
               children: [
-                const TextSpan(
+                TextSpan(
                   text: 'Payments - ',
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 20, // keep title size bigger
+                    fontSize: isSmallScreen ? 18 : 20,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
                 TextSpan(
                   text: widget.siteName,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: Colors.white,
-                    fontSize: 16, // smaller font size only for siteName
+                    fontSize: isSmallScreen ? 14 : 16,
                     fontWeight: FontWeight.w400,
                   ),
                 ),
@@ -100,14 +109,14 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
                   children: [
                     Icon(
                       Icons.payment,
-                      size: screenHeight * 0.08, // Responsive icon size
+                      size: screenHeight * 0.08,
                       color: Colors.grey.shade400,
                     ),
-                    SizedBox(height: screenHeight * 0.02),
+                    SizedBox(height: verticalPadding),
                     Text(
                       "No payment requests yet",
                       style: TextStyle(
-                        fontSize: isSmallScreen ? 16 : 18,
+                        fontSize: titleFontSize,
                         color: Colors.grey.shade600,
                       ),
                       textAlign: TextAlign.center,
@@ -117,41 +126,37 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
               )
             : ListView.builder(
                 itemCount: _requests.length,
-                padding: EdgeInsets.all(
-                  screenWidth * 0.04,
-                ), // Responsive padding
+                padding: EdgeInsets.all(horizontalPadding),
                 itemBuilder: (context, index) {
                   final req = _requests[index];
                   return Card(
                     elevation: 2,
-                    margin: EdgeInsets.only(bottom: screenHeight * 0.015),
+                    margin: EdgeInsets.only(bottom: verticalPadding),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: ListTile(
                       contentPadding: EdgeInsets.symmetric(
-                        horizontal: screenWidth * 0.04,
-                        vertical: screenHeight * 0.01,
+                        horizontal: horizontalPadding,
+                        vertical: verticalPadding * 0.5,
                       ),
                       leading: Container(
-                        padding: EdgeInsets.all(screenWidth * 0.03),
+                        padding: EdgeInsets.all(horizontalPadding * 0.5),
                         decoration: BoxDecoration(
-                          color: _getStatusColor(
-                            req['status'],
-                          ).withOpacity(0.2),
+                          color: _getStatusColor(req['status']).withOpacity(0.2),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Icon(
                           Icons.payment,
                           color: _getStatusColor(req['status']),
-                          size: isSmallScreen ? 20 : 24,
+                          size: iconSize,
                         ),
                       ),
                       title: Text(
                         '₹${req['amount'].toStringAsFixed(2)} - ${req['category']}',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          fontSize: isSmallScreen ? 14 : 16,
+                          fontSize: titleFontSize,
                         ),
                       ),
                       subtitle: Column(
@@ -159,15 +164,15 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
                         children: [
                           Text(
                             req['description'],
-                            style: TextStyle(fontSize: isSmallScreen ? 12 : 14),
+                            style: TextStyle(fontSize: contentFontSize),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
-                          SizedBox(height: screenHeight * 0.005),
+                          SizedBox(height: verticalPadding * 0.25),
                           Text(
                             'Date: ${req['date']}',
                             style: TextStyle(
-                              fontSize: isSmallScreen ? 10 : 12,
+                              fontSize: contentFontSize * 0.85,
                               color: Colors.grey.shade600,
                             ),
                           ),
@@ -180,7 +185,7 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
                           if (req['document'] != null)
                             Icon(
                               Icons.attachment,
-                              size: isSmallScreen ? 16 : 18,
+                              size: iconSize * 0.8,
                             ),
                         ],
                       ),
@@ -216,11 +221,11 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
   }
 
   Widget _buildStatusTag(String status, bool isSmallScreen) {
+    final fontSize = isSmallScreen ? 10.0 : 12.0;
+    final padding = isSmallScreen ? 4.0 : 6.0;
+    
     return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: isSmallScreen ? 6 : 8,
-        vertical: isSmallScreen ? 2 : 4,
-      ),
+      padding: EdgeInsets.symmetric(horizontal: padding * 1.5, vertical: padding),
       decoration: BoxDecoration(
         color: _getStatusColor(status).withOpacity(0.2),
         borderRadius: BorderRadius.circular(12),
@@ -229,7 +234,7 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
         status,
         style: TextStyle(
           color: _getStatusColor(status),
-          fontSize: isSmallScreen ? 10 : 12,
+          fontSize: fontSize,
           fontWeight: FontWeight.bold,
         ),
       ),
@@ -241,6 +246,7 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
       _selectedFile = null;
       _showUploadError = false;
     });
+    
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -251,6 +257,19 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
         final screenWidth = MediaQuery.of(context).size.width;
         final screenHeight = MediaQuery.of(context).size.height;
         final isSmallScreen = screenWidth < 360;
+        final isLargeScreen = screenWidth > 600;
+        
+        // Responsive sizing for bottom sheet
+        final horizontalPadding = screenWidth * 0.04;
+        final verticalPadding = screenHeight * 0.015;
+        final fieldHeight = screenHeight * 0.055;
+        final iconSize = isSmallScreen ? 18.0 : 20.0;
+        final titleFontSize = isSmallScreen ? 14.0 : 16.0;
+        final contentFontSize = isSmallScreen ? 12.0 : 14.0;
+        
+        // Calculate bottom sheet height (max 70% of screen height)
+        final bottomSheetHeight = screenHeight * 0.65;
+        
         return StatefulBuilder(
           builder: (context, setModalState) => Container(
             decoration: const BoxDecoration(
@@ -259,27 +278,25 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
             ),
             padding: EdgeInsets.only(
               bottom: MediaQuery.of(context).viewInsets.bottom,
-              top: 0,
-              left: 0,
-              right: 0,
             ),
-            height: screenHeight * 0.5, // Set to half screen height
+            height: bottomSheetHeight,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Header with gradient
+                // Compact Header
                 Container(
                   width: double.infinity,
-                  padding: EdgeInsets.all(screenWidth * 0.06),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: horizontalPadding,
+                    vertical: verticalPadding,
+                  ),
                   decoration: const BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                       colors: [Color(0xFF6f88e2), Color(0xFF5a73d1)],
                     ),
-                    borderRadius: BorderRadius.vertical(
-                      top: Radius.circular(24),
-                    ),
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
                   ),
                   child: Column(
                     children: [
@@ -292,28 +309,28 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
                           borderRadius: BorderRadius.circular(2),
                         ),
                       ),
-                      SizedBox(height: screenHeight * 0.02),
+                      SizedBox(height: verticalPadding * 0.5),
                       Row(
                         children: [
                           Container(
-                            padding: EdgeInsets.all(screenWidth * 0.03),
+                            padding: EdgeInsets.all(horizontalPadding * 0.5),
                             decoration: BoxDecoration(
                               color: Colors.white.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(10),
                             ),
                             child: Icon(
                               Icons.payment,
                               color: Colors.white,
-                              size: isSmallScreen ? 20 : 24,
+                              size: iconSize,
                             ),
                           ),
-                          SizedBox(width: screenWidth * 0.04),
+                          SizedBox(width: horizontalPadding * 0.75),
                           Expanded(
                             child: Text(
                               'New Payment Request',
                               style: TextStyle(
                                 color: Colors.white,
-                                fontSize: isSmallScreen ? 18 : 22,
+                                fontSize: titleFontSize,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -323,7 +340,7 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
                             icon: Icon(
                               Icons.close,
                               color: Colors.white,
-                              size: isSmallScreen ? 20 : 24,
+                              size: iconSize,
                             ),
                           ),
                         ],
@@ -331,22 +348,19 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
                     ],
                   ),
                 ),
-                // Form content
+                
+                // Form content with consistent sizing
                 Expanded(
                   child: SingleChildScrollView(
-                    padding: EdgeInsets.all(screenWidth * 0.06),
+                    padding: EdgeInsets.all(horizontalPadding),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // Category Selection
-                        _buildSectionTitle('Category', isSmallScreen),
-                        SizedBox(height: screenHeight * 0.012),
-                        Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.grey.shade300),
-                            color: Colors.grey.shade50,
-                          ),
+                        _buildSectionTitle('Category', titleFontSize),
+                        SizedBox(height: verticalPadding * 0.5),
+                        _buildFormField(
+                          height: fieldHeight,
                           child: DropdownButtonFormField<String>(
                             value: _selectedCategory,
                             items: _categories.map((cat) {
@@ -356,14 +370,14 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
                                   children: [
                                     Icon(
                                       _getCategoryIcon(cat),
-                                      size: isSmallScreen ? 18 : 20,
+                                      size: iconSize * 0.9,
                                       color: const Color(0xFF6f88e2),
                                     ),
-                                    SizedBox(width: screenWidth * 0.03),
+                                    SizedBox(width: horizontalPadding * 0.75),
                                     Text(
                                       cat,
                                       style: TextStyle(
-                                        fontSize: isSmallScreen ? 14 : 16,
+                                        fontSize: contentFontSize,
                                       ),
                                     ),
                                   ],
@@ -372,10 +386,7 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
                             }).toList(),
                             decoration: InputDecoration(
                               border: InputBorder.none,
-                              contentPadding: EdgeInsets.symmetric(
-                                horizontal: screenWidth * 0.04,
-                                vertical: screenHeight * 0.02,
-                              ),
+                              contentPadding: EdgeInsets.zero,
                             ),
                             onChanged: (val) {
                               if (val != null) {
@@ -384,82 +395,73 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
                             },
                           ),
                         ),
-                        SizedBox(height: screenHeight * 0.024),
-                        // Amount
-                        _buildSectionTitle('Amount', isSmallScreen),
-                        SizedBox(height: screenHeight * 0.012),
-                        Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.grey.shade300),
-                            color: Colors.grey.shade50,
-                          ),
+                        
+                        SizedBox(height: verticalPadding),
+                        
+                        // Amount Field
+                        _buildSectionTitle('Amount', titleFontSize),
+                        SizedBox(height: verticalPadding * 0.5),
+                        _buildFormField(
+                          height: fieldHeight,
                           child: TextField(
                             controller: _amountController,
                             keyboardType: TextInputType.number,
                             decoration: InputDecoration(
-                              prefixIcon: Icon(
-                                Icons.currency_rupee,
-                                color: const Color(0xFF6f88e2),
-                                size: isSmallScreen ? 20 : 24,
-                              ),
-                              hintText: 'Enter amount',
                               border: InputBorder.none,
-                              contentPadding: EdgeInsets.symmetric(
-                                horizontal: screenWidth * 0.04,
-                                vertical: screenHeight * 0.02,
+                              hintText: 'Enter amount',
+                              hintStyle: TextStyle(
+                                color: Colors.grey.shade500,
+                                fontSize: contentFontSize,
                               ),
                             ),
                           ),
                         ),
-                        SizedBox(height: screenHeight * 0.024),
-                        // Description
-                        _buildSectionTitle('Description', isSmallScreen),
-                        SizedBox(height: screenHeight * 0.012),
-                        Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.grey.shade300),
-                            color: Colors.grey.shade50,
-                          ),
+                        
+                        SizedBox(height: verticalPadding),
+                        
+                        // Description Field
+                        _buildSectionTitle('Description', titleFontSize),
+                        SizedBox(height: verticalPadding * 0.5),
+                        _buildFormField(
+                          height: fieldHeight * 1.5,
                           child: TextField(
                             controller: _descriptionController,
-                            maxLines: 3,
+                            maxLines: 2,
                             decoration: InputDecoration(
-                              prefixIcon: Padding(
-                                padding: EdgeInsets.only(bottom: 40),
-                                child: Icon(
-                                  Icons.description,
-                                  color: const Color(0xFF6f88e2),
-                                  size: isSmallScreen ? 20 : 24,
-                                ),
-                              ),
-                              hintText: 'Enter description...',
                               border: InputBorder.none,
-                              contentPadding: EdgeInsets.symmetric(
-                                horizontal: screenWidth * 0.04,
-                                vertical: screenHeight * 0.02,
+                              hintText: 'Enter description...',
+                              hintStyle: TextStyle(
+                                color: Colors.grey.shade500,
+                                fontSize: contentFontSize,
                               ),
                             ),
                           ),
                         ),
-                        SizedBox(height: screenHeight * 0.024),
+                        
+                        SizedBox(height: verticalPadding),
+                        
                         // Document Upload
                         _buildSectionTitle(
                           'Invoice/Payment Proof',
-                          isSmallScreen,
+                          titleFontSize,
                           isRequired: true,
                         ),
-                        SizedBox(height: screenHeight * 0.012),
+                        SizedBox(height: verticalPadding * 0.5),
                         _buildEnhancedDocumentUploadField(
                           setModalState,
                           isSmallScreen,
+                          horizontalPadding,
+                          verticalPadding,
+                          iconSize,
+                          contentFontSize,
                         ),
-                        SizedBox(height: screenHeight * 0.032),
+                        
+                        SizedBox(height: verticalPadding * 1.5),
+                        
                         // Submit Button
                         Container(
                           width: double.infinity,
-                          height: screenHeight * 0.065,
+                          height: fieldHeight,
                           decoration: BoxDecoration(
                             gradient: const LinearGradient(
                               begin: Alignment.topLeft,
@@ -488,14 +490,14 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
                                     Icon(
                                       Icons.send,
                                       color: Colors.white,
-                                      size: isSmallScreen ? 20 : 24,
+                                      size: iconSize,
                                     ),
-                                    SizedBox(width: screenWidth * 0.03),
+                                    SizedBox(width: horizontalPadding * 0.75),
                                     Text(
                                       'Submit Request',
                                       style: TextStyle(
                                         color: Colors.white,
-                                        fontSize: isSmallScreen ? 14 : 16,
+                                        fontSize: titleFontSize,
                                         fontWeight: FontWeight.w600,
                                       ),
                                     ),
@@ -505,7 +507,8 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
                             ),
                           ),
                         ),
-                        SizedBox(height: screenHeight * 0.016),
+                        
+                        SizedBox(height: verticalPadding),
                       ],
                     ),
                   ),
@@ -515,6 +518,20 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
           ),
         );
       },
+    );
+  }
+
+  // Helper widget for consistent form fields
+  Widget _buildFormField({required Widget child, double? height}) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade300),
+        color: Colors.grey.shade50,
+      ),
+      height: height,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: child,
     );
   }
 
@@ -535,7 +552,7 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
 
   Widget _buildSectionTitle(
     String title,
-    bool isSmallScreen, {
+    double fontSize, {
     bool isRequired = false,
   }) {
     return Row(
@@ -543,7 +560,7 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
         Text(
           title,
           style: TextStyle(
-            fontSize: isSmallScreen ? 14 : 16,
+            fontSize: fontSize,
             fontWeight: FontWeight.w600,
             color: const Color(0xFF2d3748),
           ),
@@ -564,8 +581,11 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
   Widget _buildEnhancedDocumentUploadField(
     StateSetter setModalState,
     bool isSmallScreen,
+    double horizontalPadding,
+    double verticalPadding,
+    double iconSize,
+    double contentFontSize,
   ) {
-    final screenWidth = MediaQuery.of(context).size.width;
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
@@ -587,29 +607,29 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
             setModalState(() {});
           },
           child: Padding(
-            padding: EdgeInsets.all(screenWidth * 0.05),
+            padding: EdgeInsets.all(horizontalPadding),
             child: Column(
               children: [
                 if (_selectedFile == null) ...[
                   Container(
-                    padding: EdgeInsets.all(screenWidth * 0.04),
+                    padding: EdgeInsets.all(horizontalPadding * 0.75),
                     decoration: BoxDecoration(
                       color: const Color(0xFF6f88e2).withOpacity(0.1),
                       borderRadius: BorderRadius.circular(50),
                     ),
                     child: Icon(
                       Icons.cloud_upload_outlined,
-                      size: isSmallScreen ? 28 : 32,
+                      size: iconSize * 1.3,
                       color: _showUploadError
                           ? Colors.red
                           : const Color(0xFF6f88e2),
                     ),
                   ),
-                  SizedBox(height: screenWidth * 0.04),
+                  SizedBox(height: verticalPadding),
                   Text(
                     'Upload Document',
                     style: TextStyle(
-                      fontSize: isSmallScreen ? 14 : 16,
+                      fontSize: contentFontSize,
                       fontWeight: FontWeight.w600,
                       color: _showUploadError
                           ? Colors.red
@@ -617,11 +637,11 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
                     ),
                     textAlign: TextAlign.center,
                   ),
-                  SizedBox(height: screenWidth * 0.02),
+                  SizedBox(height: verticalPadding * 0.5),
                   Text(
                     'PDF or Image (JPG, PNG)',
                     style: TextStyle(
-                      fontSize: isSmallScreen ? 12 : 14,
+                      fontSize: contentFontSize * 0.85,
                       color: Colors.grey.shade600,
                     ),
                     textAlign: TextAlign.center,
@@ -630,7 +650,7 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
                   Row(
                     children: [
                       Container(
-                        padding: EdgeInsets.all(screenWidth * 0.03),
+                        padding: EdgeInsets.all(horizontalPadding * 0.5),
                         decoration: BoxDecoration(
                           color: const Color(0xFF6f88e2).withOpacity(0.1),
                           borderRadius: BorderRadius.circular(8),
@@ -638,10 +658,10 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
                         child: Icon(
                           Icons.insert_drive_file,
                           color: const Color(0xFF6f88e2),
-                          size: isSmallScreen ? 20 : 24,
+                          size: iconSize * 0.9,
                         ),
                       ),
-                      SizedBox(width: screenWidth * 0.04),
+                      SizedBox(width: horizontalPadding * 0.75),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -651,15 +671,15 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
                               style: TextStyle(
                                 fontWeight: FontWeight.w600,
                                 color: const Color(0xFF2d3748),
-                                fontSize: isSmallScreen ? 12 : 14,
+                                fontSize: contentFontSize * 0.9,
                               ),
                               overflow: TextOverflow.ellipsis,
                             ),
-                            SizedBox(height: screenWidth * 0.01),
+                            SizedBox(height: verticalPadding * 0.5),
                             Text(
                               'Tap to change file',
                               style: TextStyle(
-                                fontSize: isSmallScreen ? 10 : 12,
+                                fontSize: contentFontSize * 0.8,
                                 color: Colors.grey.shade600,
                               ),
                             ),
@@ -676,14 +696,14 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
                         icon: Icon(
                           Icons.close,
                           color: Colors.grey.shade600,
-                          size: isSmallScreen ? 18 : 24,
+                          size: iconSize * 0.8,
                         ),
                       ),
                     ],
                   ),
                 ],
                 if (_isUploading) ...[
-                  SizedBox(height: screenWidth * 0.04),
+                  SizedBox(height: verticalPadding),
                   const LinearProgressIndicator(
                     backgroundColor: Colors.grey,
                     valueColor: AlwaysStoppedAnimation<Color>(
@@ -784,22 +804,21 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
     double screenWidth,
   ) {
     final isSmallScreen = screenWidth < 360;
+    final fontSize = isSmallScreen ? 14.0 : 16.0;
+    final padding = screenWidth * 0.03;
+    
     showDialog(
       context: context,
       builder: (_) => StatefulBuilder(
         builder: (context, setState) {
           return Dialog(
-            insetPadding: EdgeInsets.all(
-              screenWidth * 0.05,
-            ), // Responsive margin
+            insetPadding: EdgeInsets.all(screenWidth * 0.05),
             child: Container(
-              constraints: BoxConstraints(
-                maxWidth: 500, // Limit maximum width on large screens
-              ),
+              constraints: BoxConstraints(maxWidth: 500),
               child: AlertDialog(
                 title: Text(
                   'Payment Request - ₹${req['amount'].toStringAsFixed(2)}',
-                  style: TextStyle(fontSize: isSmallScreen ? 18 : 20),
+                  style: TextStyle(fontSize: fontSize),
                 ),
                 content: SingleChildScrollView(
                   child: Column(
@@ -808,37 +827,36 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
                     children: [
                       Text(
                         'Category: ${req['category']}',
-                        style: TextStyle(fontSize: isSmallScreen ? 14 : 16),
+                        style: TextStyle(fontSize: fontSize),
                       ),
-                      SizedBox(height: screenWidth * 0.03),
+                      SizedBox(height: padding),
                       Text(
                         'Description: ${req['description']}',
-                        style: TextStyle(fontSize: isSmallScreen ? 14 : 16),
+                        style: TextStyle(fontSize: fontSize),
                       ),
-                      SizedBox(height: screenWidth * 0.03),
+                      SizedBox(height: padding),
                       Text(
                         'Date: ${req['date']}',
-                        style: TextStyle(fontSize: isSmallScreen ? 14 : 16),
+                        style: TextStyle(fontSize: fontSize),
                       ),
-                      SizedBox(height: screenWidth * 0.03),
+                      SizedBox(height: padding),
                       Row(
                         children: [
                           Text(
                             'Status: ',
-                            style: TextStyle(fontSize: isSmallScreen ? 14 : 16),
+                            style: TextStyle(fontSize: fontSize),
                           ),
                           _buildStatusTag(req['status'], isSmallScreen),
                         ],
                       ),
                       if (req['document'] != null) ...[
-                        SizedBox(height: screenWidth * 0.03),
+                        SizedBox(height: padding),
                         InkWell(
                           onTap: () {
                             if (req['file'] != null) {
                               showDialog(
                                 context: context,
-                                builder: (_) =>
-                                    Dialog(child: Image.file(req['file'])),
+                                builder: (_) => Dialog(child: Image.file(req['file'])),
                               );
                             } else {
                               ScaffoldMessenger.of(context).showSnackBar(
@@ -852,16 +870,16 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
                             children: [
                               Icon(
                                 Icons.attachment,
-                                size: isSmallScreen ? 14 : 16,
+                                size: fontSize * 0.9,
                               ),
-                              SizedBox(width: screenWidth * 0.02),
+                              SizedBox(width: padding * 0.7),
                               Expanded(
                                 child: Text(
                                   req['document'],
                                   style: TextStyle(
                                     color: const Color(0xFF6f88e2),
                                     decoration: TextDecoration.underline,
-                                    fontSize: isSmallScreen ? 12 : 14,
+                                    fontSize: fontSize * 0.85,
                                   ),
                                   overflow: TextOverflow.ellipsis,
                                 ),
@@ -871,10 +889,10 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
                         ),
                       ],
                       if (req['utr'] != null) ...[
-                        SizedBox(height: screenWidth * 0.03),
+                        SizedBox(height: padding),
                         Text(
                           'UTR: ${req['utr']}',
-                          style: TextStyle(fontSize: isSmallScreen ? 14 : 16),
+                          style: TextStyle(fontSize: fontSize),
                         ),
                       ],
                     ],
@@ -885,7 +903,7 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
                     onPressed: () => Navigator.pop(context),
                     child: Text(
                       'Close',
-                      style: TextStyle(fontSize: isSmallScreen ? 14 : 16),
+                      style: TextStyle(fontSize: fontSize),
                     ),
                   ),
                   if (req['status'] == 'Pending') ...[
@@ -906,7 +924,7 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
                         'Reject',
                         style: TextStyle(
                           color: Colors.red,
-                          fontSize: isSmallScreen ? 14 : 16,
+                          fontSize: fontSize,
                         ),
                       ),
                     ),
@@ -914,8 +932,8 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF6f88e2),
                         padding: EdgeInsets.symmetric(
-                          horizontal: isSmallScreen ? 12 : 16,
-                          vertical: isSmallScreen ? 8 : 12,
+                          horizontal: padding,
+                          vertical: padding * 0.8,
                         ),
                       ),
                       onPressed: () {
@@ -934,7 +952,7 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
                         'Approve',
                         style: TextStyle(
                           color: Colors.white,
-                          fontSize: isSmallScreen ? 14 : 16,
+                          fontSize: fontSize,
                         ),
                       ),
                     ),
@@ -944,8 +962,8 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF6f88e2),
                         padding: EdgeInsets.symmetric(
-                          horizontal: isSmallScreen ? 12 : 16,
-                          vertical: isSmallScreen ? 8 : 12,
+                          horizontal: padding,
+                          vertical: padding * 0.8,
                         ),
                       ),
                       onPressed: () {
@@ -956,7 +974,7 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
                         'Mark as Paid',
                         style: TextStyle(
                           color: Colors.white,
-                          fontSize: isSmallScreen ? 12 : 14,
+                          fontSize: fontSize * 0.9,
                         ),
                       ),
                     ),
@@ -976,6 +994,9 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
     double screenWidth,
   ) {
     final isSmallScreen = screenWidth < 360;
+    final fontSize = isSmallScreen ? 14.0 : 16.0;
+    final padding = screenWidth * 0.03;
+    
     showDialog(
       context: context,
       builder: (_) => StatefulBuilder(
@@ -987,7 +1008,7 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
               child: AlertDialog(
                 title: Text(
                   'Payment Confirmation',
-                  style: TextStyle(fontSize: isSmallScreen ? 18 : 20),
+                  style: TextStyle(fontSize: fontSize),
                 ),
                 content: SingleChildScrollView(
                   child: Column(
@@ -999,26 +1020,26 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
                           labelText: 'UTR/Reference Number *',
                           border: const OutlineInputBorder(),
                           labelStyle: TextStyle(
-                            fontSize: isSmallScreen ? 14 : 16,
+                            fontSize: fontSize,
                           ),
                         ),
-                        style: TextStyle(fontSize: isSmallScreen ? 14 : 16),
+                        style: TextStyle(fontSize: fontSize),
                       ),
-                      SizedBox(height: screenWidth * 0.04),
+                      SizedBox(height: padding),
                       Text(
-                        'Upload Payment Receipt one more time',
+                        'Upload Payment Receipt',
                         style: TextStyle(
                           fontWeight: FontWeight.w500,
-                          fontSize: isSmallScreen ? 14 : 16,
+                          fontSize: fontSize,
                         ),
                         textAlign: TextAlign.center,
                       ),
-                      SizedBox(height: screenWidth * 0.03),
+                      SizedBox(height: padding * 0.8),
                       InkWell(
                         onTap: _pickDocument,
                         child: Container(
                           width: double.infinity,
-                          padding: EdgeInsets.all(screenWidth * 0.04),
+                          padding: EdgeInsets.all(padding),
                           decoration: BoxDecoration(
                             border: Border.all(color: Colors.grey, width: 1),
                             borderRadius: BorderRadius.circular(8),
@@ -1028,16 +1049,16 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
                               Icon(
                                 Icons.upload_file,
                                 color: const Color(0xFF6f88e2),
-                                size: isSmallScreen ? 20 : 24,
+                                size: fontSize * 1.2,
                               ),
-                              SizedBox(width: screenWidth * 0.04),
+                              SizedBox(width: padding),
                               Expanded(
                                 child: Text(
                                   _selectedFile?.path.split('/').last ??
                                       'Tap to upload receipt (PDF/Image)',
                                   style: TextStyle(
                                     color: Colors.grey.shade600,
-                                    fontSize: isSmallScreen ? 12 : 14,
+                                    fontSize: fontSize * 0.85,
                                   ),
                                   overflow: TextOverflow.ellipsis,
                                 ),
@@ -1046,7 +1067,7 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
                                 IconButton(
                                   icon: Icon(
                                     Icons.close,
-                                    size: isSmallScreen ? 16 : 18,
+                                    size: fontSize * 0.9,
                                   ),
                                   onPressed: () {
                                     setState(() {
@@ -1066,15 +1087,15 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
                     onPressed: () => Navigator.pop(context),
                     child: Text(
                       'Cancel',
-                      style: TextStyle(fontSize: isSmallScreen ? 14 : 16),
+                      style: TextStyle(fontSize: fontSize),
                     ),
                   ),
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF6f88e2),
                       padding: EdgeInsets.symmetric(
-                        horizontal: isSmallScreen ? 12 : 16,
-                        vertical: isSmallScreen ? 8 : 12,
+                        horizontal: padding,
+                        vertical: padding * 0.8,
                       ),
                     ),
                     onPressed: () {
@@ -1091,9 +1112,8 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
                         _requests[index]['utr'] = _utrController.text;
                         _requests[index]['status'] = 'Paid';
                         if (_selectedFile != null) {
-                          _requests[index]['document'] = _selectedFile!.path
-                              .split('/')
-                              .last;
+                          _requests[index]['document'] =
+                              _selectedFile!.path.split('/').last;
                           _requests[index]['file'] = _selectedFile;
                         }
                       });
@@ -1111,7 +1131,7 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
                       'Confirm Payment',
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: isSmallScreen ? 11 : 12,
+                        fontSize: fontSize * 0.85,
                       ),
                     ),
                   ),

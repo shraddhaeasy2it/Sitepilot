@@ -1,12 +1,12 @@
+import 'dart:ui';
 import 'package:ecoteam_app/models/dashboard/site_model.dart';
 import 'package:flutter/material.dart';
 
-class WorkerEditScreen extends StatefulWidget {
+class WorkerEditForm extends StatefulWidget {
   final Map<String, dynamic> worker;
   final List<Site> sites;
   final Function(Map<String, dynamic>) onWorkerUpdated;
-
-  const WorkerEditScreen({
+  const WorkerEditForm({
     super.key,
     required this.worker,
     required this.sites,
@@ -14,10 +14,10 @@ class WorkerEditScreen extends StatefulWidget {
   });
 
   @override
-  State<WorkerEditScreen> createState() => _WorkerEditScreenState();
+  State<WorkerEditForm> createState() => _WorkerEditFormState();
 }
 
-class _WorkerEditScreenState extends State<WorkerEditScreen> {
+class _WorkerEditFormState extends State<WorkerEditForm> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _nameController;
   late TextEditingController _roleController;
@@ -25,7 +25,6 @@ class _WorkerEditScreenState extends State<WorkerEditScreen> {
   late TextEditingController _emailController;
   late String _selectedSiteId;
   late String _selectedStatus;
-
   final List<String> _roles = [
     'Welder',
     'Supervisor',
@@ -38,7 +37,6 @@ class _WorkerEditScreenState extends State<WorkerEditScreen> {
     'Foreman',
     'Engineer',
   ];
-
   final List<String> _statuses = ['Present', 'Absent', 'Late', 'On Leave'];
 
   @override
@@ -74,19 +72,16 @@ class _WorkerEditScreenState extends State<WorkerEditScreen> {
           .name;
       updatedWorker['status'] = _selectedStatus;
       updatedWorker['avatar'] = _generateAvatar(_nameController.text.trim());
-
       widget.onWorkerUpdated(updatedWorker);
-      Navigator.pop(context);
-
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             'Worker ${updatedWorker['name']} updated successfully!',
           ),
-          backgroundColor: Colors.green,
+          backgroundColor: Colors.green.shade600,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(8),
           ),
         ),
       );
@@ -104,55 +99,42 @@ class _WorkerEditScreenState extends State<WorkerEditScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        toolbarHeight: 90,
-        title: Text('Edit Worker - ${widget.worker['name']}',style: TextStyle(
+    return Container(
+      decoration: const BoxDecoration(
         color: Colors.white,
-        fontWeight: FontWeight.w600,
-        fontSize: 25,
-      ),),
-        centerTitle: true,
-        elevation: 0,
-        backgroundColor: Colors.transparent,
-        flexibleSpace: ClipRRect(
-          borderRadius: const BorderRadius.vertical(
-            bottom: Radius.circular(25),
-          ),
-          child: Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Color(0xFF6f88e2),
-                  Color(0xFF5a73d1),
-                  Color(0xFF4a63c0),
-                ],
-              ),
-            ),
-          ),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.save, size: 26, color: Colors.white),
-            onPressed: _saveWorker,
-            tooltip: 'Save Changes',
-          ),
-        ],
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
         child: Form(
           key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    widget.worker['id'] == '' ? 'Add New Worker' : 'Edit Worker',
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF1A1A1A),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, size: 20),
+                    onPressed: () => Navigator.pop(context),
+                    splashRadius: 20,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
               _buildProfileSection(),
-              const SizedBox(height: 24),
+              const SizedBox(height: 32),
               _buildPersonalInfoSection(),
-              const SizedBox(height: 24),
+              const SizedBox(height: 32),
               _buildWorkInfoSection(),
               const SizedBox(height: 32),
               _buildSaveButton(),
@@ -164,384 +146,401 @@ class _WorkerEditScreenState extends State<WorkerEditScreen> {
   }
 
   Widget _buildProfileSection() {
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8F9FA),
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: Colors.grey.shade200, width: 1),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Container(
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
+      child: Row(
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: _getStatusColor(_selectedStatus),
+                width: 2,
+              ),
+            ),
+            child: CircleAvatar(
+              radius: 32,
+              backgroundColor: _getStatusColor(_selectedStatus).withOpacity(0.1),
+              child: Text(
+                _generateAvatar(_nameController.text),
+                style: TextStyle(
                   color: _getStatusColor(_selectedStatus),
-                  width: 3,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
-              child: CircleAvatar(
-                radius: 36,
-                backgroundColor: _getStatusColor(
-                  _selectedStatus,
-                ).withOpacity(0.2),
-                child: Text(
-                  widget.worker['avatar'],
+            ),
+          ),
+          const SizedBox(width: 20),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _nameController.text,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF1A1A1A),
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  _roleController.text,
                   style: TextStyle(
-                    color: _getStatusColor(_selectedStatus),
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                    color: Colors.grey.shade600,
                   ),
                 ),
-              ),
+                const SizedBox(height: 10),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: _getStatusColor(_selectedStatus).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    _selectedStatus,
+                    style: TextStyle(
+                      color: _getStatusColor(_selectedStatus),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
             ),
-            SizedBox(width: 20),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    widget.worker['name'],
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    widget.worker['role'],
-                    style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
-                  ),
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: _getStatusColor(_selectedStatus).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      _selectedStatus,
-                      style: TextStyle(
-                        color: _getStatusColor(_selectedStatus),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildPersonalInfoSection() {
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: Colors.grey.shade200, width: 1),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
           children: [
-            Row(
-              children: [
-                Icon(Icons.person_outline, color: Colors.blue.shade800),
-                const SizedBox(width: 8),
-                Text(
-                  'Personal Information',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.blue.shade800,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _nameController,
-              decoration: InputDecoration(
-                labelText: 'Full Name',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
-                ),
-                prefixIcon: Icon(Icons.person, color: Colors.grey.shade600),
-                contentPadding: const EdgeInsets.symmetric(
-                  vertical: 16,
-                  horizontal: 16,
-                ),
+            Icon(Icons.person_outline, 
+              size: 20, 
+              color: Colors.blue.shade700),
+            const SizedBox(width: 10),
+            Text(
+              'Personal Information',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.blue.shade700,
               ),
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'Please enter worker name';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _phoneController,
-              decoration: InputDecoration(
-                labelText: 'Phone Number',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
-                ),
-                prefixIcon: Icon(Icons.phone, color: Colors.grey.shade600),
-                contentPadding: const EdgeInsets.symmetric(
-                  vertical: 16,
-                  horizontal: 16,
-                ),
-              ),
-              keyboardType: TextInputType.phone,
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'Please enter phone number';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _emailController,
-              decoration: InputDecoration(
-                labelText: 'Email Address',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
-                ),
-                prefixIcon: Icon(Icons.email, color: Colors.grey.shade600),
-                contentPadding: const EdgeInsets.symmetric(
-                  vertical: 16,
-                  horizontal: 16,
-                ),
-              ),
-              keyboardType: TextInputType.emailAddress,
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'Please enter email address';
-                }
-                if (!RegExp(
-                  r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
-                ).hasMatch(value)) {
-                  return 'Please enter a valid email address';
-                }
-                return null;
-              },
             ),
           ],
         ),
-      ),
+        const SizedBox(height: 20),
+        TextFormField(
+          controller: _nameController,
+          decoration: InputDecoration(
+            labelText: 'Full Name',
+            labelStyle: TextStyle(
+              color: Colors.grey.shade600,
+              fontSize: 14,
+            ),
+            enabledBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: Colors.grey.shade300, width: 1),
+            ),
+            focusedBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: Colors.blue.shade400, width: 2),
+            ),
+            prefixIcon: Icon(Icons.person, 
+              size: 20, 
+              color: Colors.grey.shade500),
+            contentPadding: const EdgeInsets.symmetric(
+              vertical: 16,
+              horizontal: 12,
+            ),
+          ),
+          validator: (value) {
+            if (value == null || value.trim().isEmpty) {
+              return 'Please enter worker name';
+            }
+            return null;
+          },
+          onChanged: (value) {
+            setState(() {});
+          },
+        ),
+        const SizedBox(height: 20),
+        TextFormField(
+          controller: _phoneController,
+          decoration: InputDecoration(
+            labelText: 'Phone Number',
+            labelStyle: TextStyle(
+              color: Colors.grey.shade600,
+              fontSize: 14,
+            ),
+            enabledBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: Colors.grey.shade300, width: 1),
+            ),
+            focusedBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: Colors.blue.shade400, width: 2),
+            ),
+            prefixIcon: Icon(Icons.phone, 
+              size: 20, 
+              color: Colors.grey.shade500),
+            contentPadding: const EdgeInsets.symmetric(
+              vertical: 16,
+              horizontal: 12,
+            ),
+          ),
+          keyboardType: TextInputType.phone,
+          validator: (value) {
+            if (value == null || value.trim().isEmpty) {
+              return 'Please enter phone number';
+            }
+            return null;
+          },
+        ),
+        const SizedBox(height: 20),
+        TextFormField(
+          controller: _emailController,
+          decoration: InputDecoration(
+            labelText: 'Email Address',
+            labelStyle: TextStyle(
+              color: Colors.grey.shade600,
+              fontSize: 14,
+            ),
+            enabledBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: Colors.grey.shade300, width: 1),
+            ),
+            focusedBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: Colors.blue.shade400, width: 2),
+            ),
+            prefixIcon: Icon(Icons.email, 
+              size: 20, 
+              color: Colors.grey.shade500),
+            contentPadding: const EdgeInsets.symmetric(
+              vertical: 16,
+              horizontal: 12,
+            ),
+          ),
+          keyboardType: TextInputType.emailAddress,
+          validator: (value) {
+            if (value == null || value.trim().isEmpty) {
+              return 'Please enter email address';
+            }
+            if (!RegExp(
+              r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+            ).hasMatch(value)) {
+              return 'Please enter a valid email address';
+            }
+            return null;
+          },
+        ),
+      ],
     );
   }
 
   Widget _buildWorkInfoSection() {
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: Colors.grey.shade200, width: 1),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
           children: [
-            Row(
-              children: [
-                Icon(Icons.work_outline, color: Colors.blue.shade800),
-                const SizedBox(width: 8),
-                Text(
-                  'Work Information',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.blue.shade800,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            DropdownButtonFormField<String>(
-              value: _roleController.text,
-              decoration: InputDecoration(
-                labelText: 'Role',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
-                ),
-                prefixIcon: Icon(Icons.work, color: Colors.grey.shade600),
-                contentPadding: const EdgeInsets.symmetric(
-                  vertical: 4,
-                  horizontal: 8,
-                ),
+            Icon(Icons.work_outline, 
+              size: 20, 
+              color: Colors.blue.shade700),
+            const SizedBox(width: 10),
+            Text(
+              'Work Information',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.blue.shade700,
               ),
-              dropdownColor: Colors.white,
-              icon: Icon(Icons.arrow_drop_down, color: Colors.grey.shade600),
-              borderRadius: BorderRadius.circular(12),
-              items: _roles.map((role) {
-                return DropdownMenuItem<String>(value: role, child: Text(role));
-              }).toList(),
-              onChanged: (String? newValue) {
-                if (newValue != null) {
-                  setState(() {
-                    _roleController.text = newValue;
-                  });
-                }
-              },
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Please select a role';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-            DropdownButtonFormField<String>(
-              value: _selectedSiteId,
-              decoration: InputDecoration(
-                labelText: 'Assigned Site',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
-                ),
-                prefixIcon: Icon(
-                  Icons.location_on,
-                  color: Colors.grey.shade600,
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                  vertical: 4,
-                  horizontal: 8,
-                ),
-              ),
-              dropdownColor: Colors.white,
-              icon: Icon(Icons.arrow_drop_down, color: Colors.grey.shade600),
-              borderRadius: BorderRadius.circular(12),
-              items: widget.sites.map((site) {
-                return DropdownMenuItem<String>(
-                  value: site.id,
-                  child: Text(site.name),
-                );
-              }).toList(),
-              onChanged: (String? newValue) {
-                if (newValue != null) {
-                  setState(() {
-                    _selectedSiteId = newValue;
-                  });
-                }
-              },
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Please select a site';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-            DropdownButtonFormField<String>(
-              value: _selectedStatus,
-              decoration: InputDecoration(
-                labelText: 'Current Status',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
-                ),
-                prefixIcon: Icon(Icons.person_pin, color: Colors.grey.shade600),
-                contentPadding: const EdgeInsets.symmetric(
-                  vertical: 4,
-                  horizontal: 8,
-                ),
-              ),
-              dropdownColor: Colors.white,
-              icon: Icon(Icons.arrow_drop_down, color: Colors.grey.shade600),
-              borderRadius: BorderRadius.circular(12),
-              items: _statuses.map((status) {
-                return DropdownMenuItem<String>(
-                  value: status,
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 12,
-                        height: 12,
-                        decoration: BoxDecoration(
-                          color: _getStatusColor(status),
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(status),
-                    ],
-                  ),
-                );
-              }).toList(),
-              onChanged: (String? newValue) {
-                if (newValue != null) {
-                  setState(() {
-                    _selectedStatus = newValue;
-                  });
-                }
-              },
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Please select a status';
-                }
-                return null;
-              },
             ),
           ],
         ),
-      ),
+        const SizedBox(height: 20),
+        DropdownButtonFormField<String>(
+          value: _roleController.text,
+          decoration: InputDecoration(
+            labelText: 'Role',
+            labelStyle: TextStyle(
+              color: Colors.grey.shade600,
+              fontSize: 14,
+            ),
+            enabledBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: Colors.grey.shade300, width: 1),
+            ),
+            focusedBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: Colors.blue.shade400, width: 2),
+            ),
+            prefixIcon: Icon(Icons.work, 
+              size: 20, 
+              color: Colors.grey.shade500),
+            contentPadding: const EdgeInsets.symmetric(
+              vertical: 4,
+              horizontal: 12,
+            ),
+          ),
+          dropdownColor: Colors.white,
+          icon: Icon(Icons.keyboard_arrow_down, 
+            size: 24, 
+            color: Colors.grey.shade600),
+          isDense: true,
+          items: _roles.map((role) {
+            return DropdownMenuItem<String>(
+              value: role, 
+              child: Text(role, style: const TextStyle(fontSize: 14))
+            );
+          }).toList(),
+          onChanged: (String? newValue) {
+            if (newValue != null) {
+              setState(() {
+                _roleController.text = newValue;
+              });
+            }
+          },
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'Please select a role';
+            }
+            return null;
+          },
+        ),
+        const SizedBox(height: 20),
+        DropdownButtonFormField<String>(
+          value: _selectedSiteId,
+          decoration: InputDecoration(
+            labelText: 'Assigned Site',
+            labelStyle: TextStyle(
+              color: Colors.grey.shade600,
+              fontSize: 14,
+            ),
+            enabledBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: Colors.grey.shade300, width: 1),
+            ),
+            focusedBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: Colors.blue.shade400, width: 2),
+            ),
+            prefixIcon: Icon(Icons.location_on, 
+              size: 20, 
+              color: Colors.grey.shade500),
+            contentPadding: const EdgeInsets.symmetric(
+              vertical: 4,
+              horizontal: 12,
+            ),
+          ),
+          dropdownColor: Colors.white,
+          icon: Icon(Icons.keyboard_arrow_down, 
+            size: 24, 
+            color: Colors.grey.shade600),
+          isDense: true,
+          items: widget.sites.map((site) {
+            return DropdownMenuItem<String>(
+              value: site.id,
+              child: Text(site.name, style: const TextStyle(fontSize: 14)),
+            );
+          }).toList(),
+          onChanged: (String? newValue) {
+            if (newValue != null) {
+              setState(() {
+                _selectedSiteId = newValue;
+              });
+            }
+          },
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'Please select a site';
+            }
+            return null;
+          },
+        ),
+        const SizedBox(height: 20),
+        DropdownButtonFormField<String>(
+          value: _selectedStatus,
+          decoration: InputDecoration(
+            labelText: 'Current Status',
+            labelStyle: TextStyle(
+              color: Colors.grey.shade600,
+              fontSize: 14,
+            ),
+            enabledBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: Colors.grey.shade300, width: 1),
+            ),
+            focusedBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: Colors.blue.shade400, width: 2),
+            ),
+            prefixIcon: Icon(Icons.person_pin, 
+              size: 20, 
+              color: Colors.grey.shade500),
+            contentPadding: const EdgeInsets.symmetric(
+              vertical: 4,
+              horizontal: 12,
+            ),
+          ),
+          dropdownColor: Colors.white,
+          icon: Icon(Icons.keyboard_arrow_down, 
+            size: 24, 
+            color: Colors.grey.shade600),
+          isDense: true,
+          items: _statuses.map((status) {
+            return DropdownMenuItem<String>(
+              value: status,
+              child: Row(
+                children: [
+                  Container(
+                    width: 10,
+                    height: 10,
+                    decoration: BoxDecoration(
+                      color: _getStatusColor(status),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Text(status, style: const TextStyle(fontSize: 14)),
+                ],
+              ),
+            );
+          }).toList(),
+          onChanged: (String? newValue) {
+            if (newValue != null) {
+              setState(() {
+                _selectedStatus = newValue;
+              });
+            }
+          },
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'Please select a status';
+            }
+            return null;
+          },
+        ),
+      ],
     );
   }
 
   Widget _buildSaveButton() {
     return SizedBox(
       width: double.infinity,
-      height: 52,
+      height: 50,
       child: ElevatedButton(
         onPressed: _saveWorker,
         style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.blue.shade800,
+          backgroundColor: Colors.blue.shade700,
           foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(25),
           ),
           elevation: 0,
           padding: const EdgeInsets.symmetric(vertical: 14),
@@ -549,11 +548,11 @@ class _WorkerEditScreenState extends State<WorkerEditScreen> {
         child: const Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.save, size: 22),
-            SizedBox(width: 8),
+            Icon(Icons.save, size: 20),
+            SizedBox(width: 10),
             Text(
               'Save Changes',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
             ),
           ],
         ),
@@ -564,13 +563,13 @@ class _WorkerEditScreenState extends State<WorkerEditScreen> {
   Color _getStatusColor(String status) {
     switch (status) {
       case 'Present':
-        return Colors.green.shade600;
+        return const Color(0xFF4CAF50);
       case 'Absent':
-        return Colors.red.shade600;
+        return const Color(0xFFE53935);
       case 'Late':
-        return Colors.orange.shade600;
+        return const Color(0xFFFB8C00);
       case 'On Leave':
-        return Colors.purple.shade600;
+        return const Color(0xFF8E24AA);
       default:
         return Colors.grey.shade600;
     }

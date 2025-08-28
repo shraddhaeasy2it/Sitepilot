@@ -7,7 +7,6 @@ class AttendanceScreen extends StatefulWidget {
   final String? selectedSiteId;
   final Function(String) onSiteChanged;
   final List<Site> sites;
-
   const AttendanceScreen({
     super.key,
     required this.selectedSiteId,
@@ -24,11 +23,14 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   final List<Map<String, dynamic>> _attendanceData = [];
   final DateTime _selectedDate = DateTime.now();
   final ImagePicker _picker = ImagePicker();
+  final TextEditingController _searchController = TextEditingController();
+  List<Site> _filteredSites = [];
 
   @override
   void initState() {
     super.initState();
     _selectedSiteId = widget.selectedSiteId ?? '';
+    _filteredSites = widget.sites;
     _loadAttendanceData();
   }
 
@@ -106,12 +108,170 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
 
   List<Map<String, dynamic>> get filteredAttendanceData {
     return _attendanceData.where((record) {
-      final matchesSite = _selectedSiteId.isEmpty || record['siteId'] == _selectedSiteId;
-      final matchesDate = record['date'].year == _selectedDate.year &&
+      final matchesSite =
+          _selectedSiteId.isEmpty || record['siteId'] == _selectedSiteId;
+      final matchesDate =
+          record['date'].year == _selectedDate.year &&
           record['date'].month == _selectedDate.month &&
           record['date'].day == _selectedDate.day;
       return matchesSite && matchesDate;
     }).toList();
+  }
+
+  void _filterSites(String query) {
+    setState(() {
+      if (query.isEmpty) {
+        _filteredSites = widget.sites;
+      } else {
+        _filteredSites = widget.sites
+            .where(
+              (site) => site.name.toLowerCase().contains(query.toLowerCase()),
+            )
+            .toList();
+      }
+    });
+  }
+
+  void _showSiteSelectionBottomSheet() {
+    _searchController.clear();
+    _filteredSites = widget.sites;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) {
+          return Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+            ),
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom,
+              left: 24,
+              right: 24,
+              top: 24,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Select Site',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.indigo[700],
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: Icon(Icons.close, color: Colors.grey[600]),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 16),
+
+                // Search Bar
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.grey[50],
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.grey[200]!),
+                  ),
+                  child: TextField(
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                      hintText: 'Search sites...',
+                      hintStyle: TextStyle(color: Colors.grey[500]),
+                      prefixIcon: Icon(Icons.search, color: Colors.indigo[400]),
+                      suffixIcon: _searchController.text.isNotEmpty
+                          ? IconButton(
+                              icon: Icon(Icons.clear, color: Colors.grey[500]),
+                              onPressed: () {
+                                _searchController.clear();
+                                _filterSites('');
+                              },
+                            )
+                          : null,
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.symmetric(
+                        vertical: 16,
+                        horizontal: 16,
+                      ),
+                    ),
+                    onChanged: (value) {
+                      _filterSites(value);
+                    },
+                  ),
+                ),
+                SizedBox(height: 5),
+
+                // Sites List
+                Container(
+                  constraints: BoxConstraints(
+                    maxHeight: MediaQuery.of(context).size.height * 0.5,
+                  ),
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: _filteredSites
+                        .length, // Removed +1 for "All Sites" option
+                    itemBuilder: (context, index) {
+                      final site =
+                          _filteredSites[index]; // Directly use index without subtracting
+                      return ListTile(
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        leading: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: Colors.indigo[50],
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(
+                            Icons.location_on,
+                            color: Colors.indigo[400],
+                          ),
+                        ),
+                        title: Text(
+                          site.name,
+                          style: TextStyle(
+                            fontWeight: FontWeight.w500,
+                            fontSize: 16,
+                          ),
+                        ),
+                        trailing: _selectedSiteId == site.id
+                            ? Icon(
+                                Icons.check_circle,
+                                color: Colors.indigo[400],
+                              )
+                            : null,
+                        onTap: () {
+                          setState(() {
+                            _selectedSiteId = site.id;
+                          });
+                          widget.onSiteChanged(site.id);
+                          _loadAttendanceData();
+                          Navigator.pop(context);
+                        },
+                      );
+                    },
+                  ),
+                ),
+                SizedBox(height: 20),
+              ],
+            ),
+          );
+        },
+      ),
+    );
   }
 
   Future<void> _captureImage(int index) async {
@@ -119,15 +279,18 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       final XFile? image = await _picker.pickImage(source: ImageSource.camera);
       if (image != null) {
         setState(() {
-          // Update the original data list, not the filtered one
-          final originalIndex = _attendanceData.indexWhere((item) => item['id'] == filteredAttendanceData[index]['id']);
+          final originalIndex = _attendanceData.indexWhere(
+            (item) => item['id'] == filteredAttendanceData[index]['id'],
+          );
           if (originalIndex != -1) {
             _attendanceData[originalIndex]['image'] = File(image.path);
             if (_attendanceData[originalIndex]['status'] == 'Absent') {
               _attendanceData[originalIndex]['status'] = 'Present';
             }
             if (_attendanceData[originalIndex]['timeIn'].isEmpty) {
-              _attendanceData[originalIndex]['timeIn'] = TimeOfDay.now().format(context);
+              _attendanceData[originalIndex]['timeIn'] = TimeOfDay.now().format(
+                context,
+              );
             }
             _attendanceData[originalIndex]['date'] = DateTime.now();
           }
@@ -145,8 +308,9 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
       if (image != null) {
         setState(() {
-          // Update the original data list, not the filtered one
-          final originalIndex = _attendanceData.indexWhere((item) => item['id'] == filteredAttendanceData[index]['id']);
+          final originalIndex = _attendanceData.indexWhere(
+            (item) => item['id'] == filteredAttendanceData[index]['id'],
+          );
           if (originalIndex != -1) {
             _attendanceData[originalIndex]['image'] = File(image.path);
           }
@@ -160,56 +324,177 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   }
 
   void _editAttendance(int index) {
-    // Find the original index in the main list
-    final originalIndex = _attendanceData.indexWhere((item) => item['id'] == filteredAttendanceData[index]['id']);
+    final originalIndex = _attendanceData.indexWhere(
+      (item) => item['id'] == filteredAttendanceData[index]['id'],
+    );
     if (originalIndex == -1) return;
-    
+
     final record = _attendanceData[originalIndex];
     final timeInController = TextEditingController(text: record['timeIn']);
     final timeOutController = TextEditingController(text: record['timeOut']);
     String selectedStatus = record['status'];
 
-    showDialog(
+    _showEditBottomSheet(
+      context,
+      record: record,
+      timeInController: timeInController,
+      timeOutController: timeOutController,
+      selectedStatus: selectedStatus,
+      onStatusChanged: (value) {
+        setState(() {
+          selectedStatus = value!;
+        });
+      },
+      onSave: () {
+        _saveAttendanceChanges(
+          originalIndex,
+          timeInController.text,
+          timeOutController.text,
+          selectedStatus,
+        );
+        Navigator.pop(context);
+      },
+    );
+  }
+
+  void _showEditBottomSheet(
+    BuildContext context, {
+    required Map<String, dynamic> record,
+    required TextEditingController timeInController,
+    required TextEditingController timeOutController,
+    required String selectedStatus,
+    required Function(String?) onStatusChanged,
+    required VoidCallback onSave,
+  }) {
+    showModalBottomSheet(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Edit Attendance - ${record['workerName']}'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextFormField(
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+        ),
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+          left: 24,
+          right: 24,
+          top: 24,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Edit Attendance',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.indigo[700],
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: Icon(Icons.close, color: Colors.grey[600]),
+                ),
+              ],
+            ),
+            SizedBox(height: 8),
+            Text(
+              record['workerName'],
+              style: TextStyle(fontSize: 18, color: Colors.grey[700]),
+            ),
+            SizedBox(height: 24),
+
+            // Time In Field
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.grey[50],
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.grey[200]!),
+              ),
+              child: TextFormField(
                 controller: timeInController,
                 decoration: InputDecoration(
                   labelText: 'Time In',
-                  prefixIcon: Icon(Icons.access_time, color: Colors.indigo[400]),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
+                  labelStyle: TextStyle(color: Colors.grey[600]),
+                  prefixIcon: Icon(
+                    Icons.access_time,
+                    color: Colors.indigo[400],
+                  ),
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.symmetric(
+                    vertical: 10,
+                    horizontal: 16,
                   ),
                 ),
                 readOnly: true,
-                onTap: () => _selectTime(context, true, timeInController, originalIndex),
+                onTap: () => _selectTime(
+                  context,
+                  true,
+                  timeInController,
+                  _attendanceData.indexOf(record),
+                ),
               ),
-              const SizedBox(height: 16),
-              TextFormField(
+            ),
+            SizedBox(height: 16),
+
+            // Time Out Field
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.grey[50],
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.grey[200]!),
+              ),
+              child: TextFormField(
                 controller: timeOutController,
                 decoration: InputDecoration(
                   labelText: 'Time Out',
-                  prefixIcon: Icon(Icons.access_time, color: Colors.indigo[400]),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
+                  labelStyle: TextStyle(color: Colors.grey[600]),
+                  prefixIcon: Icon(
+                    Icons.access_time,
+                    color: Colors.indigo[400],
+                  ),
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.symmetric(
+                    vertical: 10,
+                    horizontal: 16,
                   ),
                 ),
                 readOnly: true,
-                onTap: () => _selectTime(context, false, timeOutController, originalIndex),
+                onTap: () => _selectTime(
+                  context,
+                  false,
+                  timeOutController,
+                  _attendanceData.indexOf(record),
+                ),
               ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
+            ),
+            SizedBox(height: 16),
+
+            // Status Field
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.grey[50],
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.grey[200]!),
+              ),
+              child: DropdownButtonFormField<String>(
                 value: selectedStatus,
                 decoration: InputDecoration(
                   labelText: 'Status',
-                  prefixIcon: Icon(Icons.info_outline, color: Colors.indigo[400]),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
+                  labelStyle: TextStyle(color: Colors.grey[600]),
+                  prefixIcon: Icon(
+                    Icons.info_outline,
+                    color: Colors.indigo[400],
+                  ),
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.symmetric(
+                    vertical: 10,
+                    horizontal: 16,
                   ),
                 ),
                 items: ['Present', 'Absent', 'Late'].map((status) {
@@ -218,45 +503,69 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                     child: Text(status),
                   );
                 }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    selectedStatus = value!;
-                  });
-                },
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.indigo[400],
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
+                onChanged: onStatusChanged,
               ),
             ),
-            onPressed: () {
-              _saveAttendanceChanges(
-                originalIndex,
-                timeInController.text,
-                timeOutController.text,
-                selectedStatus,
-              );
-              Navigator.pop(context);
-            },
-            child: const Text('Save', style: TextStyle(color: Colors.white)),
-          ),
-        ],
+            SizedBox(height: 32),
+
+            // Action Buttons
+            Row(
+              children: [
+                Expanded(
+                  child: TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: TextButton.styleFrom(
+                      padding: EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        side: BorderSide(color: Colors.grey[300]!),
+                      ),
+                    ),
+                    child: Text(
+                      'Cancel',
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ),
+                SizedBox(width: 16),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: onSave,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.indigo[400],
+                      padding: EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: Text(
+                      'Save Changes',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 24),
+          ],
+        ),
       ),
     );
   }
 
-  Future<void> _selectTime(BuildContext context, bool isTimeIn, 
-      TextEditingController controller, int index) async {
+  Future<void> _selectTime(
+    BuildContext context,
+    bool isTimeIn,
+    TextEditingController controller,
+    int index,
+  ) async {
     final initialTime = TimeOfDay.now();
     final pickedTime = await showTimePicker(
       context: context,
@@ -274,11 +583,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
         );
       },
     );
-
     if (pickedTime != null) {
       final formattedTime = pickedTime.format(context);
       controller.text = formattedTime;
-      
+
       if (isTimeIn) {
         setState(() {
           _attendanceData[index]['timeIn'] = formattedTime;
@@ -288,8 +596,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           _attendanceData[index]['timeOut'] = formattedTime;
         });
       }
-
-      if (_attendanceData[index]['timeIn'].isNotEmpty && 
+      if (_attendanceData[index]['timeIn'].isNotEmpty &&
           _attendanceData[index]['timeOut'].isNotEmpty) {
         _calculateWorkingHours(index);
       }
@@ -304,23 +611,22 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   }
 
   void _saveAttendanceChanges(
-    int index, 
-    String timeIn, 
-    String timeOut, 
+    int index,
+    String timeIn,
+    String timeOut,
     String status,
   ) {
     setState(() {
       _attendanceData[index]['timeIn'] = timeIn;
       _attendanceData[index]['timeOut'] = timeOut;
       _attendanceData[index]['status'] = status;
-      
+
       if (timeIn.isNotEmpty && timeOut.isNotEmpty) {
         _calculateWorkingHours(index);
       }
     });
-
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
+      SnackBar(
         content: Text('Attendance updated successfully'),
         duration: Duration(seconds: 2),
         behavior: SnackBarBehavior.floating,
@@ -333,26 +639,52 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Get the selected site name for display in the app bar
+    String selectedSiteName = 'All Sites';
+    if (_selectedSiteId.isNotEmpty) {
+      final selectedSite = widget.sites
+          .where((site) => site.id == _selectedSiteId)
+          .firstOrNull;
+      if (selectedSite != null) {
+        selectedSiteName = selectedSite.name;
+      }
+    }
+
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
         iconTheme: const IconThemeData(color: Colors.white),
-        toolbarHeight: 90,
+        toolbarHeight: 80,
         elevation: 0,
         backgroundColor: Colors.transparent,
-        title: const Column(
+        title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Attendance',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
-                fontSize: 30,
+            InkWell(
+              onTap: _showSiteSelectionBottomSheet,
+              borderRadius: BorderRadius.circular(8),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    selectedSiteName,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w500,
+                      fontSize: 22,
+                    ),
+                  ),
+                  SizedBox(width: 8),
+                  Icon(
+                    Icons.keyboard_arrow_down,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                ],
               ),
             ),
-            SizedBox(height: 4),
-            Text(
+            SizedBox(height: 8),
+            const Text(
               'Track daily attendance records',
               style: TextStyle(
                 color: Colors.white70,
@@ -368,74 +700,19 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
               bottom: Radius.circular(25),
             ),
             gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Color(0xFF6f88e2),
-                    Color(0xFF5a73d1),
-                    Color(0xFF4a63c0),
-                  ],
-                ),
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color(0xFF4a63c0), Color(0xFF3a53b0), Color(0xFF2a43a0)],
+            ),
           ),
         ),
       ),
       body: Column(
         children: [
-          _buildSiteSelector(),
           _buildDateDisplay(),
           _buildSummaryCards(),
-          Expanded(
-            child: _buildAttendanceList(),
-          ),
+          Expanded(child: _buildAttendanceList()),
         ],
-      ),
-    );
-  }
-
-  Widget _buildSiteSelector() {
-    return Container(
-      margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: DropdownButtonFormField<String>(
-        value: _selectedSiteId.isNotEmpty ? _selectedSiteId : null,
-        decoration: InputDecoration(
-          labelText: 'Select Site',
-          labelStyle: TextStyle(color: Colors.grey[600]),
-          border: InputBorder.none,
-          prefixIcon: Icon(Icons.location_on, color: Colors.indigo[400]),
-        ),
-        dropdownColor: Colors.white,
-        items: [
-          const DropdownMenuItem<String>(
-            value: '',
-            child: Text('All Sites', style: TextStyle(color: Colors.black87)),
-          ),
-          ...widget.sites.map((site) {
-            return DropdownMenuItem<String>(
-              value: site.id,
-              child: Text(site.name, style: const TextStyle(color: Colors.black87)),
-            );
-          }),
-        ],
-        onChanged: (String? newValue) {
-          if (newValue != null) {
-            setState(() {
-              _selectedSiteId = newValue;
-            });
-            widget.onSiteChanged(newValue);
-          }
-        },
       ),
     );
   }
@@ -470,12 +747,23 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   }
 
   Widget _buildSummaryCards() {
-    final presentCount = filteredAttendanceData.where((r) => r['status'] == 'Present').length;
-    final absentCount = filteredAttendanceData.where((r) => r['status'] == 'Absent').length;
-    final lateCount = filteredAttendanceData.where((r) => r['status'] == 'Late').length;
+    final presentCount = filteredAttendanceData
+        .where((r) => r['status'] == 'Present')
+        .length;
+    final absentCount = filteredAttendanceData
+        .where((r) => r['status'] == 'Absent')
+        .length;
+    final lateCount = filteredAttendanceData
+        .where((r) => r['status'] == 'Late')
+        .length;
     final totalHours = filteredAttendanceData.fold<double>(
-        0, (sum, record) => sum + (record['hours'] is int ? (record['hours'] as int).toDouble() : record['hours'] as double));
-
+      0,
+      (sum, record) =>
+          sum +
+          (record['hours'] is int
+              ? (record['hours'] as int).toDouble()
+              : record['hours'] as double),
+    );
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
@@ -553,10 +841,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
             ),
             Text(
               title,
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[600],
-              ),
+              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
             ),
           ],
         ),
@@ -574,24 +859,17 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
             const SizedBox(height: 16),
             Text(
               'No attendance records',
-              style: TextStyle(
-                fontSize: 18,
-                color: Colors.grey[600],
-              ),
+              style: TextStyle(fontSize: 18, color: Colors.grey[600]),
             ),
             const SizedBox(height: 8),
             Text(
               'Select a different site or date',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[500],
-              ),
+              style: TextStyle(fontSize: 14, color: Colors.grey[500]),
             ),
           ],
         ),
       );
     }
-
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: filteredAttendanceData.length,
@@ -605,19 +883,14 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   Widget _buildAttendanceCard(Map<String, dynamic> record, int index) {
     final statusColor = _getStatusColor(record['status']);
     final hasImage = record['image'] != null;
-
     return Card(
-      
       color: const Color.fromARGB(209, 255, 255, 255),
       margin: const EdgeInsets.only(bottom: 12),
       elevation: 1,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
-          
           children: [
             Row(
               children: [
@@ -686,17 +959,11 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                       const SizedBox(height: 4),
                       Text(
                         'ID: ${record['workerId']}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
-                        ),
+                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                       ),
                       Text(
                         'Site: ${record['site']}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
-                        ),
+                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                       ),
                     ],
                   ),
@@ -706,7 +973,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: statusColor.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12),
@@ -747,19 +1017,13 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                 Expanded(
                   child: Text(
                     'In: ${record['timeIn'].isEmpty ? '--:--' : record['timeIn']}',
-                    style: TextStyle(
-                      color: Colors.grey[700],
-                      fontSize: 13,
-                    ),
+                    style: TextStyle(color: Colors.grey[700], fontSize: 13),
                   ),
                 ),
                 Expanded(
                   child: Text(
                     'Out: ${record['timeOut'].isEmpty ? '--:--' : record['timeOut']}',
-                    style: TextStyle(
-                      color: Colors.grey[700],
-                      fontSize: 13,
-                    ),
+                    style: TextStyle(color: Colors.grey[700], fontSize: 13),
                   ),
                 ),
                 IconButton(

@@ -62,7 +62,7 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
       ),
       child: Scaffold(
         appBar: AppBar(
-          toolbarHeight: screenHeight * 0.08,
+          toolbarHeight: 80,
           title: RichText(
             text: TextSpan(
               children: [
@@ -241,166 +241,177 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
     );
   }
 
-  void _showAddRequestDialog() {
-    setState(() {
-      _selectedFile = null;
-      _showUploadError = false;
-    });
-    
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      isDismissible: false,
-      enableDrag: false,
-      builder: (_) {
+void _showAddRequestDialog() {
+  setState(() {
+    _selectedFile = null;
+    _showUploadError = false;
+  });
+
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    isDismissible: true,
+    enableDrag: true,
+    builder: (context) => DraggableScrollableSheet(
+      initialChildSize: 0.7,
+      minChildSize: 0.5,
+      maxChildSize: 0.9,
+      builder: (context, scrollController) {
         final screenWidth = MediaQuery.of(context).size.width;
         final screenHeight = MediaQuery.of(context).size.height;
         final isSmallScreen = screenWidth < 360;
         final isLargeScreen = screenWidth > 600;
-        
-        // Responsive sizing for bottom sheet
+
         final horizontalPadding = screenWidth * 0.04;
         final verticalPadding = screenHeight * 0.015;
         final fieldHeight = screenHeight * 0.055;
         final iconSize = isSmallScreen ? 18.0 : 20.0;
-        final titleFontSize = isSmallScreen ? 14.0 : 16.0;
+        final titleFontSize = isSmallScreen ? 18.0 : 20.0;
         final contentFontSize = isSmallScreen ? 12.0 : 14.0;
-        
-        // Calculate bottom sheet height (max 70% of screen height)
-        final bottomSheetHeight = screenHeight * 0.65;
-        
+
         return StatefulBuilder(
-          builder: (context, setModalState) => Container(
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-            ),
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.of(context).viewInsets.bottom,
-            ),
-            height: bottomSheetHeight,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Compact Header
-                Container(
-                  width: double.infinity,
-                  padding: EdgeInsets.symmetric(
-                    horizontal: horizontalPadding,
-                    vertical: verticalPadding,
+          builder: (context, setModalState) {
+            return Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black26,
+                    blurRadius: 20,
+                    offset: Offset(0, -5),
                   ),
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [Color(0xFF6f88e2), Color(0xFF5a73d1)],
-                    ),
-                    borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-                  ),
-                  child: Column(
-                    children: [
-                      // Handle bar
-                      Container(
-                        width: screenWidth * 0.1,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.3),
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                      SizedBox(height: verticalPadding * 0.5),
-                      Row(
-                        children: [
-                          Container(
-                            padding: EdgeInsets.all(horizontalPadding * 0.5),
+                ],
+              ),
+              child: Padding(
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+                  left: 20,
+                  right: 20,
+                  top: 20,
+                ),
+                child: Scrollbar(
+                  controller: scrollController,
+                  child: SingleChildScrollView(
+                    controller: scrollController,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // Handle
+                        Center(
+                          child: Container(
+                            width: 40,
+                            height: 4,
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Icon(
-                              Icons.payment,
-                              color: Colors.white,
-                              size: iconSize,
+                              color: Colors.grey[300],
+                              borderRadius: BorderRadius.circular(2),
                             ),
                           ),
-                          SizedBox(width: horizontalPadding * 0.75),
-                          Expanded(
-                            child: Text(
-                              'New Payment Request',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: titleFontSize,
-                                fontWeight: FontWeight.bold,
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Header
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF6f88e2).withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(
+                                Icons.payment,
+                                color: Color(0xFF6f88e2),
+                                size: 28,
                               ),
                             ),
-                          ),
-                          IconButton(
-                            onPressed: () => Navigator.pop(context),
-                            icon: Icon(
-                              Icons.close,
-                              color: Colors.white,
-                              size: iconSize,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                
-                // Form content with consistent sizing
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: EdgeInsets.all(horizontalPadding),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Category Selection
-                        _buildSectionTitle('Category', titleFontSize),
-                        SizedBox(height: verticalPadding * 0.5),
-                        _buildFormField(
-                          height: fieldHeight,
-                          child: DropdownButtonFormField<String>(
-                            value: _selectedCategory,
-                            items: _categories.map((cat) {
-                              return DropdownMenuItem(
-                                value: cat,
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      _getCategoryIcon(cat),
-                                      size: iconSize * 0.9,
-                                      color: const Color(0xFF6f88e2),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'New Payment Request',
+                                    style: TextStyle(
+                                      fontSize: titleFontSize,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.black87,
                                     ),
-                                    SizedBox(width: horizontalPadding * 0.75),
-                                    Text(
-                                      cat,
-                                      style: TextStyle(
-                                        fontSize: contentFontSize,
-                                      ),
+                                  ),
+                                  const Text(
+                                    'Fill in the details below',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.grey,
                                     ),
-                                  ],
-                                ),
-                              );
-                            }).toList(),
-                            decoration: InputDecoration(
-                              border: InputBorder.none,
-                              contentPadding: EdgeInsets.zero,
+                                  ),
+                                ],
+                              ),
                             ),
-                            onChanged: (val) {
-                              if (val != null) {
-                                setModalState(() => _selectedCategory = val);
-                              }
-                            },
-                          ),
+                            IconButton(
+                              icon: const Icon(Icons.close, color: Colors.grey),
+                              onPressed: () => Navigator.pop(context),
+                            ),
+                          ],
                         ),
-                        
-                        SizedBox(height: verticalPadding),
-                        
+
+                        const SizedBox(height: 32),
+
+                        // Category Field
+                        _buildSectionTitle('Category', titleFontSize),
+                        const SizedBox(height: 10),
+                       _buildFormField(
+  height: fieldHeight,
+  child: DropdownButtonFormField<String>(
+    value: _selectedCategory,
+    items: _categories.map((cat) {
+      return DropdownMenuItem(
+        value: cat,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center, // ✅ Keep icon + text centered
+          children: [
+            Icon(
+              _getCategoryIcon(cat),
+              size: iconSize * 0.9,
+              color: const Color(0xFF6f88e2),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              cat,
+              style: TextStyle(fontSize: contentFontSize),
+            ),
+          ],
+        ),
+      );
+    }).toList(),
+    decoration: const InputDecoration(
+      border: InputBorder.none,
+      isDense: true, // ✅ removes extra vertical padding
+      contentPadding: EdgeInsets.symmetric(vertical: 0, horizontal: 8), 
+    ),
+    isDense: true, // ✅ makes dropdown more compact
+    alignment: Alignment.center, // ✅ centers selected item & arrow vertically
+    icon: const Icon( // ✅ custom icon perfectly centered
+      Icons.arrow_drop_down,
+      size: 28,
+      color: Colors.black54,
+    ),
+    onChanged: (val) {
+      if (val != null) {
+        setModalState(() => _selectedCategory = val);
+      }
+    },
+  ),
+),
+
+
+                        const SizedBox(height: 20),
+
                         // Amount Field
                         _buildSectionTitle('Amount', titleFontSize),
-                        SizedBox(height: verticalPadding * 0.5),
+                        const SizedBox(height: 8),
                         _buildFormField(
                           height: fieldHeight,
                           child: TextField(
@@ -416,12 +427,12 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
                             ),
                           ),
                         ),
-                        
-                        SizedBox(height: verticalPadding),
-                        
+
+                        const SizedBox(height: 20),
+
                         // Description Field
                         _buildSectionTitle('Description', titleFontSize),
-                        SizedBox(height: verticalPadding * 0.5),
+                        const SizedBox(height: 8),
                         _buildFormField(
                           height: fieldHeight * 1.5,
                           child: TextField(
@@ -437,16 +448,16 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
                             ),
                           ),
                         ),
-                        
-                        SizedBox(height: verticalPadding),
-                        
-                        // Document Upload
+
+                        const SizedBox(height: 20),
+
+                        // Upload
                         _buildSectionTitle(
                           'Invoice/Payment Proof',
                           titleFontSize,
                           isRequired: true,
                         ),
-                        SizedBox(height: verticalPadding * 0.5),
+                        const SizedBox(height: 8),
                         _buildEnhancedDocumentUploadField(
                           setModalState,
                           isSmallScreen,
@@ -455,71 +466,60 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
                           iconSize,
                           contentFontSize,
                         ),
-                        
-                        SizedBox(height: verticalPadding * 1.5),
-                        
+
+                        const SizedBox(height: 32),
+
                         // Submit Button
                         Container(
-                          width: double.infinity,
-                          height: fieldHeight,
+                          height: 56,
                           decoration: BoxDecoration(
                             gradient: const LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
                               colors: [Color(0xFF6f88e2), Color(0xFF5a73d1)],
+                              begin: Alignment.centerLeft,
+                              end: Alignment.centerRight,
                             ),
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(16),
                             boxShadow: [
                               BoxShadow(
                                 color: const Color(0xFF6f88e2).withOpacity(0.3),
-                                blurRadius: 8,
-                                offset: const Offset(0, 4),
+                                blurRadius: 12,
+                                offset: const Offset(0, 6),
                               ),
                             ],
                           ),
-                          child: Material(
-                            color: Colors.transparent,
-                            borderRadius: BorderRadius.circular(12),
-                            child: InkWell(
-                              borderRadius: BorderRadius.circular(12),
-                              onTap: _validateAndSubmitRequest,
-                              child: Center(
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.send,
-                                      color: Colors.white,
-                                      size: iconSize,
-                                    ),
-                                    SizedBox(width: horizontalPadding * 0.75),
-                                    Text(
-                                      'Submit Request',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: titleFontSize,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.transparent,
+                              shadowColor: Colors.transparent,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
                               ),
                             ),
+                            icon: const Icon(Icons.send, color: Colors.white),
+                            label: const Text(
+                              'Submit Request',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            onPressed: _validateAndSubmitRequest,
                           ),
                         ),
-                        
-                        SizedBox(height: verticalPadding),
                       ],
                     ),
                   ),
                 ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         );
       },
-    );
-  }
+    ),
+  );
+}
+
 
   // Helper widget for consistent form fields
   Widget _buildFormField({required Widget child, double? height}) {

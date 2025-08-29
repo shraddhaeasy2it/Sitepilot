@@ -1,3 +1,4 @@
+import 'package:ecoteam_app/utils/responsive_utils.dart';
 import 'package:ecoteam_app/view/auth/login.dart';
 import 'package:ecoteam_app/view/auth/login_selector.dart';
 import 'package:ecoteam_app/widgets/responsive_widgets.dart';
@@ -6,7 +7,6 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:ecoteam_app/utils/responsive_utils.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -15,27 +15,39 @@ class ProfileScreen extends StatefulWidget {
   _ProfileScreenState createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateMixin {
+class _ProfileScreenState extends State<ProfileScreen>
+    with TickerProviderStateMixin {
   bool _isExpanded = false;
-  String _currentOrg = 'Future Build Contracting';
-  final List<String> _organizations = [
-    'Future Build Contracting',
-    'ACD Construction',
-    'Al Engineering'
-  ];
+
   final bool _notificationsEnabled = true;
   final String _language = 'English';
   final _formKey = GlobalKey<FormState>();
-  final TextEditingController _nameController = TextEditingController(text: 'John Deo');
-  final TextEditingController _positionController = TextEditingController(text: 'Construction Site Manager');
-  final TextEditingController _emailController = TextEditingController(text: 'John@example.com');
-  final TextEditingController _phoneController = TextEditingController(text: '+966501234567');
-  final TextEditingController _departmentController = TextEditingController(text: 'Project Management');
-  final TextEditingController _projectsController = TextEditingController(text: 'Site A');
-  final TextEditingController _skillsController = TextEditingController(text: 'Site Management, Planning, Safety');
-  final TextEditingController _experienceController = TextEditingController(text: '10 years');
+  final TextEditingController _nameController = TextEditingController(
+    text: 'John Deo',
+  );
+  final TextEditingController _positionController = TextEditingController(
+    text: 'Construction Site Manager',
+  );
+  final TextEditingController _emailController = TextEditingController(
+    text: 'John@example.com',
+  );
+  final TextEditingController _phoneController = TextEditingController(
+    text: '+966501234567',
+  );
+  final TextEditingController _departmentController = TextEditingController(
+    text: 'Project Management',
+  );
+  final TextEditingController _projectsController = TextEditingController(
+    text: 'Site A',
+  );
+  final TextEditingController _skillsController = TextEditingController(
+    text: 'Site Management, Planning, Safety',
+  );
+  final TextEditingController _experienceController = TextEditingController(
+    text: '10 years',
+  );
   String? _profileImageUrl = 'assets/avtar.jpg'; // Default profile image
-  
+
   // Leave Management Variables
   int _availableLeaves = 21;
   int _sundayCredits = 4;
@@ -65,13 +77,13 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
       reason: 'Medical checkup',
     ),
   ];
-  
+
   // Form controllers for leave application
   final TextEditingController _leaveTypeController = TextEditingController();
   final TextEditingController _leaveReasonController = TextEditingController();
   DateTime? _leaveStartDate;
   DateTime? _leaveEndDate;
-  
+
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
@@ -86,11 +98,15 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
-    _slideAnimation = Tween<Offset>(begin: Offset(0, -0.1), end: Offset.zero).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeOutCubic),
-    );
+    _slideAnimation = Tween<Offset>(begin: Offset(0, -0.1), end: Offset.zero)
+        .animate(
+          CurvedAnimation(
+            parent: _animationController,
+            curve: Curves.easeOutCubic,
+          ),
+        );
     _animationController.forward();
-    
+
     // Calculate Sunday credits (example logic)
     _calculateSundayCredits();
   }
@@ -126,12 +142,7 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
         slivers: [
           _buildSliverAppBar(),
           SliverPadding(
-            padding: ResponsiveUtils.responsiveValue(
-              context,
-              smallMobile: EdgeInsets.all(12),
-              largeMobile: EdgeInsets.all(16),
-              tablet: EdgeInsets.all(20),
-            ),
+            padding: EdgeInsets.all(20),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
                 FadeTransition(
@@ -141,41 +152,11 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                     child: Column(
                       children: [
                         _buildUserCard(),
-                        SizedBox(
-                          height: ResponsiveUtils.responsiveValue(
-                            context,
-                            smallMobile: 12.0,
-                            largeMobile: 16.0,
-                            tablet: 20.0,
-                          ),
-                        ),
-                        _buildOrganizationCard(),
-                        SizedBox(
-                          height: ResponsiveUtils.responsiveValue(
-                            context,
-                            smallMobile: 12.0,
-                            largeMobile: 16.0,
-                            tablet: 20.0,
-                          ),
-                        ),
+                        SizedBox(height: 18),
                         _buildLeaveManagementCard(),
-                        SizedBox(
-                          height: ResponsiveUtils.responsiveValue(
-                            context,
-                            smallMobile: 12.0,
-                            largeMobile: 16.0,
-                            tablet: 20.0,
-                          ),
-                        ),
+                        SizedBox(height: 18),
                         _buildSettingsCard(),
-                        SizedBox(
-                          height: ResponsiveUtils.responsiveValue(
-                            context,
-                            smallMobile: 60.0,
-                            largeMobile: 80.0,
-                            tablet: 100.0,
-                          ),
-                        ),
+                        SizedBox(height: 100),
                       ],
                     ),
                   ),
@@ -187,37 +168,22 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
       ),
     );
   }
-  
+
   Widget _buildSettingsCard() {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(ResponsiveUtils.responsiveValue(
-          context,
-          smallMobile: 16.0,
-          largeMobile: 20.0,
-          tablet: 24.0,
-        )),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
             color: Color(0xFF667EEA).withOpacity(0.08),
-            blurRadius: ResponsiveUtils.responsiveValue(
-              context,
-              smallMobile: 12.0,
-              largeMobile: 16.0,
-              tablet: 20.0,
-            ),
+            blurRadius: 20,
             offset: Offset(0, 8),
           ),
         ],
       ),
       child: Padding(
-        padding: EdgeInsets.all(ResponsiveUtils.responsiveValue(
-          context,
-          smallMobile: 6.0,
-          largeMobile: 8.0,
-          tablet: 12.0,
-        )),
+        padding: EdgeInsets.all(8),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -227,12 +193,7 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
               Container(
                 decoration: BoxDecoration(
                   color: Color(0xFFFEF2F2),
-                  borderRadius: BorderRadius.circular(ResponsiveUtils.responsiveValue(
-                    context,
-                    smallMobile: 8.0,
-                    largeMobile: 10.0,
-                    tablet: 12.0,
-                  )),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: IconButton(
                   icon: Icon(Icons.logout, color: Color(0xFFEF4444)),
@@ -245,95 +206,69 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
       ),
     );
   }
-  
+
   void _showLogoutConfirmation() {
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ResponsiveUtils.responsiveValue(
-            context,
-            smallMobile: 12.0,
-            largeMobile: 16.0,
-            tablet: 20.0,
-          ))),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           title: Row(
             children: [
               Container(
-                padding: EdgeInsets.all(ResponsiveUtils.responsiveValue(
-                  context,
-                  smallMobile: 6.0,
-                  largeMobile: 8.0,
-                  tablet: 10.0,
-                )),
+                padding: EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   color: Color(0xFFFEF2F2),
-                  borderRadius: BorderRadius.circular(ResponsiveUtils.responsiveValue(
-                    context,
-                    smallMobile: 6.0,
-                    largeMobile: 8.0,
-                    tablet: 10.0,
-                  )),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(Icons.warning_amber_outlined, color: Color(0xFFEF4444)),
-              ),
-              SizedBox(
-                width: ResponsiveUtils.responsiveValue(
-                  context,
-                  smallMobile: 8.0,
-                  largeMobile: 12.0,
-                  tablet: 16.0,
+                child: Icon(
+                  Icons.warning_amber_outlined,
+                  color: Color(0xFFEF4444),
                 ),
               ),
-              ResponsiveText(
+              SizedBox(width: 12),
+              Text(
                 'Confirm Logout',
-                smallMobileFontSize: 16,
-                largeMobileFontSize: 18,
-                tabletFontSize: 20,
-                style: TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF1E293B)),
+                style: TextStyle(
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF1E293B),
+                ),
               ),
             ],
           ),
-          content: ResponsiveText(
+          content: Text(
             'Are you sure you want to sign out? You will need to log in again to access your account.',
-            smallMobileFontSize: 14,
-            largeMobileFontSize: 15,
-            tabletFontSize: 16,
             style: TextStyle(color: Color(0xFF64748B), height: 1.5),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: ResponsiveText(
-                'Cancel',
-                smallMobileFontSize: 14,
-                largeMobileFontSize: 15,
-                tabletFontSize: 16,
-                style: TextStyle(color: Color(0xFF64748B)),
-              ),
+              child: Text('Cancel', style: TextStyle(color: Color(0xFF64748B))),
             ),
             Container(
               decoration: BoxDecoration(
                 color: Color(0xFFEF4444),
-                borderRadius: BorderRadius.circular(ResponsiveUtils.responsiveValue(
-                  context,
-                  smallMobile: 8.0,
-                  largeMobile: 10.0,
-                  tablet: 12.0,
-                )),
+                borderRadius: BorderRadius.circular(12),
               ),
               child: ElevatedButton(
                 onPressed: () async {
                   Navigator.pop(context); // Close the dialog
+
                   // Clear login info
                   final prefs = await SharedPreferences.getInstance();
                   await prefs.clear();
+
                   // Show snack or toast
                   _showSnackBar('Signed out successfully');
+
                   // Navigate to login screen
                   Navigator.pushAndRemoveUntil(
                     context,
-                    MaterialPageRoute(builder: (context) => const LoginSelectorPage()),
+                    MaterialPageRoute(
+                      builder: (context) => const LoginSelectorPage(),
+                    ),
                     (Route<dynamic> route) => false,
                   );
                 },
@@ -341,12 +276,12 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                   backgroundColor: Colors.transparent,
                   shadowColor: Colors.transparent,
                 ),
-                child: ResponsiveText(
+                child: Text(
                   'Sign Out',
-                  smallMobileFontSize: 14,
-                  largeMobileFontSize: 15,
-                  tabletFontSize: 16,
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ),
@@ -358,58 +293,23 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
 
   Widget _buildSettingItem(IconData icon, String label, Widget trailing) {
     return Padding(
-      padding: EdgeInsets.symmetric(
-        vertical: ResponsiveUtils.responsiveValue(
-          context,
-          smallMobile: 8.0,
-          largeMobile: 10.0,
-          tablet: 12.0,
-        ),
-      ),
+      padding: EdgeInsets.symmetric(vertical: 12),
       child: Row(
         children: [
           Container(
-            padding: EdgeInsets.all(ResponsiveUtils.responsiveValue(
-              context,
-              smallMobile: 8.0,
-              largeMobile: 10.0,
-              tablet: 12.0,
-            )),
+            padding: EdgeInsets.all(10),
             decoration: BoxDecoration(
               color: Color(0xFFF1F5F9),
-              borderRadius: BorderRadius.circular(ResponsiveUtils.responsiveValue(
-                context,
-                smallMobile: 8.0,
-                largeMobile: 10.0,
-                tablet: 12.0,
-              )),
+              borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(
-              icon, 
-              size: ResponsiveUtils.responsiveValue(
-                context,
-                smallMobile: 16.0,
-                largeMobile: 20.0,
-                tablet: 24.0,
-              ), 
-              color: Color(0xFF475569)
-            ),
+            child: Icon(icon, size: 20, color: Color(0xFF475569)),
           ),
-          SizedBox(
-            width: ResponsiveUtils.responsiveValue(
-              context,
-              smallMobile: 12.0,
-              largeMobile: 16.0,
-              tablet: 20.0,
-            ),
-          ),
+          SizedBox(width: 16),
           Expanded(
-            child: ResponsiveText(
+            child: Text(
               label,
-              smallMobileFontSize: 14,
-              largeMobileFontSize: 16,
-              tabletFontSize: 18,
               style: TextStyle(
+                fontSize: 16,
                 fontWeight: FontWeight.w500,
                 color: Color(0xFF1E293B),
               ),
@@ -420,578 +320,11 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
       ),
     );
   }
-  
-  Widget _buildOrganizationCard() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(ResponsiveUtils.responsiveValue(
-          context,
-          smallMobile: 16.0,
-          largeMobile: 20.0,
-          tablet: 24.0,
-        )),
-        boxShadow: [
-          BoxShadow(
-            color: Color(0xFF667EEA).withOpacity(0.08),
-            blurRadius: ResponsiveUtils.responsiveValue(
-              context,
-              smallMobile: 12.0,
-              largeMobile: 16.0,
-              tablet: 20.0,
-            ),
-            offset: Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: EdgeInsets.all(ResponsiveUtils.responsiveValue(
-          context,
-          smallMobile: 14.0,
-          largeMobile: 16.0,
-          tablet: 18.0,
-        )),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: EdgeInsets.all(ResponsiveUtils.responsiveValue(
-                    context,
-                    smallMobile: 8.0,
-                    largeMobile: 10.0,
-                    tablet: 12.0,
-                  )),
-                  child: Icon(
-                    Icons.business, 
-                    color: const Color.fromARGB(255, 32, 32, 32), 
-                    size: ResponsiveUtils.responsiveValue(
-                      context,
-                      smallMobile: 20.0,
-                      largeMobile: 22.0,
-                      tablet: 24.0,
-                    )
-                  ),
-                ),
-                SizedBox(
-                  width: ResponsiveUtils.responsiveValue(
-                    context,
-                    smallMobile: 8.0,
-                    largeMobile: 10.0,
-                    tablet: 12.0,
-                  ),
-                ),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      ResponsiveText(
-                        'Current Organization',
-                        smallMobileFontSize: 11,
-                        largeMobileFontSize: 12,
-                        tabletFontSize: 13,
-                        style: TextStyle(
-                          color: Color.fromARGB(255, 116, 133, 156),
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      SizedBox(
-                        height: ResponsiveUtils.responsiveValue(
-                          context,
-                          smallMobile: 2.0,
-                          largeMobile: 4.0,
-                          tablet: 6.0,
-                        ),
-                      ),
-                      ResponsiveText(
-                        _currentOrg,
-                        smallMobileFontSize: 14,
-                        largeMobileFontSize: 16,
-                        tabletFontSize: 18,
-                        style: TextStyle(
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF1E293B),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                if (_organizations.length > 1)
-                  Container(
-                    height: ResponsiveUtils.responsiveValue(
-                      context,
-                      smallMobile: 30.0,
-                      largeMobile: 33.0,
-                      tablet: 36.0,
-                    ),
-                    width: ResponsiveUtils.responsiveValue(
-                      context,
-                      smallMobile: 55.0,
-                      largeMobile: 60.0,
-                      tablet: 65.0,
-                    ),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Color(0xFF667EEA)),
-                      borderRadius: BorderRadius.circular(ResponsiveUtils.responsiveValue(
-                        context,
-                        smallMobile: 8.0,
-                        largeMobile: 10.0,
-                        tablet: 12.0,
-                      )),
-                    ),
-                    child: TextButton(
-                      onPressed: _showOrganizationDialog,
-                      child: ResponsiveText(
-                        'Switch',
-                        smallMobileFontSize: 12,
-                        largeMobileFontSize: 13,
-                        tabletFontSize: 14,
-                        style: TextStyle(
-                          color: Color(0xFF667EEA),
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-            SizedBox(
-              height: ResponsiveUtils.responsiveValue(
-                context,
-                smallMobile: 16.0,
-                largeMobile: 18.0,
-                tablet: 20.0,
-              ),
-            ),
-            _buildOutlineButton(
-              onPressed: _showOrganizationManagementDialog,
-              text: 'Manage Organizations',
-              icon: Icons.settings_outlined,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-  
-  void _showOrganizationDialog() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        return Container(
-          height: MediaQuery.of(context).size.height * 0.6,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(ResponsiveUtils.responsiveValue(
-                context,
-                smallMobile: 16.0,
-                largeMobile: 18.0,
-                tablet: 20.0,
-              )),
-              topRight: Radius.circular(ResponsiveUtils.responsiveValue(
-                context,
-                smallMobile: 16.0,
-                largeMobile: 18.0,
-                tablet: 20.0,
-              )),
-            ),
-          ),
-          child: Column(
-            children: [
-              Container(
-                width: ResponsiveUtils.responsiveValue(
-                  context,
-                  smallMobile: 50.0,
-                  largeMobile: 55.0,
-                  tablet: 60.0,
-                ),
-                height: ResponsiveUtils.responsiveValue(
-                  context,
-                  smallMobile: 4.0,
-                  largeMobile: 5.0,
-                  tablet: 6.0,
-                ),
-                margin: EdgeInsets.symmetric(
-                  vertical: ResponsiveUtils.responsiveValue(
-                    context,
-                    smallMobile: 10.0,
-                    largeMobile: 12.0,
-                    tablet: 14.0,
-                  ),
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(ResponsiveUtils.responsiveValue(
-                    context,
-                    smallMobile: 8.0,
-                    largeMobile: 10.0,
-                    tablet: 12.0,
-                  )),
-                ),
-              ),
-              Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: ResponsiveUtils.responsiveValue(
-                    context,
-                    smallMobile: 16.0,
-                    largeMobile: 18.0,
-                    tablet: 20.0,
-                  ),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    ResponsiveText(
-                      'Select Organization',
-                      smallMobileFontSize: 16,
-                      largeMobileFontSize: 18,
-                      tabletFontSize: 20,
-                      style: TextStyle(
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF1E293B),
-                      ),
-                    ),
-                    IconButton(
-                      icon: Icon(Icons.close),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                  ],
-                ),
-              ),
-              Divider(),
-              Expanded(
-                child: Scrollbar(
-                  child: ListView.builder(
-                    padding: EdgeInsets.all(ResponsiveUtils.responsiveValue(
-                      context,
-                      smallMobile: 12.0,
-                      largeMobile: 14.0,
-                      tablet: 16.0,
-                    )),
-                    itemCount: _organizations.length,
-                    itemBuilder: (context, index) {
-                      final org = _organizations[index];
-                      return Container(
-                        margin: EdgeInsets.only(
-                          bottom: ResponsiveUtils.responsiveValue(
-                            context,
-                            smallMobile: 6.0,
-                            largeMobile: 8.0,
-                            tablet: 10.0,
-                          ),
-                        ),
-                        decoration: BoxDecoration(
-                          color: _currentOrg == org ? Color(0xFF6f88e2).withOpacity(0.1) : null,
-                          borderRadius: BorderRadius.circular(ResponsiveUtils.responsiveValue(
-                            context,
-                            smallMobile: 8.0,
-                            largeMobile: 10.0,
-                            tablet: 12.0,
-                          )),
-                        ),
-                        child: ListTile(
-                          title: ResponsiveText(
-                            org,
-                            smallMobileFontSize: 14,
-                            largeMobileFontSize: 16,
-                            tabletFontSize: 18,
-                            style: TextStyle(fontWeight: FontWeight.w500),
-                          ),
-                          trailing: _currentOrg == org
-                              ? Icon(Icons.check_circle, color: Color(0xFF6f88e2))
-                              : null,
-                          onTap: () {
-                            setState(() {
-                              _currentOrg = org;
-                            });
-                            Navigator.pop(context);
-                            _showSnackBar('Switched to $org');
-                          },
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  void _showOrganizationManagementDialog() {
-    final TextEditingController newOrgController = TextEditingController();
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        return Container(
-          height: MediaQuery.of(context).size.height * 0.7,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(ResponsiveUtils.responsiveValue(
-                context,
-                smallMobile: 16.0,
-                largeMobile: 18.0,
-                tablet: 20.0,
-              )),
-              topRight: Radius.circular(ResponsiveUtils.responsiveValue(
-                context,
-                smallMobile: 16.0,
-                largeMobile: 18.0,
-                tablet: 20.0,
-              )),
-            ),
-          ),
-          child: Column(
-            children: [
-              Container(
-                width: ResponsiveUtils.responsiveValue(
-                  context,
-                  smallMobile: 50.0,
-                  largeMobile: 55.0,
-                  tablet: 60.0,
-                ),
-                height: ResponsiveUtils.responsiveValue(
-                  context,
-                  smallMobile: 4.0,
-                  largeMobile: 5.0,
-                  tablet: 6.0,
-                ),
-                margin: EdgeInsets.symmetric(
-                  vertical: ResponsiveUtils.responsiveValue(
-                    context,
-                    smallMobile: 10.0,
-                    largeMobile: 12.0,
-                    tablet: 14.0,
-                  ),
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(ResponsiveUtils.responsiveValue(
-                    context,
-                    smallMobile: 8.0,
-                    largeMobile: 10.0,
-                    tablet: 12.0,
-                  )),
-                ),
-              ),
-              Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: ResponsiveUtils.responsiveValue(
-                    context,
-                    smallMobile: 16.0,
-                    largeMobile: 18.0,
-                    tablet: 20.0,
-                  ),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    ResponsiveText(
-                      'Manage Organizations',
-                      smallMobileFontSize: 16,
-                      largeMobileFontSize: 18,
-                      tabletFontSize: 20,
-                      style: TextStyle(
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF1E293B),
-                      ),
-                    ),
-                    IconButton(
-                      icon: Icon(Icons.close),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                  ],
-                ),
-              ),
-              Divider(),
-              Expanded(
-                child: Scrollbar(
-                  child: SingleChildScrollView(
-                    padding: EdgeInsets.all(ResponsiveUtils.responsiveValue(
-                      context,
-                      smallMobile: 12.0,
-                      largeMobile: 14.0,
-                      tablet: 16.0,
-                    )),
-                    child: Column(
-                      children: [
-                        Container(
-                          decoration: BoxDecoration(
-                            color: Color(0xFFF8FAFC),
-                            borderRadius: BorderRadius.circular(ResponsiveUtils.responsiveValue(
-                              context,
-                              smallMobile: 8.0,
-                              largeMobile: 10.0,
-                              tablet: 12.0,
-                            )),
-                            border: Border.all(color: Color(0xFFE2E8F0)),
-                          ),
-                          child: DropdownButtonFormField<String>(
-                            value: _currentOrg,
-                            decoration: InputDecoration(
-                              labelText: 'Current Organization',
-                              border: InputBorder.none,
-                              contentPadding: EdgeInsets.symmetric(
-                                horizontal: ResponsiveUtils.responsiveValue(
-                                  context,
-                                  smallMobile: 12.0,
-                                  largeMobile: 14.0,
-                                  tablet: 16.0,
-                                ),
-                                vertical: ResponsiveUtils.responsiveValue(
-                                  context,
-                                  smallMobile: 10.0,
-                                  largeMobile: 12.0,
-                                  tablet: 14.0,
-                                ),
-                              ),
-                            ),
-                            items: _organizations.map((org) {
-                              return DropdownMenuItem(
-                                value: org,
-                                child: ResponsiveText(
-                                  org,
-                                  smallMobileFontSize: 14,
-                                  largeMobileFontSize: 16,
-                                  tabletFontSize: 18,
-                                ),
-                              );
-                            }).toList(),
-                            onChanged: (value) {
-                              setState(() {
-                                _currentOrg = value!;
-                              });
-                            },
-                          ),
-                        ),
-                        SizedBox(
-                          height: ResponsiveUtils.responsiveValue(
-                            context,
-                            smallMobile: 16.0,
-                            largeMobile: 18.0,
-                            tablet: 20.0,
-                          ),
-                        ),
-                        TextField(
-                          controller: newOrgController,
-                          decoration: InputDecoration(
-                            labelText: 'Add New Organization',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(ResponsiveUtils.responsiveValue(
-                                context,
-                                smallMobile: 8.0,
-                                largeMobile: 10.0,
-                                tablet: 12.0,
-                              )),
-                            ),
-                            filled: true,
-                            fillColor: Color(0xFFF8FAFC),
-                            suffixIcon: Container(
-                              margin: EdgeInsets.all(ResponsiveUtils.responsiveValue(
-                                context,
-                                smallMobile: 3.0,
-                                largeMobile: 4.0,
-                                tablet: 5.0,
-                              )),
-                              decoration: BoxDecoration(
-                                color: Color(0xFF6f88e2),
-                                borderRadius: BorderRadius.circular(ResponsiveUtils.responsiveValue(
-                                  context,
-                                  smallMobile: 6.0,
-                                  largeMobile: 8.0,
-                                  tablet: 10.0,
-                                )),
-                              ),
-                              child: IconButton(
-                                icon: Icon(Icons.add, color: Colors.white),
-                                onPressed: () {
-                                  if (newOrgController.text.isNotEmpty) {
-                                    setState(() {
-                                      _organizations.add(newOrgController.text);
-                                      newOrgController.clear();
-                                    });
-                                    _showSnackBar('Organization added');
-                                  }
-                                },
-                              ),
-                            ),
-                          ),
-                        ),
-                        SizedBox(
-                          height: ResponsiveUtils.responsiveValue(
-                            context,
-                            smallMobile: 16.0,
-                            largeMobile: 18.0,
-                            tablet: 20.0,
-                          ),
-                        ),
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: () => Navigator.pop(context),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Color(0xFF6f88e2),
-                              padding: EdgeInsets.symmetric(
-                                vertical: ResponsiveUtils.responsiveValue(
-                                  context,
-                                  smallMobile: 14.0,
-                                  largeMobile: 16.0,
-                                  tablet: 18.0,
-                                ),
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(ResponsiveUtils.responsiveValue(
-                                  context,
-                                  smallMobile: 8.0,
-                                  largeMobile: 10.0,
-                                  tablet: 12.0,
-                                )),
-                              ),
-                            ),
-                            child: ResponsiveText(
-                              'Save Changes',
-                              smallMobileFontSize: 14,
-                              largeMobileFontSize: 16,
-                              tabletFontSize: 18,
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
 
   Widget _buildSliverAppBar() {
     return SliverAppBar(
-      iconTheme: const IconThemeData(
-        color: Colors.white,
-      ),
-      expandedHeight: ResponsiveUtils.responsiveValue(
-        context,
-        smallMobile: 70.0,
-        largeMobile: 80.0,
-        tablet: 90.0,
-      ),
+      iconTheme: const IconThemeData(color: Colors.white),
+      expandedHeight: 80,
       floating: false,
       pinned: true,
       elevation: 0,
@@ -1008,22 +341,20 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  Color(0xFF6f88e2),
-                  Color(0xFF5a73d1),
                   Color(0xFF4a63c0),
+                  Color(0xFF3a53b0),
+                  Color(0xFF2a43a0),
                 ],
               ),
             ),
           ),
         ),
-        title: ResponsiveText(
+        title: const Text(
           'Profile',
-          smallMobileFontSize: 20,
-          largeMobileFontSize: 22,
-          tabletFontSize: 24,
           style: TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.w600,
+            fontSize: 24,
           ),
         ),
         centerTitle: true,
@@ -1039,32 +370,17 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
           end: Alignment.bottomRight,
           colors: [Colors.white, Color(0xFFF8FAFC)],
         ),
-        borderRadius: BorderRadius.circular(ResponsiveUtils.responsiveValue(
-          context,
-          smallMobile: 16.0,
-          largeMobile: 20.0,
-          tablet: 24.0,
-        )),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
             color: Color(0xFF667EEA).withOpacity(0.08),
-            blurRadius: ResponsiveUtils.responsiveValue(
-              context,
-              smallMobile: 12.0,
-              largeMobile: 16.0,
-              tablet: 20.0,
-            ),
+            blurRadius: 20,
             offset: Offset(0, 8),
           ),
         ],
       ),
       child: Padding(
-        padding: EdgeInsets.all(ResponsiveUtils.responsiveValue(
-          context,
-          smallMobile: 16.0,
-          largeMobile: 20.0,
-          tablet: 24.0,
-        )),
+        padding: EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -1080,93 +396,57 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                         gradient: LinearGradient(
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
-                          colors: [
-                            Colors.blue.shade800,
-                            Colors.blue.shade800,
-                          ],
+                          colors: [Colors.blue.shade800, Colors.blue.shade800],
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: Color.fromARGB(255, 85, 84, 84).withOpacity(0.3),
-                            blurRadius: ResponsiveUtils.responsiveValue(
-                              context,
-                              smallMobile: 10.0,
-                              largeMobile: 12.0,
-                              tablet: 14.0,
-                            ),
+                            color: Color.fromARGB(
+                              255,
+                              85,
+                              84,
+                              84,
+                            ).withOpacity(0.3),
+                            blurRadius: 13,
                             offset: Offset(0, 8),
                           ),
                         ],
                       ),
-                      padding: EdgeInsets.all(ResponsiveUtils.responsiveValue(
-                        context,
-                        smallMobile: 1.0,
-                        largeMobile: 1.5,
-                        tablet: 2.0,
-                      )),
+                      padding: EdgeInsets.all(1.5),
                       child: CircleAvatar(
-                        radius: ResponsiveUtils.responsiveValue(
-                          context,
-                          smallMobile: 30.0,
-                          largeMobile: 35.0,
-                          tablet: 40.0,
-                        ),
-                        backgroundImage: _profileImageUrl != null 
+                        radius: 35,
+                        backgroundImage: _profileImageUrl != null
                             ? AssetImage(_profileImageUrl!)
                             : null,
                         backgroundColor: Colors.white,
-                        child: _profileImageUrl == null 
+                        child: _profileImageUrl == null
                             ? Icon(
-                                Icons.person, 
-                                size: ResponsiveUtils.responsiveValue(
-                                  context,
-                                  smallMobile: 30.0,
-                                  largeMobile: 35.0,
-                                  tablet: 40.0,
-                                ), 
-                                color: Color(0xFF667EEA)
+                                Icons.person,
+                                size: 35,
+                                color: Color(0xFF667EEA),
                               )
                             : null,
                       ),
                     ),
                   ),
                 ),
-                SizedBox(
-                  width: ResponsiveUtils.responsiveValue(
-                    context,
-                    smallMobile: 16.0,
-                    largeMobile: 20.0,
-                    tablet: 24.0,
-                  ),
-                ),
+                SizedBox(width: 20),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      ResponsiveText(
+                      Text(
                         _nameController.text,
-                        smallMobileFontSize: 18,
-                        largeMobileFontSize: 20,
-                        tabletFontSize: 22,
                         style: TextStyle(
+                          fontSize: 22,
                           fontWeight: FontWeight.w700,
                           color: Color(0xFF1E293B),
                         ),
                       ),
-                      SizedBox(
-                        height: ResponsiveUtils.responsiveValue(
-                          context,
-                          smallMobile: 4.0,
-                          largeMobile: 6.0,
-                          tablet: 8.0,
-                        ),
-                      ),
-                      ResponsiveText(
+                      SizedBox(height: 6),
+                      Text(
                         _positionController.text,
-                        smallMobileFontSize: 14,
-                        largeMobileFontSize: 15,
-                        tabletFontSize: 16,
                         style: TextStyle(
+                          fontSize: 16,
                           color: Color(0xFF64748B),
                           fontWeight: FontWeight.w500,
                         ),
@@ -1176,14 +456,7 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                 ),
               ],
             ),
-            SizedBox(
-              height: ResponsiveUtils.responsiveValue(
-                context,
-                smallMobile: 12.0,
-                largeMobile: 15.0,
-                tablet: 18.0,
-              ),
-            ),
+            SizedBox(height: 15),
             Row(
               children: [
                 Expanded(
@@ -1194,18 +467,13 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                       });
                     },
                     text: _isExpanded ? 'Hide Details' : 'View Details',
-                    icon: _isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                    icon: _isExpanded
+                        ? Icons.keyboard_arrow_up
+                        : Icons.keyboard_arrow_down,
                     isPrimary: true,
                   ),
                 ),
-                SizedBox(
-                  width: ResponsiveUtils.responsiveValue(
-                    context,
-                    smallMobile: 8.0,
-                    largeMobile: 10.0,
-                    tablet: 12.0,
-                  ),
-                ),
+                SizedBox(width: 12),
                 Expanded(
                   child: _buildOutlineButton(
                     onPressed: _showEditProfileDialog,
@@ -1219,69 +487,74 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
               duration: Duration(milliseconds: 300),
               curve: Curves.easeInOut,
               height: _isExpanded ? null : 0,
-              child: _isExpanded ? Column(
-                children: [
-                  SizedBox(
-                    height: ResponsiveUtils.responsiveValue(
-                      context,
-                      smallMobile: 20.0,
-                      largeMobile: 24.0,
-                      tablet: 28.0,
-                    ),
-                  ),
-                  Container(
-                    height: 1,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          Colors.transparent,
-                          Color(0xFF667EEA).withOpacity(0.3),
-                          Colors.transparent,
+              child: _isExpanded
+                  ? Column(
+                      children: [
+                        SizedBox(height: 24),
+                        Container(
+                          height: 1,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                Colors.transparent,
+                                Color(0xFF667EEA).withOpacity(0.3),
+                                Colors.transparent,
+                              ],
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: 24),
+                        ...[
+                          _buildDetailItem(
+                            Icons.email_outlined,
+                            'Email',
+                            _emailController.text,
+                          ),
+                          _buildDetailItem(
+                            Icons.phone_outlined,
+                            'Phone',
+                            _phoneController.text,
+                          ),
+                          _buildDetailItem(
+                            Icons.business_outlined,
+                            'Department',
+                            _departmentController.text,
+                          ),
+                          _buildDetailItem(
+                            Icons.assignment_outlined,
+                            'Assigned Projects',
+                            _projectsController.text,
+                          ),
+                          _buildDetailItem(
+                            Icons.build_outlined,
+                            'Skills',
+                            _skillsController.text,
+                          ),
+                          _buildDetailItem(
+                            Icons.work_outline,
+                            'Experience',
+                            _experienceController.text,
+                          ),
                         ],
-                      ),
-                    ),
-                  ),
-                  SizedBox(
-                    height: ResponsiveUtils.responsiveValue(
-                      context,
-                      smallMobile: 20.0,
-                      largeMobile: 24.0,
-                      tablet: 28.0,
-                    ),
-                  ),
-                  ...[
-                    _buildDetailItem(Icons.email_outlined, 'Email', _emailController.text),
-                    _buildDetailItem(Icons.phone_outlined, 'Phone', _phoneController.text),
-                    _buildDetailItem(Icons.business_outlined, 'Department', _departmentController.text),
-                    _buildDetailItem(Icons.assignment_outlined, 'Assigned Projects', _projectsController.text),
-                    _buildDetailItem(Icons.build_outlined, 'Skills', _skillsController.text),
-                    _buildDetailItem(Icons.work_outline, 'Experience', _experienceController.text),
-                  ],
-                  SizedBox(
-                    height: ResponsiveUtils.responsiveValue(
-                      context,
-                      smallMobile: 20.0,
-                      largeMobile: 24.0,
-                      tablet: 28.0,
-                    ),
-                  ),
-                  _buildGradientButton(
-                    onPressed: () {
-                      _showSnackBar('Profile shared successfully');
-                    },
-                    text: 'Share Profile',
-                    icon: Icons.share_outlined,
-                    isPrimary: true,
-                  ),
-                ],
-              ) : null,
+                        SizedBox(height: 24),
+                        _buildGradientButton(
+                          onPressed: () {
+                            _showSnackBar('Profile shared successfully');
+                          },
+                          text: 'Share Profile',
+                          icon: Icons.share_outlined,
+                          isPrimary: true,
+                        ),
+                      ],
+                    )
+                  : null,
             ),
           ],
         ),
       ),
     );
   }
-  
+
   void _showImagePickerDialog() {
     showModalBottomSheet(
       context: context,
@@ -1293,71 +566,30 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(ResponsiveUtils.responsiveValue(
-                context,
-                smallMobile: 16.0,
-                largeMobile: 18.0,
-                tablet: 20.0,
-              )),
-              topRight: Radius.circular(ResponsiveUtils.responsiveValue(
-                context,
-                smallMobile: 16.0,
-                largeMobile: 18.0,
-                tablet: 20.0,
-              )),
+              topLeft: Radius.circular(20),
+              topRight: Radius.circular(20),
             ),
           ),
           child: Column(
             children: [
               Container(
-                width: ResponsiveUtils.responsiveValue(
-                  context,
-                  smallMobile: 50.0,
-                  largeMobile: 55.0,
-                  tablet: 60.0,
-                ),
-                height: ResponsiveUtils.responsiveValue(
-                  context,
-                  smallMobile: 4.0,
-                  largeMobile: 5.0,
-                  tablet: 6.0,
-                ),
-                margin: EdgeInsets.symmetric(
-                  vertical: ResponsiveUtils.responsiveValue(
-                    context,
-                    smallMobile: 10.0,
-                    largeMobile: 12.0,
-                    tablet: 14.0,
-                  ),
-                ),
+                width: 60,
+                height: 5,
+                margin: EdgeInsets.symmetric(vertical: 12),
                 decoration: BoxDecoration(
                   color: Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(ResponsiveUtils.responsiveValue(
-                    context,
-                    smallMobile: 8.0,
-                    largeMobile: 10.0,
-                    tablet: 12.0,
-                  )),
+                  borderRadius: BorderRadius.circular(10),
                 ),
               ),
               Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: ResponsiveUtils.responsiveValue(
-                    context,
-                    smallMobile: 16.0,
-                    largeMobile: 18.0,
-                    tablet: 20.0,
-                  ),
-                ),
+                padding: EdgeInsets.symmetric(horizontal: 20),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    ResponsiveText(
+                    Text(
                       'Update Profile Picture',
-                      smallMobileFontSize: 16,
-                      largeMobileFontSize: 18,
-                      tabletFontSize: 20,
                       style: TextStyle(
+                        fontSize: 18,
                         fontWeight: FontWeight.w700,
                         color: Color(0xFF1E293B),
                       ),
@@ -1373,12 +605,7 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
               Expanded(
                 child: Scrollbar(
                   child: ListView(
-                    padding: EdgeInsets.all(ResponsiveUtils.responsiveValue(
-                      context,
-                      smallMobile: 12.0,
-                      largeMobile: 14.0,
-                      tablet: 16.0,
-                    )),
+                    padding: EdgeInsets.all(16),
                     children: [
                       _buildImagePickerOption(
                         Icons.camera_alt_outlined,
@@ -1388,14 +615,7 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                           _pickImage(ImageSource.camera);
                         },
                       ),
-                      SizedBox(
-                        height: ResponsiveUtils.responsiveValue(
-                          context,
-                          smallMobile: 6.0,
-                          largeMobile: 8.0,
-                          tablet: 10.0,
-                        ),
-                      ),
+                      SizedBox(height: 8),
                       _buildImagePickerOption(
                         Icons.photo_library_outlined,
                         'Choose from Gallery',
@@ -1405,14 +625,7 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                         },
                       ),
                       if (_profileImageUrl != null) ...[
-                        SizedBox(
-                          height: ResponsiveUtils.responsiveValue(
-                            context,
-                            smallMobile: 6.0,
-                            largeMobile: 8.0,
-                            tablet: 10.0,
-                          ),
-                        ),
+                        SizedBox(height: 8),
                         _buildImagePickerOption(
                           Icons.delete_outline,
                           'Remove Photo',
@@ -1437,75 +650,39 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
     );
   }
 
-  Widget _buildImagePickerOption(IconData icon, String title, VoidCallback onTap, {bool isDestructive = false}) {
+  Widget _buildImagePickerOption(
+    IconData icon,
+    String title,
+    VoidCallback onTap, {
+    bool isDestructive = false,
+  }) {
     return Container(
-      margin: EdgeInsets.only(
-        bottom: ResponsiveUtils.responsiveValue(
-          context,
-          smallMobile: 6.0,
-          largeMobile: 8.0,
-          tablet: 10.0,
-        ),
-      ),
+      margin: EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
         color: isDestructive ? Color(0xFFFEF2F2) : Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(ResponsiveUtils.responsiveValue(
-          context,
-          smallMobile: 8.0,
-          largeMobile: 10.0,
-          tablet: 12.0,
-        )),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: isDestructive ? Color(0xFFFECACA) : Color(0xFFE2E8F0),
         ),
       ),
       child: ListTile(
         leading: Container(
-          padding: EdgeInsets.all(ResponsiveUtils.responsiveValue(
-            context,
-            smallMobile: 6.0,
-            largeMobile: 8.0,
-            tablet: 10.0,
-          )),
+          padding: EdgeInsets.all(8),
           decoration: BoxDecoration(
             color: isDestructive ? Color(0xFFEF4444) : Color(0xFF6f88e2),
-            borderRadius: BorderRadius.circular(ResponsiveUtils.responsiveValue(
-              context,
-              smallMobile: 6.0,
-              largeMobile: 8.0,
-              tablet: 10.0,
-            )),
+            borderRadius: BorderRadius.circular(8),
           ),
-          child: Icon(
-            icon, 
-            color: Colors.white, 
-            size: ResponsiveUtils.responsiveValue(
-              context,
-              smallMobile: 16.0,
-              largeMobile: 18.0,
-              tablet: 20.0,
-            )
-          ),
+          child: Icon(icon, color: Colors.white, size: 20),
         ),
-        title: ResponsiveText(
+        title: Text(
           title,
-          smallMobileFontSize: 14,
-          largeMobileFontSize: 16,
-          tabletFontSize: 18,
           style: TextStyle(
             color: isDestructive ? Color(0xFFEF4444) : Color(0xFF1E293B),
             fontWeight: FontWeight.w500,
           ),
         ),
         onTap: onTap,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(ResponsiveUtils.responsiveValue(
-            context,
-            smallMobile: 8.0,
-            largeMobile: 10.0,
-            tablet: 12.0,
-          )),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }
@@ -1530,52 +707,27 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
     required IconData icon,
   }) {
     return SizedBox(
-      height: ResponsiveUtils.responsiveValue(
-        context,
-        smallMobile: 35.0,
-        largeMobile: 37.0,
-        tablet: 40.0,
-      ),
-      width: ResponsiveUtils.responsiveValue(
-        context,
-        smallMobile: 180.0,
-        largeMobile: 200.0,
-        tablet: 220.0,
-      ),
+      height: 37,
+      width: 207,
       child: OutlinedButton.icon(
         onPressed: onPressed,
         icon: Icon(
-          icon, 
-          color: const Color.fromARGB(255, 52, 52, 53), 
-          size: ResponsiveUtils.responsiveValue(
-            context,
-            smallMobile: 18.0,
-            largeMobile: 20.0,
-            tablet: 22.0,
-          )
+          icon,
+          color: const Color.fromARGB(255, 52, 52, 53),
+          size: 20,
         ),
-        label: ResponsiveText(
+        label: Text(
           text,
-          smallMobileFontSize: 14,
-          largeMobileFontSize: 15,
-          tabletFontSize: 16,
           style: TextStyle(
             color: Color.fromARGB(255, 64, 64, 65),
             fontWeight: FontWeight.w600,
+            fontSize: 16,
           ),
         ),
         style: OutlinedButton.styleFrom(
-          side: BorderSide(
-            color: Color.fromARGB(255, 130, 131, 131), 
-            width: 1
-          ),
+          side: BorderSide(color: Color.fromARGB(255, 130, 131, 131), width: 1),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(ResponsiveUtils.responsiveValue(
-              context,
-              smallMobile: 12.0,
-              largeMobile: 14.0,
-              tablet: 16.0,
-            )),
+            borderRadius: BorderRadius.circular(16),
           ),
         ),
       ),
@@ -1593,79 +745,35 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(ResponsiveUtils.responsiveValue(
-                context,
-                smallMobile: 16.0,
-                largeMobile: 18.0,
-                tablet: 20.0,
-              )),
-              topRight: Radius.circular(ResponsiveUtils.responsiveValue(
-                context,
-                smallMobile: 16.0,
-                largeMobile: 18.0,
-                tablet: 20.0,
-              )),
+              topLeft: Radius.circular(20),
+              topRight: Radius.circular(20),
             ),
           ),
           child: Column(
             children: [
               Container(
-                width: ResponsiveUtils.responsiveValue(
-                  context,
-                  smallMobile: 50.0,
-                  largeMobile: 55.0,
-                  tablet: 60.0,
-                ),
-                height: ResponsiveUtils.responsiveValue(
-                  context,
-                  smallMobile: 4.0,
-                  largeMobile: 5.0,
-                  tablet: 6.0,
-                ),
-                margin: EdgeInsets.symmetric(
-                  vertical: ResponsiveUtils.responsiveValue(
-                    context,
-                    smallMobile: 10.0,
-                    largeMobile: 12.0,
-                    tablet: 14.0,
-                  ),
-                ),
+                width: 60,
+                height: 5,
+                margin: EdgeInsets.symmetric(vertical: 12),
                 decoration: BoxDecoration(
                   color: Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(ResponsiveUtils.responsiveValue(
-                    context,
-                    smallMobile: 8.0,
-                    largeMobile: 10.0,
-                    tablet: 12.0,
-                  )),
+                  borderRadius: BorderRadius.circular(10),
                 ),
               ),
               Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: ResponsiveUtils.responsiveValue(
-                    context,
-                    smallMobile: 16.0,
-                    largeMobile: 18.0,
-                    tablet: 20.0,
-                  ),
-                ),
+                padding: EdgeInsets.symmetric(horizontal: 20),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    ResponsiveText(
+                    Text(
                       'Edit Profile',
-                      smallMobileFontSize: 16,
-                      largeMobileFontSize: 18,
-                      tabletFontSize: 20,
                       style: TextStyle(
+                        fontSize: 18,
                         fontWeight: FontWeight.w700,
                         color: Color(0xFF1E293B),
                       ),
                     ),
-                    IconButton(
-                      icon: Icon(Icons.close),
-                      onPressed: () => Navigator.pop(context),
-                    ),
+                    
                   ],
                 ),
               ),
@@ -1673,91 +781,63 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
               Expanded(
                 child: Scrollbar(
                   child: SingleChildScrollView(
-                    padding: EdgeInsets.all(ResponsiveUtils.responsiveValue(
-                      context,
-                      smallMobile: 12.0,
-                      largeMobile: 14.0,
-                      tablet: 16.0,
-                    )),
+                    padding: EdgeInsets.all(16),
                     child: Form(
                       key: _formKey,
                       child: Column(
                         children: [
-                          _buildTextField(_nameController, 'Full Name', Icons.person_outline),
-                          SizedBox(
-                            height: ResponsiveUtils.responsiveValue(
-                              context,
-                              smallMobile: 12.0,
-                              largeMobile: 14.0,
-                              tablet: 16.0,
-                            ),
+                          _buildTextField(
+                            _nameController,
+                            'Full Name',
+                            Icons.person_outline,
                           ),
-                          _buildTextField(_positionController, 'Position', Icons.work_outline),
-                          SizedBox(
-                            height: ResponsiveUtils.responsiveValue(
-                              context,
-                              smallMobile: 12.0,
-                              largeMobile: 14.0,
-                              tablet: 16.0,
-                            ),
+                          SizedBox(height: 16),
+                          _buildTextField(
+                            _positionController,
+                            'Position',
+                            Icons.work_outline,
                           ),
-                          _buildTextField(_emailController, 'Email', Icons.email_outlined, 
-                            keyboardType: TextInputType.emailAddress),
-                          SizedBox(
-                            height: ResponsiveUtils.responsiveValue(
-                              context,
-                              smallMobile: 12.0,
-                              largeMobile: 14.0,
-                              tablet: 16.0,
-                            ),
+                          SizedBox(height: 16),
+                          _buildTextField(
+                            _emailController,
+                            'Email',
+                            Icons.email_outlined,
+                            keyboardType: TextInputType.emailAddress,
                           ),
-                          _buildTextField(_phoneController, 'Phone', Icons.phone_outlined,
-                            keyboardType: TextInputType.phone),
-                          SizedBox(
-                            height: ResponsiveUtils.responsiveValue(
-                              context,
-                              smallMobile: 12.0,
-                              largeMobile: 14.0,
-                              tablet: 16.0,
-                            ),
+                          SizedBox(height: 16),
+                          _buildTextField(
+                            _phoneController,
+                            'Phone',
+                            Icons.phone_outlined,
+                            keyboardType: TextInputType.phone,
                           ),
-                          _buildTextField(_departmentController, 'Department', Icons.business_outlined),
-                          SizedBox(
-                            height: ResponsiveUtils.responsiveValue(
-                              context,
-                              smallMobile: 12.0,
-                              largeMobile: 14.0,
-                              tablet: 16.0,
-                            ),
+                          SizedBox(height: 16),
+                          _buildTextField(
+                            _departmentController,
+                            'Department',
+                            Icons.business_outlined,
                           ),
-                          _buildTextField(_projectsController, 'Assigned Projects', Icons.assignment_outlined),
-                          SizedBox(
-                            height: ResponsiveUtils.responsiveValue(
-                              context,
-                              smallMobile: 12.0,
-                              largeMobile: 14.0,
-                              tablet: 16.0,
-                            ),
+                          SizedBox(height: 16),
+                          _buildTextField(
+                            _projectsController,
+                            'Assigned Projects',
+                            Icons.assignment_outlined,
                           ),
-                          _buildTextField(_skillsController, 'Skills', Icons.build_outlined, maxLines: 2),
-                          SizedBox(
-                            height: ResponsiveUtils.responsiveValue(
-                              context,
-                              smallMobile: 12.0,
-                              largeMobile: 14.0,
-                              tablet: 16.0,
-                            ),
+                          SizedBox(height: 16),
+                          _buildTextField(
+                            _skillsController,
+                            'Skills',
+                            Icons.build_outlined,
+                            maxLines: 2,
                           ),
-                          _buildTextField(_experienceController, 'Experience', Icons.work_outline),
-                          SizedBox(
-                            height: ResponsiveUtils.responsiveValue(
-                              context,
-                              smallMobile: 20.0,
-                              largeMobile: 22.0,
-                              tablet: 24.0,
-                            ),
+                          SizedBox(height: 16),
+                          _buildTextField(
+                            _experienceController,
+                            'Experience',
+                            Icons.work_outline,
                           ),
-                          
+                          SizedBox(height: 24),
+
                           // Buttons
                           Row(
                             mainAxisAlignment: MainAxisAlignment.end,
@@ -1768,49 +848,24 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                                   foregroundColor: Colors.grey.shade700,
                                   side: BorderSide(color: Colors.grey.shade300),
                                   padding: EdgeInsets.symmetric(
-                                    horizontal: ResponsiveUtils.responsiveValue(
-                                      context,
-                                      smallMobile: 20.0,
-                                      largeMobile: 22.0,
-                                      tablet: 24.0,
-                                    ),
-                                    vertical: ResponsiveUtils.responsiveValue(
-                                      context,
-                                      smallMobile: 10.0,
-                                      largeMobile: 11.0,
-                                      tablet: 12.0,
-                                    ),
+                                    horizontal: 24,
+                                    vertical: 12,
                                   ),
                                   shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(ResponsiveUtils.responsiveValue(
-                                      context,
-                                      smallMobile: 6.0,
-                                      largeMobile: 7.0,
-                                      tablet: 8.0,
-                                    )),
+                                    borderRadius: BorderRadius.circular(8),
                                   ),
                                 ),
-                                child: ResponsiveText(
-                                  'Cancel',
-                                  smallMobileFontSize: 14,
-                                  largeMobileFontSize: 15,
-                                  tabletFontSize: 16,
-                                ),
+                                child: Text('Cancel'),
                               ),
-                              SizedBox(
-                                width: ResponsiveUtils.responsiveValue(
-                                  context,
-                                  smallMobile: 10.0,
-                                  largeMobile: 12.0,
-                                  tablet: 14.0,
-                                ),
-                              ),
+                              SizedBox(width: 12),
                               ElevatedButton(
                                 onPressed: () {
                                   if (_formKey.currentState!.validate()) {
                                     setState(() {});
                                     Navigator.pop(context);
-                                    _showSnackBar('Profile updated successfully');
+                                    _showSnackBar(
+                                      'Profile updated successfully',
+                                    );
                                   }
                                 },
                                 style: ElevatedButton.styleFrom(
@@ -1818,34 +873,14 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                                   foregroundColor: Colors.white,
                                   elevation: 0,
                                   padding: EdgeInsets.symmetric(
-                                    horizontal: ResponsiveUtils.responsiveValue(
-                                      context,
-                                      smallMobile: 20.0,
-                                      largeMobile: 22.0,
-                                      tablet: 24.0,
-                                    ),
-                                    vertical: ResponsiveUtils.responsiveValue(
-                                      context,
-                                      smallMobile: 10.0,
-                                      largeMobile: 11.0,
-                                      tablet: 12.0,
-                                    ),
+                                    horizontal: 24,
+                                    vertical: 12,
                                   ),
                                   shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(ResponsiveUtils.responsiveValue(
-                                      context,
-                                      smallMobile: 6.0,
-                                      largeMobile: 7.0,
-                                      tablet: 8.0,
-                                    )),
+                                    borderRadius: BorderRadius.circular(8),
                                   ),
                                 ),
-                                child: ResponsiveText(
-                                  'Save Changes',
-                                  smallMobileFontSize: 14,
-                                  largeMobileFontSize: 15,
-                                  tabletFontSize: 16,
-                                ),
+                                child: Text('Save Changes'),
                               ),
                             ],
                           ),
@@ -1862,85 +897,38 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
     );
   }
 
-  Widget _buildTextField(TextEditingController controller, String label, IconData icon, 
-    {TextInputType? keyboardType, int maxLines = 1}) {
+  Widget _buildTextField(
+    TextEditingController controller,
+    String label,
+    IconData icon, {
+    TextInputType? keyboardType,
+    int maxLines = 1,
+  }) {
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
       maxLines: maxLines,
-      style: TextStyle(
-        fontSize: ResponsiveUtils.responsiveValue(
-          context,
-          smallMobile: 12.0,
-          largeMobile: 13.0,
-          tablet: 14.0,
-        ),
-      ),
+      style: TextStyle(fontSize: 14),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: TextStyle(
-          color: Colors.grey.shade600,
-          fontSize: ResponsiveUtils.responsiveValue(
-            context,
-            smallMobile: 11.0,
-            largeMobile: 12.0,
-            tablet: 13.0,
-          ),
-        ),
-        floatingLabelStyle: TextStyle(color: Color(0xFF6f88e2)),
-        prefixIcon: Icon(
-          icon, 
-          color: Colors.grey.shade500, 
-          size: ResponsiveUtils.responsiveValue(
-            context,
-            smallMobile: 18.0,
-            largeMobile: 20.0,
-            tablet: 22.0,
-          )
-        ),
+        labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+        floatingLabelStyle: TextStyle(color: Color(0xFF6f88e2),fontSize: 14),
+        prefixIcon: Icon(icon, color: Colors.grey.shade500, size: 15),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(ResponsiveUtils.responsiveValue(
-            context,
-            smallMobile: 6.0,
-            largeMobile: 7.0,
-            tablet: 8.0,
-          )),
+          borderRadius: BorderRadius.circular(8),
           borderSide: BorderSide(color: Colors.grey.shade300),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(ResponsiveUtils.responsiveValue(
-            context,
-            smallMobile: 6.0,
-            largeMobile: 7.0,
-            tablet: 8.0,
-          )),
+          borderRadius: BorderRadius.circular(8),
           borderSide: BorderSide(color: Colors.grey.shade300),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(ResponsiveUtils.responsiveValue(
-            context,
-            smallMobile: 6.0,
-            largeMobile: 7.0,
-            tablet: 8.0,
-          )),
+          borderRadius: BorderRadius.circular(8),
           borderSide: BorderSide(color: Color(0xFF6f88e2), width: 1),
         ),
         filled: true,
         fillColor: Colors.white,
-        contentPadding: EdgeInsets.symmetric(
-          horizontal: ResponsiveUtils.responsiveValue(
-            context,
-            smallMobile: 14.0,
-            largeMobile: 16.0,
-            tablet: 18.0,
-          ),
-          vertical: ResponsiveUtils.responsiveValue(
-            context,
-            smallMobile: 12.0,
-            largeMobile: 13.0,
-            tablet: 14.0,
-          ),
-        ),
+        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       ),
       validator: (value) {
         if (label.contains('Name') || label.contains('Email')) {
@@ -1958,70 +946,31 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
 
   Widget _buildDetailItem(IconData icon, String label, String value) {
     return Padding(
-      padding: EdgeInsets.symmetric(
-        vertical: ResponsiveUtils.responsiveValue(
-          context,
-          smallMobile: 10.0,
-          largeMobile: 12.0,
-          tablet: 14.0,
-        ),
-      ),
+      padding: EdgeInsets.symmetric(vertical: 12),
       child: Row(
         children: [
           Container(
-            padding: EdgeInsets.all(ResponsiveUtils.responsiveValue(
-              context,
-              smallMobile: 8.0,
-              largeMobile: 10.0,
-              tablet: 12.0,
-            )),
-            child: Icon(
-              icon, 
-              size: ResponsiveUtils.responsiveValue(
-                context,
-                smallMobile: 18.0,
-                largeMobile: 20.0,
-                tablet: 22.0,
-              ), 
-              color: Color.fromARGB(255, 59, 59, 59)
-            ),
+            padding: EdgeInsets.all(10),
+            child: Icon(icon, size: 20, color: Color.fromARGB(255, 59, 59, 59)),
           ),
-          SizedBox(
-            width: ResponsiveUtils.responsiveValue(
-              context,
-              smallMobile: 8.0,
-              largeMobile: 10.0,
-              tablet: 12.0,
-            ),
-          ),
+          SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                ResponsiveText(
+                Text(
                   label,
-                  smallMobileFontSize: 12,
-                  largeMobileFontSize: 13,
-                  tabletFontSize: 14,
                   style: TextStyle(
+                    fontSize: 14,
                     color: Color(0xFF64748B),
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                SizedBox(
-                  height: ResponsiveUtils.responsiveValue(
-                    context,
-                    smallMobile: 1.0,
-                    largeMobile: 2.0,
-                    tablet: 3.0,
-                  ),
-                ),
-                ResponsiveText(
+                SizedBox(height: 2),
+                Text(
                   value,
-                  smallMobileFontSize: 14,
-                  largeMobileFontSize: 15,
-                  tabletFontSize: 16,
                   style: TextStyle(
+                    fontSize: 16,
                     color: Color(0xFF1E293B),
                     fontWeight: FontWeight.w600,
                   ),
@@ -2041,206 +990,109 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
     bool isPrimary = false,
   }) {
     return Container(
-      height: ResponsiveUtils.responsiveValue(
-        context,
-        smallMobile: 36.0,
-        largeMobile: 38.0,
-        tablet: 40.0,
-      ),
+      height: 40,
       decoration: BoxDecoration(
-        color: Color.fromARGB(255, 210, 219, 250),
-        borderRadius: BorderRadius.circular(ResponsiveUtils.responsiveValue(
-          context,
-          smallMobile: 12.0,
-          largeMobile: 14.0,
-          tablet: 16.0,
-        )),
+        color: Color.fromARGB(255, 218, 226, 252),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Color.fromARGB(255, 129, 129, 129).withOpacity(0.3),
-            blurRadius: ResponsiveUtils.responsiveValue(
-              context,
-              smallMobile: 10.0,
-              largeMobile: 11.0,
-              tablet: 12.0,
-            ),
-            offset: Offset(0, 6),
+            color: Color.fromARGB(255, 109, 109, 109).withOpacity(0.2),
+            blurRadius: 5,
+            offset: Offset(0, 3),
           ),
         ],
       ),
       child: ElevatedButton.icon(
         onPressed: onPressed,
-        icon: Icon(
-          icon, 
-          color: Color.fromARGB(255, 5, 18, 61), 
-          size: ResponsiveUtils.responsiveValue(
-            context,
-            smallMobile: 18.0,
-            largeMobile: 20.0,
-            tablet: 22.0,
-          )
-        ),
-        label: ResponsiveText(
+        icon: Icon(icon, color: Color.fromARGB(255, 5, 18, 61), size: 20),
+        label: Text(
           text,
-          smallMobileFontSize: 14,
-          largeMobileFontSize: 15,
-          tabletFontSize: 16,
           style: TextStyle(
             color: Color.fromARGB(255, 54, 54, 54),
             fontWeight: FontWeight.w600,
+            fontSize: 16,
           ),
         ),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.transparent,
-          shadowColor: Colors.transparent,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(ResponsiveUtils.responsiveValue(
-              context,
-              smallMobile: 12.0,
-              largeMobile: 14.0,
-              tablet: 16.0,
-            )),
-          ),
-        ).copyWith(
-          backgroundColor: MaterialStateProperty.all(Colors.transparent),
-        ),
+        style:
+            ElevatedButton.styleFrom(
+              backgroundColor: Colors.transparent,
+              shadowColor: Colors.transparent,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ).copyWith(
+              backgroundColor: MaterialStateProperty.all(Colors.transparent),
+            ),
       ),
     );
   }
-  
+
   Widget _buildLeaveManagementCard() {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(ResponsiveUtils.responsiveValue(
-          context,
-          smallMobile: 16.0,
-          largeMobile: 20.0,
-          tablet: 24.0,
-        )),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
             color: Color(0xFF667EEA).withOpacity(0.08),
-            blurRadius: ResponsiveUtils.responsiveValue(
-              context,
-              smallMobile: 12.0,
-              largeMobile: 16.0,
-              tablet: 20.0,
-            ),
+            blurRadius: 20,
             offset: Offset(0, 8),
           ),
         ],
       ),
       child: Padding(
-        padding: EdgeInsets.all(ResponsiveUtils.responsiveValue(
-          context,
-          smallMobile: 16.0,
-          largeMobile: 18.0,
-          tablet: 20.0,
-        )),
+        padding: EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
                 Container(
-                  padding: EdgeInsets.all(ResponsiveUtils.responsiveValue(
-                    context,
-                    smallMobile: 4.0,
-                    largeMobile: 5.0,
-                    tablet: 6.0,
-                  )),
+                  padding: EdgeInsets.all(5),
                   child: Icon(
-                    Icons.calendar_today, 
-                    color: Color.fromARGB(255, 32, 32, 32), 
-                    size: ResponsiveUtils.responsiveValue(
-                      context,
-                      smallMobile: 20.0,
-                      largeMobile: 22.0,
-                      tablet: 24.0,
-                    )
+                    Icons.calendar_today,
+                    color: Color.fromARGB(255, 32, 32, 32),
+                    size: 24,
                   ),
                 ),
-                SizedBox(
-                  width: ResponsiveUtils.responsiveValue(
-                    context,
-                    smallMobile: 6.0,
-                    largeMobile: 8.0,
-                    tablet: 10.0,
-                  ),
-                ),
-                ResponsiveText(
+                SizedBox(width: 8),
+                Text(
                   'Leave Management',
-                  smallMobileFontSize: 16,
-                  largeMobileFontSize: 17,
-                  tabletFontSize: 18,
                   style: TextStyle(
+                    fontSize: 18,
                     fontWeight: FontWeight.w700,
                     color: Color(0xFF1E293B),
                   ),
                 ),
               ],
             ),
-            SizedBox(
-              height: ResponsiveUtils.responsiveValue(
-                context,
-                smallMobile: 12.0,
-                largeMobile: 14.0,
-                tablet: 16.0,
-              ),
-            ),
-            
+            SizedBox(height: 15),
+
             // Leave Balance Information
             Container(
-              width: ResponsiveUtils.responsiveValue(
-                context,
-                smallMobile: 180.0,
-                largeMobile: 200.0,
-                tablet: 220.0,
-              ),
-              padding: EdgeInsets.all(ResponsiveUtils.responsiveValue(
-                context,
-                smallMobile: 10.0,
-                largeMobile: 11.0,
-                tablet: 12.0,
-              )),
+              width: 220,
+              padding: EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: Color(0xFFF8FAFC),
-                borderRadius: BorderRadius.circular(ResponsiveUtils.responsiveValue(
-                  context,
-                  smallMobile: 8.0,
-                  largeMobile: 10.0,
-                  tablet: 12.0,
-                )),
+                borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Column(
                     children: [
-                      ResponsiveText(
+                      Text(
                         'Available Leaves',
-                        smallMobileFontSize: 10,
-                        largeMobileFontSize: 11,
-                        tabletFontSize: 12,
                         style: TextStyle(
+                          fontSize: 12,
                           color: Color(0xFF64748B),
                         ),
                       ),
-                      SizedBox(
-                        height: ResponsiveUtils.responsiveValue(
-                          context,
-                          smallMobile: 2.0,
-                          largeMobile: 3.0,
-                          tablet: 4.0,
-                        ),
-                      ),
-                      ResponsiveText(
+                      SizedBox(height: 4),
+                      Text(
                         '$_availableLeaves days',
-                        smallMobileFontSize: 14,
-                        largeMobileFontSize: 15,
-                        tabletFontSize: 16,
                         style: TextStyle(
+                          fontSize: 16,
                           fontWeight: FontWeight.w700,
                           color: Color(0xFF1E293B),
                         ),
@@ -2249,29 +1101,18 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                   ),
                   Column(
                     children: [
-                      ResponsiveText(
+                      Text(
                         'Sunday Credits',
-                        smallMobileFontSize: 10,
-                        largeMobileFontSize: 11,
-                        tabletFontSize: 12,
                         style: TextStyle(
+                          fontSize: 12,
                           color: Color(0xFF64748B),
                         ),
                       ),
-                      SizedBox(
-                        height: ResponsiveUtils.responsiveValue(
-                          context,
-                          smallMobile: 2.0,
-                          largeMobile: 3.0,
-                          tablet: 4.0,
-                        ),
-                      ),
-                      ResponsiveText(
+                      SizedBox(height: 4),
+                      Text(
                         '$_sundayCredits days',
-                        smallMobileFontSize: 14,
-                        largeMobileFontSize: 15,
-                        tabletFontSize: 16,
                         style: TextStyle(
+                          fontSize: 16,
                           fontWeight: FontWeight.w700,
                           color: Color(0xFF1E293B),
                         ),
@@ -2281,15 +1122,8 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                 ],
               ),
             ),
-            SizedBox(
-              height: ResponsiveUtils.responsiveValue(
-                context,
-                smallMobile: 16.0,
-                largeMobile: 18.0,
-                tablet: 20.0,
-              ),
-            ),
-            
+            SizedBox(height: 20),
+
             // Apply Leave Button
             _buildGradientButton(
               onPressed: _showApplyLeaveDialog,
@@ -2297,25 +1131,16 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
               icon: Icons.add,
               isPrimary: true,
             ),
-            SizedBox(
-              height: ResponsiveUtils.responsiveValue(
-                context,
-                smallMobile: 10.0,
-                largeMobile: 12.0,
-                tablet: 14.0,
-              ),
-            ),
-            
+            SizedBox(height: 12),
+
             // Leave Requests Header
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                ResponsiveText(
+                Text(
                   'My Leave Requests',
-                  smallMobileFontSize: 14,
-                  largeMobileFontSize: 15,
-                  tabletFontSize: 16,
                   style: TextStyle(
+                    fontSize: 16,
                     fontWeight: FontWeight.w600,
                     color: Color(0xFF1E293B),
                   ),
@@ -2325,11 +1150,8 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                     // View all leave requests
                     _showAllLeaveRequests();
                   },
-                  child: ResponsiveText(
+                  child: Text(
                     'View All',
-                    smallMobileFontSize: 12,
-                    largeMobileFontSize: 13,
-                    tabletFontSize: 14,
                     style: TextStyle(
                       color: Color(0xFF4a63c0),
                       fontWeight: FontWeight.w600,
@@ -2338,18 +1160,14 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                 ),
               ],
             ),
-            SizedBox(
-              height: ResponsiveUtils.responsiveValue(
-                context,
-                smallMobile: 4.0,
-                largeMobile: 6.0,
-                tablet: 8.0,
-              ),
-            ),
-            
+            SizedBox(height: 6),
+
             // Recent Leave Requests
             Column(
-              children: _leaveRequests.take(2).map((request) => _buildLeaveRequestItem(request)).toList(),
+              children: _leaveRequests
+                  .take(2)
+                  .map((request) => _buildLeaveRequestItem(request))
+                  .toList(),
             ),
           ],
         ),
@@ -2370,40 +1188,18 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
       default:
         statusColor = Colors.orange;
     }
-    
+
     return Container(
-      margin: EdgeInsets.only(
-        bottom: ResponsiveUtils.responsiveValue(
-          context,
-          smallMobile: 10.0,
-          largeMobile: 12.0,
-          tablet: 14.0,
-        ),
-      ),
-      padding: EdgeInsets.all(ResponsiveUtils.responsiveValue(
-        context,
-        smallMobile: 12.0,
-        largeMobile: 14.0,
-        tablet: 16.0,
-      )),
+      margin: EdgeInsets.only(bottom: 12),
+      padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(ResponsiveUtils.responsiveValue(
-          context,
-          smallMobile: 8.0,
-          largeMobile: 10.0,
-          tablet: 12.0,
-        )),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.grey.shade200),
         boxShadow: [
           BoxShadow(
             color: Colors.grey.withOpacity(0.1),
-            blurRadius: ResponsiveUtils.responsiveValue(
-              context,
-              smallMobile: 4.0,
-              largeMobile: 5.0,
-              tablet: 6.0,
-            ),
+            blurRadius: 6,
             offset: Offset(0, 2),
           ),
         ],
@@ -2414,87 +1210,41 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              ResponsiveText(
+              Text(
                 request.type,
-                smallMobileFontSize: 14,
-                largeMobileFontSize: 15,
-                tabletFontSize: 16,
                 style: TextStyle(
                   fontWeight: FontWeight.w600,
+                  fontSize: 16,
                   color: Color(0xFF1E293B),
                 ),
               ),
               Container(
-                padding: EdgeInsets.symmetric(
-                  horizontal: ResponsiveUtils.responsiveValue(
-                    context,
-                    smallMobile: 10.0,
-                    largeMobile: 11.0,
-                    tablet: 12.0,
-                  ),
-                  vertical: ResponsiveUtils.responsiveValue(
-                    context,
-                    smallMobile: 3.0,
-                    largeMobile: 4.0,
-                    tablet: 5.0,
-                  ),
-                ),
+                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                 decoration: BoxDecoration(
                   color: statusColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(ResponsiveUtils.responsiveValue(
-                    context,
-                    smallMobile: 8.0,
-                    largeMobile: 10.0,
-                    tablet: 12.0,
-                  )),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                child: ResponsiveText(
+                child: Text(
                   request.status,
-                  smallMobileFontSize: 10,
-                  largeMobileFontSize: 11,
-                  tabletFontSize: 12,
                   style: TextStyle(
                     color: statusColor,
                     fontWeight: FontWeight.w600,
+                    fontSize: 12,
                   ),
                 ),
               ),
             ],
           ),
-          SizedBox(
-            height: ResponsiveUtils.responsiveValue(
-              context,
-              smallMobile: 6.0,
-              largeMobile: 7.0,
-              tablet: 8.0,
-            ),
-          ),
-          ResponsiveText(
+          SizedBox(height: 8),
+          Text(
             '${DateFormat('MMM dd, yyyy').format(request.startDate)} - ${DateFormat('MMM dd, yyyy').format(request.endDate)}',
-            smallMobileFontSize: 12,
-            largeMobileFontSize: 13,
-            tabletFontSize: 14,
-            style: TextStyle(
-              color: Color(0xFF64748B),
-            ),
+            style: TextStyle(color: Color(0xFF64748B), fontSize: 14),
           ),
-          SizedBox(
-            height: ResponsiveUtils.responsiveValue(
-              context,
-              smallMobile: 6.0,
-              largeMobile: 7.0,
-              tablet: 8.0,
-            ),
-          ),
+          SizedBox(height: 8),
           if (request.reason.isNotEmpty)
-            ResponsiveText(
+            Text(
               'Reason: ${request.reason}',
-              smallMobileFontSize: 12,
-              largeMobileFontSize: 13,
-              tabletFontSize: 14,
-              style: TextStyle(
-                color: Color(0xFF64748B),
-              ),
+              style: TextStyle(color: Color(0xFF64748B), fontSize: 14),
             ),
         ],
       ),
@@ -2545,7 +1295,7 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                   ),
                 ],
               ),
-              child: Wrap( // <-- auto size to content
+              child: Wrap(
                 children: [
                   // drag handle
                   Center(
@@ -2554,8 +1304,8 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                       height: 5,
                       margin: EdgeInsets.symmetric(vertical: 12),
                       decoration: BoxDecoration(
-                        color: Colors.grey.shade300,
-                        borderRadius: BorderRadius.circular(10),
+                        color: const Color.fromARGB(255, 201, 200, 200),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                     ),
                   ),
@@ -2579,10 +1329,6 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                             color: Color(0xFF1E293B),
                           ),
                         ),
-                        IconButton(
-                          icon: Icon(Icons.close),
-                          onPressed: () => Navigator.pop(context),
-                        ),
                       ],
                     ),
                   ),
@@ -2597,9 +1343,24 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                         DropdownButtonFormField<String>(
                           decoration: InputDecoration(
                             labelText: 'Leave Type',
-                            border: OutlineInputBorder(),
                             filled: true,
-                            fillColor: Color(0xFFF8FAFC),
+                            fillColor: Color.fromARGB(255, 255, 255, 255),
+                            contentPadding: EdgeInsets.all(16),
+                            
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: const Color.fromARGB(255, 216, 216, 216),
+                                width: 1.0,
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: const Color.fromARGB(255, 108, 134, 247),
+                                width: 1.0,
+                              ),
+                            ),
                           ),
                           value: selectedLeaveType,
                           items: leaveTypes.map((type) {
@@ -2631,7 +1392,9 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                                     context: context,
                                     initialDate: DateTime.now(),
                                     firstDate: DateTime.now(),
-                                    lastDate: DateTime.now().add(Duration(days: 365)),
+                                    lastDate: DateTime.now().add(
+                                      Duration(days: 365),
+                                    ),
                                   );
                                   if (date != null) {
                                     setState(() {
@@ -2642,13 +1405,29 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                                 child: InputDecorator(
                                   decoration: InputDecoration(
                                     labelText: 'Start Date',
-                                    border: OutlineInputBorder(),
                                     filled: true,
-                                    fillColor: Color(0xFFF8FAFC),
+                                    fillColor: Color.fromARGB(255, 255, 255, 255),
+                                    
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      borderSide: BorderSide(
+                                        color:  const Color.fromARGB(255, 212, 212, 212),
+                                        width: 1.0,
+                                      ),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      borderSide: BorderSide(
+                                        color:const Color.fromARGB(255, 108, 134, 247),
+                                        width: 1.0,
+                                      ),
+                                    ),
                                   ),
                                   child: ResponsiveText(
                                     _leaveStartDate != null
-                                        ? DateFormat('MMM dd, yyyy').format(_leaveStartDate!)
+                                        ? DateFormat(
+                                            'MMM dd, yyyy',
+                                          ).format(_leaveStartDate!)
                                         : 'Select date',
                                     smallMobileFontSize: 14,
                                     largeMobileFontSize: 15,
@@ -2662,14 +1441,20 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                               child: InkWell(
                                 onTap: () async {
                                   if (_leaveStartDate == null) {
-                                    _showSnackBar('Please select start date first');
+                                    _showSnackBar(
+                                      'Please select start date first',
+                                    );
                                     return;
                                   }
                                   final date = await showDatePicker(
                                     context: context,
-                                    initialDate: _leaveStartDate!.add(Duration(days: 1)),
+                                    initialDate: _leaveStartDate!.add(
+                                      Duration(days: 1),
+                                    ),
                                     firstDate: _leaveStartDate!,
-                                    lastDate: DateTime.now().add(Duration(days: 365)),
+                                    lastDate: DateTime.now().add(
+                                      Duration(days: 365),
+                                    ),
                                   );
                                   if (date != null) {
                                     setState(() {
@@ -2680,13 +1465,29 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                                 child: InputDecorator(
                                   decoration: InputDecoration(
                                     labelText: 'End Date',
-                                    border: OutlineInputBorder(),
                                     filled: true,
-                                    fillColor: Color(0xFFF8FAFC),
+                                    fillColor: Color.fromARGB(255, 255, 255, 255),
+                                   
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      borderSide: BorderSide(
+                                        color:  const Color.fromARGB(255, 211, 211, 211),
+                                        width: 1.0,
+                                      ),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      borderSide: BorderSide(
+                                        color:const Color.fromARGB(255, 108, 134, 247),
+                                        width: 1.0,
+                                      ),
+                                    ),
                                   ),
                                   child: ResponsiveText(
                                     _leaveEndDate != null
-                                        ? DateFormat('MMM dd, yyyy').format(_leaveEndDate!)
+                                        ? DateFormat(
+                                            'MMM dd, yyyy',
+                                          ).format(_leaveEndDate!)
                                         : 'Select date',
                                     smallMobileFontSize: 14,
                                     largeMobileFontSize: 15,
@@ -2705,9 +1506,23 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                           maxLines: 3,
                           decoration: InputDecoration(
                             labelText: 'Reason',
-                            border: OutlineInputBorder(),
                             filled: true,
-                            fillColor: Color(0xFFF8FAFC),
+                            fillColor: Color.fromARGB(255, 255, 255, 255),
+                           
+                            enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      borderSide: BorderSide(
+                                        color:  const Color.fromARGB(255, 216, 216, 216),
+                                        width: 1.0,
+                                      ),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      borderSide: BorderSide(
+                                        color:const Color.fromARGB(255, 108, 134, 247),
+                                        width: 1.0,
+                                      ),
+                            ),
                           ),
                         ),
                         SizedBox(height: 20),
@@ -2732,12 +1547,15 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                                   _showSnackBar('Please select leave type');
                                   return;
                                 }
-                                if (_leaveStartDate == null || _leaveEndDate == null) {
+                                if (_leaveStartDate == null ||
+                                    _leaveEndDate == null) {
                                   _showSnackBar('Please select date range');
                                   return;
                                 }
                                 if (_leaveReasonController.text.isEmpty) {
-                                  _showSnackBar('Please enter reason for leave');
+                                  _showSnackBar(
+                                    'Please enter reason for leave',
+                                  );
                                   return;
                                 }
 
@@ -2753,7 +1571,11 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                                 setState(() {
                                   _leaveRequests.insert(0, newRequest);
                                   if (selectedLeaveType != 'Compensation') {
-                                    final days = _leaveEndDate!.difference(_leaveStartDate!).inDays + 1;
+                                    final days =
+                                        _leaveEndDate!
+                                            .difference(_leaveStartDate!)
+                                            .inDays +
+                                        1;
                                     _availableLeaves -= days;
                                   }
                                 });
@@ -2763,12 +1585,14 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                                 _leaveReasonController.clear();
 
                                 Navigator.pop(context);
-                                _showSnackBar('Leave request submitted successfully');
+                                _showSnackBar(
+                                  'Leave request submitted successfully',
+                                );
                               },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Color(0xFF6f88e2),
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
                               ),
                               child: ResponsiveText(
@@ -2793,9 +1617,6 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
     },
   );
 }
-
-
-
   void _showAllLeaveRequests() {
     showModalBottomSheet(
       context: context,
@@ -2807,79 +1628,35 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(ResponsiveUtils.responsiveValue(
-                context,
-                smallMobile: 16.0,
-                largeMobile: 18.0,
-                tablet: 20.0,
-              )),
-              topRight: Radius.circular(ResponsiveUtils.responsiveValue(
-                context,
-                smallMobile: 16.0,
-                largeMobile: 18.0,
-                tablet: 20.0,
-              )),
+              topLeft: Radius.circular(20),
+              topRight: Radius.circular(20),
             ),
           ),
           child: Column(
             children: [
               Container(
-                width: ResponsiveUtils.responsiveValue(
-                  context,
-                  smallMobile: 50.0,
-                  largeMobile: 55.0,
-                  tablet: 60.0,
-                ),
-                height: ResponsiveUtils.responsiveValue(
-                  context,
-                  smallMobile: 4.0,
-                  largeMobile: 5.0,
-                  tablet: 6.0,
-                ),
-                margin: EdgeInsets.symmetric(
-                  vertical: ResponsiveUtils.responsiveValue(
-                    context,
-                    smallMobile: 10.0,
-                    largeMobile: 12.0,
-                    tablet: 14.0,
-                  ),
-                ),
+                width: 60,
+                height: 5,
+                margin: EdgeInsets.symmetric(vertical: 12),
                 decoration: BoxDecoration(
                   color: Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(ResponsiveUtils.responsiveValue(
-                    context,
-                    smallMobile: 8.0,
-                    largeMobile: 10.0,
-                    tablet: 12.0,
-                  )),
+                  borderRadius: BorderRadius.circular(10),
                 ),
               ),
               Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: ResponsiveUtils.responsiveValue(
-                    context,
-                    smallMobile: 16.0,
-                    largeMobile: 18.0,
-                    tablet: 20.0,
-                  ),
-                ),
+                padding: EdgeInsets.symmetric(horizontal: 20),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    ResponsiveText(
+                    Text(
                       'All Leave Requests',
-                      smallMobileFontSize: 16,
-                      largeMobileFontSize: 18,
-                      tabletFontSize: 20,
                       style: TextStyle(
+                        fontSize: 18,
                         fontWeight: FontWeight.w700,
                         color: Color(0xFF1E293B),
                       ),
                     ),
-                    IconButton(
-                      icon: Icon(Icons.close),
-                      onPressed: () => Navigator.pop(context),
-                    ),
+                    
                   ],
                 ),
               ),
@@ -2887,12 +1664,7 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
               Expanded(
                 child: Scrollbar(
                   child: ListView.builder(
-                    padding: EdgeInsets.all(ResponsiveUtils.responsiveValue(
-                      context,
-                      smallMobile: 12.0,
-                      largeMobile: 14.0,
-                      tablet: 16.0,
-                    )),
+                    padding: EdgeInsets.all(16),
                     itemCount: _leaveRequests.length,
                     itemBuilder: (context, index) {
                       return _buildLeaveRequestItem(_leaveRequests[index]);
@@ -2901,40 +1673,20 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                 ),
               ),
               Padding(
-                padding: EdgeInsets.all(ResponsiveUtils.responsiveValue(
-                  context,
-                  smallMobile: 12.0,
-                  largeMobile: 14.0,
-                  tablet: 16.0,
-                )),
+                padding: EdgeInsets.all(16),
                 child: SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: () => Navigator.pop(context),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Color(0xFF6f88e2),
-                      padding: EdgeInsets.symmetric(
-                        vertical: ResponsiveUtils.responsiveValue(
-                          context,
-                          smallMobile: 14.0,
-                          largeMobile: 16.0,
-                          tablet: 18.0,
-                        ),
-                      ),
+                      padding: EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(ResponsiveUtils.responsiveValue(
-                          context,
-                          smallMobile: 8.0,
-                          largeMobile: 10.0,
-                          tablet: 12.0,
-                        )),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    child: ResponsiveText(
+                    child: Text(
                       'Close',
-                      smallMobileFontSize: 14,
-                      largeMobileFontSize: 15,
-                      tabletFontSize: 16,
                       style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.w600,
@@ -2953,29 +1705,14 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
   void _showSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: ResponsiveText(
+        content: Text(
           message,
-          smallMobileFontSize: 14,
-          largeMobileFontSize: 15,
-          tabletFontSize: 16,
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
         ),
         backgroundColor: Color(0xFF1E293B),
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(ResponsiveUtils.responsiveValue(
-            context,
-            smallMobile: 8.0,
-            largeMobile: 10.0,
-            tablet: 12.0,
-          )),
-        ),
-        margin: EdgeInsets.all(ResponsiveUtils.responsiveValue(
-          context,
-          smallMobile: 12.0,
-          largeMobile: 14.0,
-          tablet: 16.0,
-        )),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: EdgeInsets.all(16),
         duration: Duration(seconds: 3),
         action: SnackBarAction(
           label: 'OK',

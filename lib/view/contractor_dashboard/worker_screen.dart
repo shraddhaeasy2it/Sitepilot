@@ -1,7 +1,10 @@
+
 import 'package:ecoteam_app/models/dashboard/site_model.dart';
+import 'package:ecoteam_app/provider/worker_provider.dart';
 import 'package:ecoteam_app/view/contractor_dashboard/worker_chat_screen.dart';
 import 'package:ecoteam_app/view/contractor_dashboard/worker_edit_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class WorkersScreen extends StatefulWidget {
   final String? selectedSiteId;
@@ -26,62 +29,6 @@ class _WorkersScreenState extends State<WorkersScreen>
   late String _selectedSiteId;
   AnimationController? _animationController;
   String? _searchQueryForSites;
-
-  // Worker data
-  List<Map<String, dynamic>> workers = [
-    {
-      'id': '1',
-      'name': 'John Smith',
-      'role': 'Welder',
-      'siteId': 'site1',
-      'site': 'Site A',
-      'status': 'Present',
-      'avatar': 'JS',
-      'timeIn': '08:00 AM',
-      'late': false,
-      'phone': '+1 555-123-4567',
-      'email': 'john.smith@example.com',
-    },
-    {
-      'id': '2',
-      'name': 'Maria Garcia',
-      'role': 'Supervisor',
-      'siteId': 'site2',
-      'site': 'Site B',
-      'status': 'Present',
-      'avatar': 'MG',
-      'timeIn': '07:45 AM',
-      'late': false,
-      'phone': '+1 555-234-5678',
-      'email': 'maria.garcia@example.com',
-    },
-    {
-      'id': '3',
-      'name': 'Robert Johnson',
-      'role': 'Carpenter',
-      'siteId': 'site1',
-      'site': 'Site A',
-      'status': 'Late',
-      'avatar': 'RJ',
-      'timeIn': '08:35 AM',
-      'late': true,
-      'phone': '+1 555-345-6789',
-      'email': 'robert.johnson@example.com',
-    },
-    {
-      'id': '4',
-      'name': 'Sarah Williams',
-      'role': 'Electrician',
-      'siteId': 'site3',
-      'site': 'Site C',
-      'status': 'Absent',
-      'avatar': 'SW',
-      'timeIn': '',
-      'late': false,
-      'phone': '+1 555-456-7890',
-      'email': 'sarah.williams@example.com',
-    },
-  ];
 
   @override
   void initState() {
@@ -119,21 +66,19 @@ class _WorkersScreenState extends State<WorkersScreen>
 
   // Filter workers based on search and filters
   List<Map<String, dynamic>> get filteredWorkers {
-    return workers.where((worker) {
+    final workerProvider = Provider.of<WorkerProvider>(context);
+    return workerProvider.workers.where((worker) {
       final matchesSearch =
           worker['name'].toString().toLowerCase().contains(
-            _searchQuery.toLowerCase(),
-          ) ||
-          worker['role'].toString().toLowerCase().contains(
-            _searchQuery.toLowerCase(),
-          );
-
+                _searchQuery.toLowerCase(),
+              ) ||
+              worker['role'].toString().toLowerCase().contains(
+                _searchQuery.toLowerCase(),
+              );
       final matchesFilter =
           _selectedFilter == 'All' || worker['status'] == _selectedFilter;
-
       final matchesSite =
           _selectedSiteId.isEmpty || worker['siteId'] == _selectedSiteId;
-
       return matchesSearch && matchesFilter && matchesSite;
     }).toList();
   }
@@ -142,7 +87,6 @@ class _WorkersScreenState extends State<WorkersScreen>
     setState(() {
       _searchQueryForSites = ''; // Reset search query when opening
     });
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -207,8 +151,8 @@ class _WorkersScreenState extends State<WorkersScreen>
                         if (_searchQueryForSites != null &&
                             _searchQueryForSites!.isNotEmpty &&
                             !site.name.toLowerCase().contains(
-                              _searchQueryForSites!.toLowerCase(),
-                            )) {
+                                  _searchQueryForSites!.toLowerCase(),
+                                )) {
                           return const SizedBox.shrink();
                         }
                         return ListTile(
@@ -263,17 +207,17 @@ class _WorkersScreenState extends State<WorkersScreen>
                     widget.sites.isEmpty
                         ? 'No Sites'
                         : (_selectedSiteId.isEmpty
-                              ? 'All Sites'
-                              : widget.sites
-                                    .firstWhere(
-                                      (site) => site.id == _selectedSiteId,
-                                      orElse: () => Site(
-                                        id: '',
-                                        name: 'Unknown Site',
-                                        address: '',
-                                      ),
-                                    )
-                                    .name),
+                            ? 'All Sites'
+                            : widget.sites
+                                .firstWhere(
+                                  (site) => site.id == _selectedSiteId,
+                                  orElse: () => Site(
+                                    id: '',
+                                    name: 'Unknown Site',
+                                    address: '',
+                                  ),
+                                )
+                                .name),
                     style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.w500,
@@ -532,19 +476,59 @@ class _WorkersScreenState extends State<WorkersScreen>
   }
 
   Widget _buildWorkerList() {
-    return ListView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: filteredWorkers.length,
-      itemBuilder: (context, index) {
-        final worker = filteredWorkers[index];
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: AnimatedContainer(
-            duration: Duration(milliseconds: 300 + (index * 50)),
-            curve: Curves.easeOutCubic,
-            child: _buildWorkerCard(worker),
-          ),
+    return Consumer<WorkerProvider>(
+      builder: (context, workerProvider, child) {
+        final workers = workerProvider.workers.where((worker) {
+          final matchesSearch =
+              worker['name'].toString().toLowerCase().contains(
+                    _searchQuery.toLowerCase(),
+                  ) ||
+                  worker['role'].toString().toLowerCase().contains(
+                    _searchQuery.toLowerCase(),
+                  );
+          final matchesFilter =
+              _selectedFilter == 'All' || worker['status'] == _selectedFilter;
+          final matchesSite =
+              _selectedSiteId.isEmpty || worker['siteId'] == _selectedSiteId;
+          return matchesSearch && matchesFilter && matchesSite;
+        }).toList();
+
+        if (workers.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.person_off, size: 60, color: Colors.grey[400]),
+                const SizedBox(height: 16),
+                Text(
+                  'No workers found',
+                  style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Try changing your search or filter',
+                  style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: workers.length,
+          itemBuilder: (context, index) {
+            final worker = workers[index];
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: AnimatedContainer(
+                duration: Duration(milliseconds: 300 + (index * 50)),
+                curve: Curves.easeOutCubic,
+                child: _buildWorkerCard(worker),
+              ),
+            );
+          },
         );
       },
     );
@@ -552,6 +536,7 @@ class _WorkersScreenState extends State<WorkersScreen>
 
   Widget _buildWorkerCard(Map<String, dynamic> worker) {
     return Container(
+      height: 130,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
         color: Colors.white,
@@ -592,7 +577,6 @@ class _WorkersScreenState extends State<WorkersScreen>
                   ),
                 ),
                 const SizedBox(width: 16),
-
                 // Info Section
                 Expanded(
                   child: Column(
@@ -620,7 +604,6 @@ class _WorkersScreenState extends State<WorkersScreen>
                         ],
                       ),
                       const SizedBox(height: 4),
-
                       Text(
                         worker['role'],
                         style: const TextStyle(
@@ -632,7 +615,6 @@ class _WorkersScreenState extends State<WorkersScreen>
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 6),
-
                       Row(
                         children: [
                           Icon(
@@ -659,7 +641,6 @@ class _WorkersScreenState extends State<WorkersScreen>
                   ),
                 ),
                 const SizedBox(width: 16),
-
                 // Right Section - Time & Actions
                 Column(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -717,9 +698,7 @@ class _WorkersScreenState extends State<WorkersScreen>
                         ),
                       ),
                     ],
-
                     const SizedBox(height: 8),
-
                     // Action Buttons
                     Row(
                       children: [
@@ -872,14 +851,9 @@ class _WorkersScreenState extends State<WorkersScreen>
               worker: worker,
               sites: widget.sites,
               onWorkerUpdated: (updatedWorker) {
-                setState(() {
-                  final index = workers.indexWhere(
-                    (w) => w['id'] == updatedWorker['id'],
-                  );
-                  if (index != -1) {
-                    workers[index] = updatedWorker;
-                  }
-                });
+                // Update worker through provider
+                Provider.of<WorkerProvider>(context, listen: false)
+                    .updateWorker(updatedWorker);
                 Navigator.pop(context);
               },
             ),
@@ -890,64 +864,67 @@ class _WorkersScreenState extends State<WorkersScreen>
   }
 
   void _addNewWorker() {
-    final existingIds = workers.map((w) => int.tryParse(w['id']) ?? 0).toList();
-    final nextId = existingIds.isEmpty
-        ? 1
-        : existingIds.reduce((a, b) => a > b ? a : b) + 1;
-
-    final newWorker = {
-      'id': nextId.toString(),
-      'name': 'New Worker',
-      'role': 'Laborer',
-      'siteId': _selectedSiteId.isNotEmpty
-          ? _selectedSiteId
-          : widget.sites.isNotEmpty
-          ? widget.sites.first.id
-          : '',
-      'site': _selectedSiteId.isNotEmpty
-          ? widget.sites
-                .firstWhere(
-                  (s) => s.id == _selectedSiteId,
-                  orElse: () => widget.sites.first,
-                )
-                .name
-          : widget.sites.isNotEmpty
-          ? widget.sites.first.name
-          : 'Unassigned',
-      'status': 'Present',
-      'avatar': 'NW',
-      'timeIn': '08:00 AM',
-      'late': false,
-      'phone': '+1 555-000-0000',
-      'email': 'new.worker@example.com',
-    };
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.80,
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
-        ),
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-        ),
-        child: SingleChildScrollView(
-          child: WorkerEditForm(
-            worker: newWorker,
-            sites: widget.sites,
-            onWorkerUpdated: (updatedWorker) {
-              setState(() {
-                workers.add(updatedWorker);
-              });
-              Navigator.pop(context);
-            },
-          ),
+  final workerProvider = Provider.of<WorkerProvider>(context, listen: false);
+  final existingIds = workerProvider.workers.map((w) => int.tryParse(w['id']) ?? 0).toList();
+  final nextId = existingIds.isEmpty
+      ? 1
+      : existingIds.reduce((a, b) => a > b ? a : b) + 1;
+  final newWorker = {
+    'id': nextId.toString(),
+    'name': '', // Empty instead of 'New Worker'
+    'role': '', // Empty instead of 'Laborer'
+    'siteId': _selectedSiteId.isNotEmpty
+        ? _selectedSiteId
+        : widget.sites.isNotEmpty
+        ? widget.sites.first.id
+        : '',
+    'site': _selectedSiteId.isNotEmpty
+        ? widget.sites
+              .firstWhere(
+                (s) => s.id == _selectedSiteId,
+                orElse: () => widget.sites.first,
+              )
+              .name
+        : widget.sites.isNotEmpty
+        ? widget.sites.first.name
+        : 'Unassigned',
+    'status': 'Present',
+    'avatar': '', // Empty instead of 'NW'
+    'timeIn': '08:00 AM',
+    'late': false,
+    'phone': '', // Empty instead of '+1 555-000-0000'
+    'email': '', // Empty instead of 'new.worker@example.com'
+  };
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (context) => Container(
+      height: MediaQuery.of(context).size.height * 0.80,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+      ),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: SingleChildScrollView(
+        child: WorkerEditForm(
+          worker: newWorker,
+          sites: widget.sites,
+          onWorkerUpdated: (updatedWorker) {
+            // Add worker through provider
+            Provider.of<WorkerProvider>(context, listen: false)
+                .addWorker(updatedWorker);
+            
+            // Force a rebuild to show the new worker immediately
+            setState(() {});
+            
+            Navigator.pop(context);
+          },
         ),
       ),
-    );
-  }
+    ),
+  );
 }
-
+    }

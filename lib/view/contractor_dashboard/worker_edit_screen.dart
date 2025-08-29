@@ -1,6 +1,8 @@
 import 'dart:ui';
 import 'package:ecoteam_app/models/dashboard/site_model.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
 
 class WorkerEditForm extends StatefulWidget {
   final Map<String, dynamic> worker;
@@ -38,14 +40,18 @@ class _WorkerEditFormState extends State<WorkerEditForm> {
     'Engineer',
   ];
   final List<String> _statuses = ['Present', 'Absent', 'Late', 'On Leave'];
+  
+  // Check if this is a new worker
+  bool get _isNewWorker => widget.worker['id'] == '';
 
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: widget.worker['name']);
-    _roleController = TextEditingController(text: widget.worker['role']);
-    _phoneController = TextEditingController(text: widget.worker['phone']);
-    _emailController = TextEditingController(text: widget.worker['email']);
+    // Initialize controllers with empty text for new workers
+    _nameController = TextEditingController(text: _isNewWorker ? '' : widget.worker['name']);
+    _roleController = TextEditingController(text: _isNewWorker ? '' : widget.worker['role']);
+    _phoneController = TextEditingController(text: _isNewWorker ? '' : widget.worker['phone']);
+    _emailController = TextEditingController(text: _isNewWorker ? '' : widget.worker['email']);
     _selectedSiteId = widget.worker['siteId'];
     _selectedStatus = widget.worker['status'];
   }
@@ -90,11 +96,15 @@ class _WorkerEditFormState extends State<WorkerEditForm> {
 
   String _generateAvatar(String name) {
     if (name.isEmpty) return '';
-    final parts = name.split(' ');
+    
+    // Split the name and filter out empty parts
+    final parts = name.split(' ').where((part) => part.isNotEmpty).toList();
+    
+    if (parts.isEmpty) return '';
     if (parts.length >= 2) {
       return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
     }
-    return name.substring(0, 1).toUpperCase();
+    return parts[0][0].toUpperCase();
   }
 
   @override
@@ -116,7 +126,7 @@ class _WorkerEditFormState extends State<WorkerEditForm> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    widget.worker['id'] == '' ? 'Add New Worker' : 'Edit Worker',
+                    _isNewWorker ? 'Add New Worker' : 'Edit Worker',
                     style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w600,
@@ -166,7 +176,7 @@ class _WorkerEditFormState extends State<WorkerEditForm> {
               radius: 32,
               backgroundColor: _getStatusColor(_selectedStatus).withOpacity(0.1),
               child: Text(
-                _generateAvatar(_nameController.text),
+                _nameController.text.isEmpty ? '?' : _generateAvatar(_nameController.text),
                 style: TextStyle(
                   color: _getStatusColor(_selectedStatus),
                   fontSize: 20,
@@ -181,7 +191,7 @@ class _WorkerEditFormState extends State<WorkerEditForm> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  _nameController.text,
+                  _nameController.text.isEmpty ? 'New Worker' : _nameController.text,
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
@@ -192,7 +202,7 @@ class _WorkerEditFormState extends State<WorkerEditForm> {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  _roleController.text,
+                  _roleController.text.isEmpty ? 'Role not specified' : _roleController.text,
                   style: TextStyle(
                     fontSize: 14,
                     color: Colors.grey.shade600,
@@ -249,9 +259,9 @@ class _WorkerEditFormState extends State<WorkerEditForm> {
         TextFormField(
           controller: _nameController,
           decoration: InputDecoration(
-            labelText: 'Full Name',
-            labelStyle: TextStyle(
-              color: Colors.grey.shade600,
+            hintText: 'Full Name',
+            hintStyle: TextStyle(
+              color: Colors.grey.shade500,
               fontSize: 14,
             ),
             enabledBorder: UnderlineInputBorder(
@@ -282,9 +292,9 @@ class _WorkerEditFormState extends State<WorkerEditForm> {
         TextFormField(
           controller: _phoneController,
           decoration: InputDecoration(
-            labelText: 'Phone Number',
-            labelStyle: TextStyle(
-              color: Colors.grey.shade600,
+            hintText: 'Phone Number',
+            hintStyle: TextStyle(
+              color: Colors.grey.shade500,
               fontSize: 14,
             ),
             enabledBorder: UnderlineInputBorder(
@@ -313,9 +323,9 @@ class _WorkerEditFormState extends State<WorkerEditForm> {
         TextFormField(
           controller: _emailController,
           decoration: InputDecoration(
-            labelText: 'Email Address',
-            labelStyle: TextStyle(
-              color: Colors.grey.shade600,
+            hintText: 'Email Address',
+            hintStyle: TextStyle(
+              color: Colors.grey.shade500,
               fontSize: 14,
             ),
             enabledBorder: UnderlineInputBorder(
@@ -371,11 +381,11 @@ class _WorkerEditFormState extends State<WorkerEditForm> {
         ),
         const SizedBox(height: 20),
         DropdownButtonFormField<String>(
-          value: _roleController.text,
+          value: _roleController.text.isEmpty ? null : _roleController.text,
           decoration: InputDecoration(
-            labelText: 'Role',
-            labelStyle: TextStyle(
-              color: Colors.grey.shade600,
+            hintText: 'Role',
+            hintStyle: TextStyle(
+              color: Colors.grey.shade500,
               fontSize: 14,
             ),
             enabledBorder: UnderlineInputBorder(
@@ -419,11 +429,11 @@ class _WorkerEditFormState extends State<WorkerEditForm> {
         ),
         const SizedBox(height: 20),
         DropdownButtonFormField<String>(
-          value: _selectedSiteId,
+          value: _selectedSiteId.isEmpty ? null : _selectedSiteId,
           decoration: InputDecoration(
-            labelText: 'Assigned Site',
-            labelStyle: TextStyle(
-              color: Colors.grey.shade600,
+            hintText: 'Assigned Site',
+            hintStyle: TextStyle(
+              color: Colors.grey.shade500,
               fontSize: 14,
             ),
             enabledBorder: UnderlineInputBorder(
@@ -467,11 +477,11 @@ class _WorkerEditFormState extends State<WorkerEditForm> {
         ),
         const SizedBox(height: 20),
         DropdownButtonFormField<String>(
-          value: _selectedStatus,
+          value: _selectedStatus.isEmpty ? null : _selectedStatus,
           decoration: InputDecoration(
-            labelText: 'Current Status',
-            labelStyle: TextStyle(
-              color: Colors.grey.shade600,
+            hintText: 'Current Status',
+            hintStyle: TextStyle(
+              color: Colors.grey.shade500,
               fontSize: 14,
             ),
             enabledBorder: UnderlineInputBorder(
@@ -545,13 +555,13 @@ class _WorkerEditFormState extends State<WorkerEditForm> {
           elevation: 0,
           padding: const EdgeInsets.symmetric(vertical: 14),
         ),
-        child: const Row(
+        child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(Icons.save, size: 20),
             SizedBox(width: 10),
             Text(
-              'Save Changes',
+              _isNewWorker ? 'Add Worker' : 'Save Changes',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
             ),
           ],

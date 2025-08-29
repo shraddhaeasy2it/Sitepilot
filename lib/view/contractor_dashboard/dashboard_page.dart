@@ -281,6 +281,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
+        backgroundColor: Colors.white,
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -318,6 +319,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     if (_dashboardData == null || _screens.isEmpty) {
       return Scaffold(
+        backgroundColor: Colors.white,
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(24.0),
@@ -390,6 +392,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
 
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: _currentIndex == 0
           ? AppBar(
               iconTheme: const IconThemeData(color: Colors.white),
@@ -978,7 +981,7 @@ class DashboardContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: const Color(0xFFF8FAFC),
+      color: const Color.fromARGB(255, 255, 255, 255),
       child: Expanded(
         child: dashboardData == null
             ? _buildEmptyState()
@@ -1083,7 +1086,7 @@ class DashboardContent extends StatelessWidget {
                   curve: Curves.easeInOut,
                   decoration: BoxDecoration(
                     color: color.withOpacity(0.02),
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(10),
                     border: Border.all(
                       color: color.withOpacity(0.20),
                       width: 1,
@@ -1162,175 +1165,210 @@ class DashboardContent extends StatelessWidget {
     );
   }
 
-  Widget _buildRecentActivities() {
-    final activities = [
-      {
-        'icon': Icons.update,
-        'title': 'Foundation Progress',
-        'subtitle': 'Foundation work 85% completed',
-        'time': '2h ago',
-        'color': const Color(0xFF10B981),
-      },
-      {
-        'icon': Icons.engineering,
-        'title': 'Safety Inspection',
-        'subtitle': 'Monthly safety check completed',
-        'time': '4h ago',
-        'color': const Color(0xFF4a63c0),
-      },
-      {
-        'icon': Icons.local_shipping,
-        'title': 'Material Delivery',
-        'subtitle': 'Steel beams delivered to site',
-        'time': '6h ago',
-        'color': const Color(0xFFF59E0B),
-      },
-      {
-        'icon': Icons.assignment_turned_in,
-        'title': 'Task Completed',
-        'subtitle': 'Concrete pouring finished',
-        'time': '1d ago',
-        'color': const Color(0xFF8B5CF6),
-      },
-    ];
 
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-            spreadRadius: 0,
-          ),
+Widget _buildRecentActivities() {
+  // Keep activities list outside so it can be updated dynamically
+  List<Map<String, dynamic>> activities = [
+    {
+      'icon': Icons.update,
+      'title': 'Foundation Progress',
+      'subtitle': 'Foundation work 85% completed',
+      'time': '2h ago',
+      'color': const Color(0xFF10B981),
+      'priority': 'high',
+      'status': 'pending',
+    },
+    {
+      'icon': Icons.local_shipping,
+      'title': 'Material Delivery',
+      'subtitle': 'Steel beams delivered to site',
+      'time': '6h ago',
+      'color': const Color(0xFFF59E0B),
+      'priority': 'medium',
+      'status': 'pending',
+    },
+    {
+      'icon': Icons.assignment_late,
+      'title': 'Inspection Required',
+      'subtitle': 'Electrical work needs inspection',
+      'time': 'Yesterday',
+      'color': const Color(0xFFEF4444),
+      'priority': 'urgent',
+      'status': 'pending',
+    },
+    {
+      'icon': Icons.people,
+      'title': 'Team Meeting',
+      'subtitle': 'Weekly coordination meeting completed',
+      'time': '2 days ago',
+      'color': const Color(0xFF8B5CF6),
+      'priority': 'low',
+      'status': 'completed',
+    },
+  ];
+
+  return StatefulBuilder(
+    builder: (BuildContext context, StateSetter setState) {
+      final pendingActivities = activities.where((a) => a['status'] == 'pending').toList();
+      final completedActivities = activities.where((a) => a['status'] == 'completed').toList();
+
+      return Column(
+        children: [
+          _buildActivitySection("Pending Activities", pendingActivities, setState, false),
+          const SizedBox(height: 20),
+          if (completedActivities.isNotEmpty)
+            _buildActivitySection("Completed Activities", completedActivities, setState, true),
         ],
-        border: Border.all(color: Colors.grey.shade50),
+      );
+    },
+  );
+}
+
+// Section builder
+Widget _buildActivitySection(
+    String title, List<Map<String, dynamic>> data, StateSetter setState, bool completed) {
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(title,
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF1F2937))),
+      const SizedBox(height: 16),
+      ListView.separated(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: data.length,
+        separatorBuilder: (context, index) => const SizedBox(height: 16),
+        itemBuilder: (context, index) {
+          final activity = data[index];
+          return _buildActivityCard(activity, setState, completed);
+        },
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    ],
+  );
+}
+
+// Activity card with dynamic buttons
+Widget _buildActivityCard(Map<String, dynamic> activity, StateSetter setState, bool completed) {
+  return Container(
+    padding: const EdgeInsets.all(14),
+    decoration: BoxDecoration(
+      color: const Color.fromARGB(255, 248, 249, 252),
+      borderRadius: BorderRadius.circular(6),
+      border: Border.all(color: Colors.grey.shade100,),
+    ),
+    child: Column(
+      children: [
+        Row(
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Recent Activities',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF1F2937),
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF4a63c0).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(25),
-                  ),
-                  child: const Text(
-                    'Today',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF4a63c0),
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ],
+            Container(
+              width: 2.5,
+              height: 40,
+              decoration: BoxDecoration(
+                color: activity['priority'] == 'urgent'
+                    ? const Color.fromARGB(255, 255, 104, 93)
+                    : activity['priority'] == 'high'
+                        ? const Color.fromARGB(255, 255, 172, 47)
+                        : const Color.fromARGB(255, 94, 182, 253),
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
-            const SizedBox(height: 16),
-            ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: activities.length,
-              separatorBuilder: (context, index) => const SizedBox(height: 16),
-              itemBuilder: (context, index) {
-                final activity = activities[index];
-                return Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF8FAFC),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.grey.shade100),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: (activity['color'] as Color).withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: Icon(
-                          activity['icon'] as IconData,
-                          color: activity['color'] as Color,
-                          size: 22,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              activity['title'] as String,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 16,
-                                color: Color(0xFF1F2937),
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              activity['subtitle'] as String,
-                              style: const TextStyle(
-                                color: Color(0xFF6B7280),
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade100,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          activity['time'] as String,
-                          style: const TextStyle(
-                            color: Color(0xFF6B7280),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                );
+            const SizedBox(width: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: (activity['color'] as Color).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(activity['icon'] as IconData,
+                  color: activity['color'] as Color, size: 22),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(activity['title'] as String,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 16,
+                          color: Color(0xFF1F2937))),
+                  const SizedBox(height: 4),
+                  Text(activity['subtitle'] as String,
+                      style: const TextStyle(
+                        color: Color(0xFF6B7280),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      )),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(activity['time'] as String,
+                  style: const TextStyle(
+                      color: Color(0xFF6B7280),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600)),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            if (!completed)
+              TextButton(
+                onPressed: () {
+                  setState(() {
+                    activity['status'] = 'completed';
+                  });
+                },
+                style: TextButton.styleFrom(
+                  backgroundColor: Colors.green.shade50,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                ),
+                child: const Text('Mark Complete',
+                    style: TextStyle(fontSize: 12, color: Colors.green)),
+              )
+            else
+              TextButton(
+                onPressed: () {
+                  setState(() {
+                    activity['status'] = 'pending';
+                  });
+                },
+                style: TextButton.styleFrom(
+                  backgroundColor: Colors.orange.shade50,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                ),
+                child: const Text('Reopen',
+                    style: TextStyle(fontSize: 12, color: Colors.orange)),
+              ),
+            const SizedBox(width: 8),
+            IconButton(
+              icon: const Icon(Icons.delete, size: 18, color: Colors.red),
+              onPressed: () {
+                setState(() {
+                  // In a real app, you would remove from the actual data source
+                  // For this example, we'll just mark it as deleted
+                  activity['status'] = 'deleted';
+                });
               },
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildEmptyState() {
+      ],
+    ),
+  );
+}
+ Widget _buildEmptyState() {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24.0),
+        padding: const EdgeInsets.all(20.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -1338,7 +1376,7 @@ class DashboardContent extends StatelessWidget {
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 color: const Color(0xFF4a63c0).withOpacity(0.1),
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(10),
               ),
               child: const Icon(
                 Icons.hourglass_empty,

@@ -183,7 +183,6 @@ class DocumentStorageScreen extends StatefulWidget {
   final List<Site> sites;
   final String selectedSiteId;
   final bool isSmallMobile; // Added for responsive design
-
   const DocumentStorageScreen({
     super.key,
     this.selectedSite,
@@ -216,7 +215,7 @@ class _DocumentStorageScreenState extends State<DocumentStorageScreen>
   final _formKey = GlobalKey<FormState>();
   bool _isGridView = true;
   String? _openedCategory;
-  
+
   @override
   void initState() {
     super.initState();
@@ -562,19 +561,19 @@ class _DocumentStorageScreenState extends State<DocumentStorageScreen>
               onPressed: () => Navigator.pop(context),
             ),
       actions: [
-        IconButton(
-          icon: Icon(
-            _isGridView ? Icons.view_list_rounded : Icons.grid_view_rounded,
-            color: Colors.white,
-            size: widget.isSmallMobile ? 20 : 24
-          ),
-          tooltip: _isGridView ? "Switch to List View" : "Switch to Grid View",
-          onPressed: () {
-            setState(() {
-              _isGridView = !_isGridView;
-            });
-          },
-        ),
+        // IconButton(
+        //   icon: Icon(
+        //     _isGridView ? Icons.view_list_rounded : Icons.grid_view_rounded,
+        //     color: Colors.white,
+        //     size: widget.isSmallMobile ? 20 : 24
+        //   ),
+        //   // tooltip: _isGridView ? "Switch to List View" : "Switch to Grid View",
+        //   // onPressed: () {
+        //   //   setState(() {
+        //   //     _isGridView = !_isGridView;
+        //   //   });
+        //   // },
+        // ),
         if (_selectedSiteId != null)
           IconButton(
             icon: Icon(
@@ -1247,129 +1246,140 @@ class _DocumentStorageScreenState extends State<DocumentStorageScreen>
     final result = await showDialog<String>(
       context: context,
       builder: (ctx) => Dialog(
+        insetPadding: EdgeInsets.all(widget.isSmallMobile ? 16 : 24),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(widget.isSmallMobile ? 16 : 20)),
-        child: Container(
-          padding: EdgeInsets.all(widget.isSmallMobile ? 20 : 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: EdgeInsets.all(widget.isSmallMobile ? 14 : 16),
-                decoration: BoxDecoration(
-                  color: DocumentStorageConstants.primaryColor.withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.create_new_folder_rounded,
-                  color: DocumentStorageConstants.primaryColor,
-                  size: widget.isSmallMobile ? 28 : 32,
-                ),
-              ),
-              SizedBox(height: widget.isSmallMobile ? 16 : 20),
-              Text(
-                "Create New Folder",
-                style: TextStyle(
-                  fontSize: widget.isSmallMobile ? 18 : 20,
-                  fontWeight: FontWeight.w700,
-                  color: DocumentStorageConstants.textPrimary,
-                ),
-              ),
-              SizedBox(height: widget.isSmallMobile ? 6 : 8),
-              Text(
-                "Enter a name for your new folder",
-                style: TextStyle(
-                  fontSize: widget.isSmallMobile ? 12 : 14, 
-                  color: DocumentStorageConstants.textSecondary),
-                textAlign: TextAlign.center,
-              ),
-              SizedBox(height: widget.isSmallMobile ? 20 : 24),
-              Form(
-                key: _formKey,
-                child: TextFormField(
-                  controller: controller,
-                  autofocus: true,
-                  decoration: InputDecoration(
-                    hintText: "Folder name",
-                    prefixIcon: Icon(
-                      Icons.folder_outlined,
-                      color: DocumentStorageConstants.primaryColor,
-                      size: widget.isSmallMobile ? 20 : 22,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(widget.isSmallMobile ? 10 : 12),
-                      borderSide: BorderSide(color: Colors.grey.shade300),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(widget.isSmallMobile ? 10 : 12),
-                      borderSide: BorderSide(
+        child: SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minHeight: 100,
+              maxHeight: MediaQuery.of(ctx).size.height * 0.8,
+            ),
+            child: IntrinsicHeight(
+              child: Container(
+                padding: EdgeInsets.all(widget.isSmallMobile ? 16 : 24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: EdgeInsets.all(widget.isSmallMobile ? 14 : 16),
+                      decoration: BoxDecoration(
+                        color: DocumentStorageConstants.primaryColor.withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.create_new_folder_rounded,
                         color: DocumentStorageConstants.primaryColor,
-                        width: 2,
+                        size: widget.isSmallMobile ? 28 : 32,
                       ),
                     ),
-                    filled: true,
-                    fillColor: DocumentStorageConstants.backgroundColor,
-                  ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Folder name cannot be empty';
-                    }
-                    if (value.contains(RegExp(r'[\\/:*?"<>|]'))) {
-                      return 'Invalid characters not allowed';
-                    }
-                    return null;
-                  },
+                    SizedBox(height: widget.isSmallMobile ? 16 : 20),
+                    Text(
+                      "Create New Folder",
+                      style: TextStyle(
+                        fontSize: widget.isSmallMobile ? 18 : 20,
+                        fontWeight: FontWeight.w700,
+                        color: DocumentStorageConstants.textPrimary,
+                      ),
+                    ),
+                    SizedBox(height: widget.isSmallMobile ? 6 : 8),
+                    Text(
+                      "Enter a name for your new folder",
+                      style: TextStyle(
+                        fontSize: widget.isSmallMobile ? 12 : 14, 
+                        color: DocumentStorageConstants.textSecondary),
+                      textAlign: TextAlign.center,
+                    ),
+                    SizedBox(height: widget.isSmallMobile ? 20 : 24),
+                    Form(
+                      key: _formKey,
+                      child: TextFormField(
+                        controller: controller,
+                        autofocus: true,
+                        decoration: InputDecoration(
+                          hintText: "Folder name",
+                          prefixIcon: Icon(
+                            Icons.folder_outlined,
+                            color: DocumentStorageConstants.primaryColor,
+                            size: widget.isSmallMobile ? 20 : 22,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(widget.isSmallMobile ? 10 : 12),
+                            borderSide: BorderSide(color: Colors.grey.shade300),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(widget.isSmallMobile ? 10 : 12),
+                            borderSide: BorderSide(
+                              color: DocumentStorageConstants.primaryColor,
+                              width: 2,
+                            ),
+                          ),
+                          filled: true,
+                          fillColor: DocumentStorageConstants.backgroundColor,
+                        ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Folder name cannot be empty';
+                          }
+                          if (value.contains(RegExp(r'[\\/:*?"<>|]'))) {
+                            return 'Invalid characters not allowed';
+                          }
+                          return null;
+                        },
+                      ),
+                    ),
+                    SizedBox(height: widget.isSmallMobile ? 20 : 24),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextButton(
+                            onPressed: () => Navigator.pop(ctx),
+                            style: TextButton.styleFrom(
+                              padding: EdgeInsets.symmetric(vertical: widget.isSmallMobile ? 10 : 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(widget.isSmallMobile ? 10 : 12),
+                              ),
+                            ),
+                            child: Text(
+                              "Cancel",
+                              style: TextStyle(
+                                fontSize: widget.isSmallMobile ? 14 : 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                        SizedBox(width: widget.isSmallMobile ? 10 : 12),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () {
+                              if (_formKey.currentState!.validate()) {
+                                Navigator.pop(ctx, controller.text.trim());
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: DocumentStorageConstants.primaryColor,
+                              foregroundColor: Colors.white,
+                              padding: EdgeInsets.symmetric(vertical: widget.isSmallMobile ? 10 : 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(widget.isSmallMobile ? 10 : 12),
+                              ),
+                              elevation: 0,
+                            ),
+                            child: Text(
+                              "Create",
+                              style: TextStyle(
+                                fontSize: widget.isSmallMobile ? 14 : 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
-              SizedBox(height: widget.isSmallMobile ? 20 : 24),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextButton(
-                      onPressed: () => Navigator.pop(ctx),
-                      style: TextButton.styleFrom(
-                        padding: EdgeInsets.symmetric(vertical: widget.isSmallMobile ? 10 : 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(widget.isSmallMobile ? 10 : 12),
-                        ),
-                      ),
-                      child: Text(
-                        "Cancel",
-                        style: TextStyle(
-                          fontSize: widget.isSmallMobile ? 14 : 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: widget.isSmallMobile ? 10 : 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () {
-                        if (_formKey.currentState!.validate()) {
-                          Navigator.pop(ctx, controller.text.trim());
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: DocumentStorageConstants.primaryColor,
-                        foregroundColor: Colors.white,
-                        padding: EdgeInsets.symmetric(vertical: widget.isSmallMobile ? 10 : 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(widget.isSmallMobile ? 10 : 12),
-                        ),
-                        elevation: 0,
-                      ),
-                      child: Text(
-                        "Create",
-                        style: TextStyle(
-                          fontSize: widget.isSmallMobile ? 14 : 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
+            ),
           ),
         ),
       ),
@@ -1395,88 +1405,99 @@ class _DocumentStorageScreenState extends State<DocumentStorageScreen>
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => Dialog(
+        insetPadding: EdgeInsets.all(widget.isSmallMobile ? 16 : 24),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(widget.isSmallMobile ? 16 : 20)),
-        child: Container(
-          padding: EdgeInsets.all(widget.isSmallMobile ? 20 : 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: EdgeInsets.all(widget.isSmallMobile ? 14 : 16),
-                decoration: BoxDecoration(
-                  color: Colors.red.withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.delete_forever_rounded,
-                  color: Colors.red,
-                  size: widget.isSmallMobile ? 28 : 32,
-                ),
-              ),
-              SizedBox(height: widget.isSmallMobile ? 16 : 20),
-              Text(
-                "Delete Folder",
-                style: TextStyle(
-                  fontSize: widget.isSmallMobile ? 18 : 20,
-                  fontWeight: FontWeight.w700,
-                  color: DocumentStorageConstants.textPrimary,
-                ),
-              ),
-              SizedBox(height: widget.isSmallMobile ? 6 : 8),
-              Text(
-                "Are you sure you want to delete '$folderName' and all its contents? "
-                "This action cannot be undone.",
-                style: TextStyle(
-                  fontSize: widget.isSmallMobile ? 12 : 14, 
-                  color: DocumentStorageConstants.textSecondary),
-                textAlign: TextAlign.center,
-              ),
-              SizedBox(height: widget.isSmallMobile ? 20 : 24),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextButton(
-                      onPressed: () => Navigator.pop(ctx, false),
-                      style: TextButton.styleFrom(
-                        padding: EdgeInsets.symmetric(vertical: widget.isSmallMobile ? 10 : 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(widget.isSmallMobile ? 10 : 12),
-                        ),
+        child: SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minHeight: 100,
+              maxHeight: MediaQuery.of(ctx).size.height * 0.8,
+            ),
+            child: IntrinsicHeight(
+              child: Container(
+                padding: EdgeInsets.all(widget.isSmallMobile ? 16 : 24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: EdgeInsets.all(widget.isSmallMobile ? 14 : 16),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withOpacity(0.1),
+                        shape: BoxShape.circle,
                       ),
-                      child: Text(
-                        "Cancel",
-                        style: TextStyle(
-                          fontSize: widget.isSmallMobile ? 14 : 16,
-                          fontWeight: FontWeight.w600,
-                        ),
+                      child: Icon(
+                        Icons.delete_forever_rounded,
+                        color: Colors.red,
+                        size: widget.isSmallMobile ? 28 : 32,
                       ),
                     ),
-                  ),
-                  SizedBox(width: widget.isSmallMobile ? 10 : 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () => Navigator.pop(ctx, true),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
-                        foregroundColor: Colors.white,
-                        padding: EdgeInsets.symmetric(vertical: widget.isSmallMobile ? 10 : 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(widget.isSmallMobile ? 10 : 12),
-                        ),
-                        elevation: 0,
-                      ),
-                      child: Text(
-                        "Delete",
-                        style: TextStyle(
-                          fontSize: widget.isSmallMobile ? 14 : 16,
-                          fontWeight: FontWeight.w600,
-                        ),
+                    SizedBox(height: widget.isSmallMobile ? 16 : 20),
+                    Text(
+                      "Delete Folder",
+                      style: TextStyle(
+                        fontSize: widget.isSmallMobile ? 18 : 20,
+                        fontWeight: FontWeight.w700,
+                        color: DocumentStorageConstants.textPrimary,
                       ),
                     ),
-                  ),
-                ],
+                    SizedBox(height: widget.isSmallMobile ? 6 : 8),
+                    Text(
+                      "Are you sure you want to delete '$folderName' and all its contents? "
+                      "This action cannot be undone.",
+                      style: TextStyle(
+                        fontSize: widget.isSmallMobile ? 12 : 14, 
+                        color: DocumentStorageConstants.textSecondary),
+                      textAlign: TextAlign.center,
+                    ),
+                    SizedBox(height: widget.isSmallMobile ? 20 : 24),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextButton(
+                            onPressed: () => Navigator.pop(ctx, false),
+                            style: TextButton.styleFrom(
+                              padding: EdgeInsets.symmetric(vertical: widget.isSmallMobile ? 10 : 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(widget.isSmallMobile ? 10 : 12),
+                              ),
+                            ),
+                            child: Text(
+                              "Cancel",
+                              style: TextStyle(
+                                fontSize: widget.isSmallMobile ? 14 : 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                        SizedBox(width: widget.isSmallMobile ? 10 : 12),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () => Navigator.pop(ctx, true),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red,
+                              foregroundColor: Colors.white,
+                              padding: EdgeInsets.symmetric(vertical: widget.isSmallMobile ? 10 : 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(widget.isSmallMobile ? 10 : 12),
+                              ),
+                              elevation: 0,
+                            ),
+                            child: Text(
+                              "Delete",
+                              style: TextStyle(
+                                fontSize: widget.isSmallMobile ? 14 : 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ],
+            ),
           ),
         ),
       ),

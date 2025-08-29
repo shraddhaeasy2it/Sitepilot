@@ -34,7 +34,7 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
         final newSiteData = SiteData(
           id: site.id,
           name: site.name,
-          imageUrl: 'assets/building-icon.png',
+          imageUrl: 'assets/building.jpg',
           imageBytes: _siteImages[site.id],
           status: 'Status',
           progress: 0.25,
@@ -1269,9 +1269,9 @@ class SiteCard extends StatelessWidget {
         color: const Color(0xFFF8FAFC),
         elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(10),
           side: const BorderSide(
-            color: Color.fromARGB(255, 202, 208, 228),
+            color: Color.fromARGB(255, 224, 227, 253),
             width: 1,
           ),
         ),
@@ -1288,8 +1288,8 @@ class SiteCard extends StatelessWidget {
                   children: [
                     
                     Container(
-                      width: isGridView ? 50 : 65,
-                      height: isGridView ? 50 : 65,
+                      width: isGridView ? 50 : 55,
+                      height: isGridView ? 50 : 55,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(8),
                         color: const Color.fromARGB(255, 221, 229, 253),
@@ -1307,6 +1307,7 @@ class SiteCard extends StatelessWidget {
                                     borderRadius: BorderRadius.circular(8),
                                     child: Image.asset(
                                       site.imageUrl!,
+                                     
                                       fit: BoxFit.cover,
                                       errorBuilder:
                                           (context, error, stackTrace) {
@@ -1405,7 +1406,7 @@ class SiteCard extends StatelessWidget {
                             child: Icon(
                               Icons.edit,
                               size: 19,
-                              color: Color.fromRGBO(91, 95, 119, 1),
+                              color: Color.fromRGBO(38, 59, 175, 1),
                             ),
                           ),
                           const SizedBox(width: 15),
@@ -1425,7 +1426,7 @@ class SiteCard extends StatelessWidget {
                 const Divider(
                   height: 12,
                   thickness: 1,
-                  color: Color.fromARGB(255, 227, 227, 233),
+                  color:  Color.fromARGB(255, 220, 228, 252),
                 ),
                 const SizedBox(height: 6),
                 Row(

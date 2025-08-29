@@ -1,3 +1,4 @@
+import 'package:ecoteam_app/provider/worker_provider.dart';
 import 'package:ecoteam_app/services/company_site_provider.dart';
 import 'package:ecoteam_app/view/contractor_dashboard/home_page.dart';
 import 'package:ecoteam_app/view/landing_page/splash_screen.dart';
@@ -6,9 +7,11 @@ import 'package:provider/provider.dart';
 
 
 void main() {
-  runApp(const MyApp());
+  runApp(ChangeNotifierProvider(
+      create: (context) => WorkerProvider(),
+      child: const MyApp(),
+    ),);
 }
-
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -26,7 +29,7 @@ class MyApp extends StatelessWidget {
           useMaterial3: true,
         ),
         debugShowCheckedModeBanner: false,
-        home:  HomePagescreen(), // Start with splash screen
+        home:  SplashScreen(), // Start with splash screen
         // Use a builder to get context for responsive design
         builder: (context, child) {
           return MediaQuery(

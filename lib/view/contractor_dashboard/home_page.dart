@@ -3,6 +3,7 @@ import 'package:ecoteam_app/models/dashboard/site_model.dart';
 import 'package:ecoteam_app/services/company_site_provider.dart';
 import 'package:ecoteam_app/view/contractor_dashboard/chat_screen.dart';
 import 'package:ecoteam_app/view/contractor_dashboard/dashboard_page.dart';
+import 'package:ecoteam_app/view/contractor_dashboard/notification.dart';
 import 'package:ecoteam_app/view/contractor_dashboard/profilepage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -38,6 +39,8 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
           imageBytes: _siteImages[site.id],
           status: 'Status',
           progress: 0.25,
+          onProgressTap: () =>
+              _showProgressUpdateBottomSheet(_siteDataMap[site.id]!),
           startDate: '2023-05-10',
           endDate: '2023-11-30',
           address: site.address,
@@ -114,6 +117,190 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
     );
   }
 
+  void _showProgressUpdateBottomSheet(SiteData site) {
+    double newProgress = site.progress;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Container(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+              ),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 60,
+                        height: 5,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade300,
+                          borderRadius: BorderRadius.circular(3),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    const Text(
+                      'Update Progress',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF2A2A2A),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      site.name,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF4a63c0),
+                      ),
+                    ),
+                    const SizedBox(height: 30),
+                    Column(
+                      children: [
+                        Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            SizedBox(
+                              width: 100,
+                              height: 100,
+                              child: CircularProgressIndicator(
+                                value: newProgress,
+                                backgroundColor: Colors.grey.shade200,
+                                valueColor: const AlwaysStoppedAnimation<Color>(
+                                  Color(0xFF4a63c0),
+                                ),
+                                strokeWidth: 8,
+                              ),
+                            ),
+                            Text(
+                              '${(newProgress * 100).round()}%',
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF4a63c0),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          getProgressLabel(newProgress),
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                            color: Color(0xFF2A2A2A),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 30),
+                    Slider(
+                      value: newProgress,
+                      min: 0.0,
+                      max: 1.0,
+                      divisions: 10,
+                      activeColor: const Color(0xFF4a63c0),
+                      inactiveColor: Colors.grey.shade300,
+                      onChanged: (value) {
+                        setModalState(() {
+                          newProgress = value; // updates UI in bottom sheet
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 30),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                side: BorderSide(color: Colors.grey.shade300),
+                              ),
+                            ),
+                            child: const Text(
+                              'Cancel',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () {
+                              setState(() {
+                                _siteDataMap[site.id] = site.copyWith(
+                                  progress: newProgress,
+                                );
+                              });
+                              Navigator.pop(context);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'Progress updated to ${(newProgress * 100).round()}%',
+                                  ),
+                                  backgroundColor: Colors.green,
+                                ),
+                              );
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF4a63c0),
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: const Text(
+                              'Update',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  String getProgressLabel(double progress) {
+    final percent = (progress * 100).round();
+    if (percent == 0) return "Not Started";
+    if (percent < 40) return "In Progress";
+    if (percent < 80) return "Ongoing Work";
+    if (percent < 100) return "Almost Completed";
+    return "Completed";
+  }
+
   @override
   Widget build(BuildContext context) {
     final companyProvider = Provider.of<CompanySiteProvider>(context);
@@ -126,6 +313,7 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
         preferredSize: const Size.fromHeight(80),
         child: AppBar(
           backgroundColor: Colors.transparent,
+
           elevation: 0,
           flexibleSpace: ClipRRect(
             borderRadius: const BorderRadius.vertical(
@@ -195,7 +383,15 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                 actions: [
                   IconButton(
                     icon: const Icon(Icons.notifications, size: 24),
-                    onPressed: () {},
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              const NotificationScreen(), // Removed isSmallMobile parameter
+                        ),
+                      );
+                    },
                     color: Colors.white,
                   ),
                   const SizedBox(width: 5),
@@ -419,6 +615,7 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
             imageBytes: site.imageBytes,
             status: status,
             progress: site.progress,
+            onProgressTap: site.onProgressTap,
             startDate: site.startDate,
             endDate: site.endDate,
             address: site.address,
@@ -522,7 +719,7 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
             const Icon(
               Icons.keyboard_arrow_down,
               color: Colors.white,
-              size: 10,
+              size: 20,
             ),
           ],
         ),
@@ -618,7 +815,7 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
             Icon(
               Icons.business,
               color: isSelected ? Color(0xFF4a63c0) : Colors.grey.shade600,
-              size: 18,
+              size: 17,
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -752,14 +949,16 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                           address: addressController.text,
                           companyId: _companyProvider.selectedCompanyId ?? '',
                         );
-                        await _companyProvider.addSite(newSite);
-                        final newSiteData = SiteData(
-                          id: newSite.id,
-                          name: newSite.name,
-                          address: newSite.address,
-                          companyId: newSite.companyId,
+
+                        // Create a temporary SiteData object
+                        final tempSiteData = SiteData(
+                          id: '',
+                          name: nameController.text,
+                          address: addressController.text,
+                          companyId: _companyProvider.selectedCompanyId ?? '',
                           status: selectedStatus,
                           progress: 0.0,
+                          onProgressTap: () {}, // Empty callback for now
                           startDate: startDateController.text.isNotEmpty
                               ? startDateController.text
                               : '2023-01-01',
@@ -767,6 +966,28 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                               ? endDateController.text
                               : '2023-12-31',
                         );
+
+                        // Add site to provider
+                        await _companyProvider.addSite(newSite);
+
+                        // Create the final SiteData with proper ID and callback
+                        final newSiteData = SiteData(
+                          id: newSite.id,
+                          name: nameController.text,
+                          address: addressController.text,
+                          companyId: _companyProvider.selectedCompanyId ?? '',
+                          status: selectedStatus,
+                          progress: 0.0,
+                          onProgressTap: () =>
+                              _showProgressUpdateBottomSheet(tempSiteData),
+                          startDate: startDateController.text.isNotEmpty
+                              ? startDateController.text
+                              : '2023-01-01',
+                          endDate: endDateController.text.isNotEmpty
+                              ? endDateController.text
+                              : '2023-12-31',
+                        );
+
                         _siteDataMap[newSite.id] = newSiteData;
                         if (imageBytes != null) {
                           _siteImages[newSite.id] = imageBytes;
@@ -980,11 +1201,7 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                _buildModernStatusDropdown(
-                  value: selectedStatus,
-                  onChanged: (value) => selectedStatus = value!,
-                ),
-                const SizedBox(height: 24),
+
                 SizedBox(
                   width: double.infinity,
                   height: 50,
@@ -1006,6 +1223,7 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                             companyId: currentCompany ?? '',
                             status: selectedStatus,
                             progress: site.progress,
+                            onProgressTap: site.onProgressTap,
                             startDate: startDateController.text,
                             endDate: endDateController.text,
                             imageUrl: site.imageUrl,
@@ -1111,6 +1329,31 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
           ),
         ],
       ),
+      child: DropdownButtonFormField<String>(
+        value: value,
+        onChanged: onChanged,
+        decoration: InputDecoration(
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Color(0xFF4a63c0), width: 2),
+          ),
+          filled: true,
+          fillColor: Colors.white,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 8,
+          ),
+        ),
+        items: ['Planning', 'Active', 'On Hold', 'Completed']
+            .map(
+              (status) => DropdownMenuItem(value: status, child: Text(status)),
+            )
+            .toList(),
+      ),
     );
   }
 
@@ -1193,6 +1436,7 @@ class SiteData {
   final Uint8List? imageBytes;
   final String status;
   final double progress;
+  final VoidCallback onProgressTap;
   final String startDate;
   final String endDate;
   final String address;
@@ -1205,6 +1449,7 @@ class SiteData {
     this.imageBytes,
     required this.status,
     required this.progress,
+    required this.onProgressTap,
     required this.startDate,
     required this.endDate,
     required this.address,
@@ -1218,6 +1463,7 @@ class SiteData {
     Uint8List? imageBytes,
     String? status,
     double? progress,
+    VoidCallback? onProgressTap,
     String? startDate,
     String? endDate,
     String? address,
@@ -1230,6 +1476,7 @@ class SiteData {
       imageBytes: imageBytes ?? this.imageBytes,
       status: status ?? this.status,
       progress: progress ?? this.progress,
+      onProgressTap: onProgressTap ?? this.onProgressTap,
       startDate: startDate ?? this.startDate,
       endDate: endDate ?? this.endDate,
       address: address ?? this.address,
@@ -1255,12 +1502,20 @@ class SiteCard extends StatelessWidget {
     required this.onStatusTap,
     required this.isGridView,
   }) : super(key: key);
+  String getProgressLabel(double progress) {
+    final percent = (progress * 100).round();
+    if (percent == 0) return "Not Started";
+    if (percent < 40) return "In Progress";
+    if (percent < 80) return "Ongoing Work";
+    if (percent < 100) return "Almost Completed";
+    return "Completed";
+  }
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: isGridView ? 170 : double.infinity,
-      height: isGridView ? 120 : 160,
+      height: isGridView ? 130 : 150,
       margin: EdgeInsets.symmetric(
         horizontal: isGridView ? 6 : 1,
         vertical: isGridView ? 6 : 6,
@@ -1286,10 +1541,9 @@ class SiteCard extends StatelessWidget {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    
                     Container(
-                      width: isGridView ? 50 : 55,
-                      height: isGridView ? 50 : 55,
+                      width: isGridView ? 45 : 55,
+                      height: isGridView ? 45 : 55,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(8),
                         color: const Color.fromARGB(255, 221, 229, 253),
@@ -1307,7 +1561,6 @@ class SiteCard extends StatelessWidget {
                                     borderRadius: BorderRadius.circular(8),
                                     child: Image.asset(
                                       site.imageUrl!,
-                                     
                                       fit: BoxFit.cover,
                                       errorBuilder:
                                           (context, error, stackTrace) {
@@ -1315,7 +1568,12 @@ class SiteCard extends StatelessWidget {
                                               child: Icon(
                                                 Icons.construction,
                                                 size: 22,
-                                                color: Color.fromARGB(255, 211, 93, 93),
+                                                color: Color.fromARGB(
+                                                  255,
+                                                  211,
+                                                  93,
+                                                  93,
+                                                ),
                                               ),
                                             );
                                           },
@@ -1375,30 +1633,50 @@ class SiteCard extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.end,
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              const SizedBox(
-                                width: 32,
-                                height: 32,
-                                child: CircularProgressIndicator(
-                                  value: 0.25,
-                                  backgroundColor: Colors.grey,
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    Color(0xFF4a63c0),
+                          GestureDetector(
+                            onTap: site.onProgressTap,
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Stack(
+                                  alignment: Alignment.center,
+                                  children: [
+                                    SizedBox(
+                                      width: 32,
+                                      height: 32,
+                                      child: CircularProgressIndicator(
+                                        value: site.progress,
+                                        backgroundColor: Colors.grey.shade300,
+                                        valueColor:
+                                            const AlwaysStoppedAnimation<Color>(
+                                              Color(0xFF4a63c0),
+                                            ),
+                                        strokeWidth: 2,
+                                      ),
+                                    ),
+                                    Text(
+                                      '${(site.progress * 100).round()}%',
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFF4a63c0),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  getProgressLabel(
+                                    site.progress,
+                                  ), // 🔹 Construction label
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.black87,
                                   ),
-                                  strokeWidth: 2,
                                 ),
-                              ),
-                              Text(
-                                '${(site.progress * 100).round()}%',
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFF4a63c0),
-                                ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                           const SizedBox(width: 17),
                           GestureDetector(
@@ -1409,7 +1687,7 @@ class SiteCard extends StatelessWidget {
                               color: Color.fromRGBO(38, 59, 175, 1),
                             ),
                           ),
-                          const SizedBox(width: 15),
+                          const SizedBox(width: 20),
                           GestureDetector(
                             onTap: onDelete,
                             child: Icon(
@@ -1422,11 +1700,11 @@ class SiteCard extends StatelessWidget {
                       ),
                   ],
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
                 const Divider(
                   height: 12,
                   thickness: 1,
-                  color:  Color.fromARGB(255, 220, 228, 252),
+                  color: Color.fromARGB(255, 220, 228, 252),
                 ),
                 const SizedBox(height: 6),
                 Row(
@@ -1476,30 +1754,35 @@ class SiteCard extends StatelessWidget {
                       Expanded(
                         child: Row(
                           children: [
-                            Stack(
-                              alignment: Alignment.center,
-                              children: [
-                                const SizedBox(
-                                  width: 35,
-                                  height: 35,
-                                  child: CircularProgressIndicator(
-                                    value: 0.25,
-                                    backgroundColor: Colors.grey,
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                      Color(0xFF4a63c0),
+                            GestureDetector(
+                              onTap: site.onProgressTap,
+
+                              child: Stack(
+                                alignment: Alignment.center,
+                                children: [
+                                  SizedBox(
+                                    width: 35,
+                                    height: 35,
+                                    child: CircularProgressIndicator(
+                                      value: site.progress,
+                                      backgroundColor: Colors.grey,
+                                      valueColor:
+                                          const AlwaysStoppedAnimation<Color>(
+                                            Color(0xFF4a63c0),
+                                          ),
+                                      strokeWidth: 2,
                                     ),
-                                    strokeWidth: 2,
                                   ),
-                                ),
-                                Text(
-                                  '${(site.progress * 100).round()}%',
-                                  style: const TextStyle(
-                                    fontSize: 7,
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFF4a63c0),
+                                  Text(
+                                    '${(site.progress * 100).round()}%',
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF4a63c0),
+                                    ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                             SizedBox(width: 4),
                             Expanded(
@@ -1554,12 +1837,43 @@ class SiteCard extends StatelessWidget {
                       ),
                   ],
                 ),
-                const SizedBox(height: 5),
-                if (isGridView)
+                const SizedBox(height: 10),
+
+                if (isGridView) ...[
+                  // 🔹 Status container added
+                  GestureDetector(
+                    onTap: onStatusTap,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: _getStatusColor(site.status).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(
+                          color: _getStatusColor(site.status).withOpacity(0.1),
+                          width: 1,
+                        ),
+                      ),
+                      child: Text(
+                        site.status,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: _getStatusColor(site.status),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 9),
+
+                  // 🔹 Your existing dates
                   Text(
                     '${site.startDate}    ${site.endDate}',
                     style: const TextStyle(fontSize: 10, color: Colors.grey),
                   ),
+                ],
               ],
             ),
           ),

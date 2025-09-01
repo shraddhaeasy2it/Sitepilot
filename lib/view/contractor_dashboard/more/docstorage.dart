@@ -1242,165 +1242,192 @@ class _DocumentStorageScreenState extends State<DocumentStorageScreen>
   }
 
   Future<void> _addFolder() async {
-    final controller = TextEditingController();
-    final result = await showDialog<String>(
-      context: context,
-      builder: (ctx) => Dialog(
-        insetPadding: EdgeInsets.all(widget.isSmallMobile ? 16 : 24),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(widget.isSmallMobile ? 16 : 20)),
-        child: SingleChildScrollView(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              minHeight: 100,
-              maxHeight: MediaQuery.of(ctx).size.height * 0.8,
-            ),
-            child: IntrinsicHeight(
-              child: Container(
-                padding: EdgeInsets.all(widget.isSmallMobile ? 16 : 24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      padding: EdgeInsets.all(widget.isSmallMobile ? 14 : 16),
-                      decoration: BoxDecoration(
-                        color: DocumentStorageConstants.primaryColor.withOpacity(0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.create_new_folder_rounded,
-                        color: DocumentStorageConstants.primaryColor,
-                        size: widget.isSmallMobile ? 28 : 32,
-                      ),
-                    ),
-                    SizedBox(height: widget.isSmallMobile ? 16 : 20),
-                    Text(
-                      "Create New Folder",
-                      style: TextStyle(
-                        fontSize: widget.isSmallMobile ? 18 : 20,
-                        fontWeight: FontWeight.w700,
-                        color: DocumentStorageConstants.textPrimary,
-                      ),
-                    ),
-                    SizedBox(height: widget.isSmallMobile ? 6 : 8),
-                    Text(
-                      "Enter a name for your new folder",
-                      style: TextStyle(
-                        fontSize: widget.isSmallMobile ? 12 : 14, 
-                        color: DocumentStorageConstants.textSecondary),
-                      textAlign: TextAlign.center,
-                    ),
-                    SizedBox(height: widget.isSmallMobile ? 20 : 24),
-                    Form(
-                      key: _formKey,
-                      child: TextFormField(
-                        controller: controller,
-                        autofocus: true,
-                        decoration: InputDecoration(
-                          hintText: "Folder name",
-                          prefixIcon: Icon(
-                            Icons.folder_outlined,
-                            color: DocumentStorageConstants.primaryColor,
-                            size: widget.isSmallMobile ? 20 : 22,
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(widget.isSmallMobile ? 10 : 12),
-                            borderSide: BorderSide(color: Colors.grey.shade300),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(widget.isSmallMobile ? 10 : 12),
-                            borderSide: BorderSide(
-                              color: DocumentStorageConstants.primaryColor,
-                              width: 2,
-                            ),
-                          ),
-                          filled: true,
-                          fillColor: DocumentStorageConstants.backgroundColor,
-                        ),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Folder name cannot be empty';
-                          }
-                          if (value.contains(RegExp(r'[\\/:*?"<>|]'))) {
-                            return 'Invalid characters not allowed';
-                          }
-                          return null;
-                        },
-                      ),
-                    ),
-                    SizedBox(height: widget.isSmallMobile ? 20 : 24),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextButton(
-                            onPressed: () => Navigator.pop(ctx),
-                            style: TextButton.styleFrom(
-                              padding: EdgeInsets.symmetric(vertical: widget.isSmallMobile ? 10 : 12),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(widget.isSmallMobile ? 10 : 12),
-                              ),
-                            ),
-                            child: Text(
-                              "Cancel",
-                              style: TextStyle(
-                                fontSize: widget.isSmallMobile ? 14 : 16,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ),
-                        SizedBox(width: widget.isSmallMobile ? 10 : 12),
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: () {
-                              if (_formKey.currentState!.validate()) {
-                                Navigator.pop(ctx, controller.text.trim());
-                              }
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: DocumentStorageConstants.primaryColor,
-                              foregroundColor: Colors.white,
-                              padding: EdgeInsets.symmetric(vertical: widget.isSmallMobile ? 10 : 12),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(widget.isSmallMobile ? 10 : 12),
-                              ),
-                              elevation: 0,
-                            ),
-                            child: Text(
-                              "Create",
-                              style: TextStyle(
-                                fontSize: widget.isSmallMobile ? 14 : 16,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+  final controller = TextEditingController();
+  final result = await showModalBottomSheet<String>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (ctx) => Container(
+      decoration: BoxDecoration(
+        color: DocumentStorageConstants.cardColor,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(widget.isSmallMobile ? 16 : 20)),
+      ),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(ctx).viewInsets.bottom,
+        left: widget.isSmallMobile ? 16 : 24,
+        right: widget.isSmallMobile ? 16 : 24,
+        top: widget.isSmallMobile ? 8 : 12,
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Drag handle
+            Container(
+              width: widget.isSmallMobile ? 36 : 40,
+              height: 4,
+              margin: EdgeInsets.only(bottom: widget.isSmallMobile ? 16 : 20),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
               ),
             ),
-          ),
+            
+            // Icon
+            Container(
+              padding: EdgeInsets.all(widget.isSmallMobile ? 14 : 16),
+              decoration: BoxDecoration(
+                color: DocumentStorageConstants.primaryColor.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.create_new_folder_rounded,
+                color: DocumentStorageConstants.primaryColor,
+                size: widget.isSmallMobile ? 28 : 32,
+              ),
+            ),
+            
+            SizedBox(height: widget.isSmallMobile ? 16 : 20),
+            
+            // Title
+            Text(
+              "Create New Folder",
+              style: TextStyle(
+                fontSize: widget.isSmallMobile ? 18 : 20,
+                fontWeight: FontWeight.w700,
+                color: DocumentStorageConstants.textPrimary,
+              ),
+            ),
+            
+            SizedBox(height: widget.isSmallMobile ? 6 : 8),
+            
+            // Subtitle
+            Text(
+              "Enter a name for your new folder",
+              style: TextStyle(
+                fontSize: widget.isSmallMobile ? 12 : 14, 
+                color: DocumentStorageConstants.textSecondary),
+              textAlign: TextAlign.center,
+            ),
+            
+            SizedBox(height: widget.isSmallMobile ? 20 : 24),
+            
+            // Form
+            Form(
+              key: _formKey,
+              child: TextFormField(
+                controller: controller,
+                autofocus: true,
+                decoration: InputDecoration(
+                  hintText: "Folder name",
+                  prefixIcon: Icon(
+                    Icons.folder_outlined,
+                    color: DocumentStorageConstants.primaryColor,
+                    size: widget.isSmallMobile ? 20 : 22,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(widget.isSmallMobile ? 10 : 12),
+                    borderSide: BorderSide(color: Colors.grey.shade300),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(widget.isSmallMobile ? 10 : 12),
+                    borderSide: BorderSide(
+                      color: DocumentStorageConstants.primaryColor,
+                      width: 2,
+                    ),
+                  ),
+                  filled: true,
+                  fillColor: DocumentStorageConstants.backgroundColor,
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Folder name cannot be empty';
+                  }
+                  if (value.contains(RegExp(r'[\\/:*?"<>|]'))) {
+                    return 'Invalid characters not allowed';
+                  }
+                  return null;
+                },
+              ),
+            ),
+            
+            SizedBox(height: widget.isSmallMobile ? 20 : 24),
+            
+            // Action buttons
+            Row(
+              children: [
+                Expanded(
+                  child: TextButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    style: TextButton.styleFrom(
+                      padding: EdgeInsets.symmetric(vertical: widget.isSmallMobile ? 10 : 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(widget.isSmallMobile ? 10 : 12),
+                      ),
+                    ),
+                    child: Text(
+                      "Cancel",
+                      style: TextStyle(
+                        fontSize: widget.isSmallMobile ? 14 : 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+                SizedBox(width: widget.isSmallMobile ? 10 : 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      if (_formKey.currentState!.validate()) {
+                        Navigator.pop(ctx, controller.text.trim());
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: DocumentStorageConstants.primaryColor,
+                      foregroundColor: Colors.white,
+                      padding: EdgeInsets.symmetric(vertical: widget.isSmallMobile ? 10 : 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(widget.isSmallMobile ? 10 : 12),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: Text(
+                      "Create",
+                      style: TextStyle(
+                        fontSize: widget.isSmallMobile ? 14 : 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            
+            // Add bottom padding to avoid keyboard overlap
+            SizedBox(height: widget.isSmallMobile ? 20 : 24),
+          ],
         ),
       ),
-    );
-    if (result != null && _selectedSiteId != null) {
-      try {
-        setState(() => _isLoading = true);
-        await _api.createFolder(_selectedSiteId!, result);
-        await _loadFolders();
-        setState(() => _selectedFolderId = result);
-        _showSuccessSnack("Folder created successfully");
-      } catch (e) {
-        _showErrorSnack("Failed to create folder: ${e.toString()}");
-      } finally {
-        if (mounted) {
-          setState(() => _isLoading = false);
-        }
+    ),
+  );
+
+  // Rest of the method remains the same
+  if (result != null && _selectedSiteId != null) {
+    try {
+      setState(() => _isLoading = true);
+      await _api.createFolder(_selectedSiteId!, result);
+      await _loadFolders();
+      setState(() => _selectedFolderId = result);
+      _showSuccessSnack("Folder created successfully");
+    } catch (e) {
+      _showErrorSnack("Failed to create folder: ${e.toString()}");
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
       }
     }
   }
-
+}
   Future<void> _deleteFolder(String folderName) async {
     final confirm = await showDialog<bool>(
       context: context,

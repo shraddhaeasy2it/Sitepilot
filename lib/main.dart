@@ -29,11 +29,11 @@ class MyApp extends StatelessWidget {
           useMaterial3: true,
         ),
         debugShowCheckedModeBanner: false,
-        home:  SplashScreen(), // Start with splash screen
-        // Use a builder to get context for responsive design
+        home: HomePagescreen(), 
+
         builder: (context, child) {
           return MediaQuery(
-            // Ensure text scale factor is reasonable
+         
             data: MediaQuery.of(context).copyWith(
               textScaleFactor: MediaQuery.of(context).textScaleFactor.clamp(0.8, 1.2),
             ),

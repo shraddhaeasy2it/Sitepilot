@@ -32,8 +32,8 @@ class _ChatScreenState extends State<ChatScreen> {
   final ImagePicker _imagePicker = ImagePicker();
   
   // Color theme
-  static const Color primaryColor = Color(0xFF6f88e2);
-  static const Color primaryDark = Color(0xFF4a63c0);
+  static const Color primaryColor = Color.fromARGB(255, 58, 87, 190);
+  static const Color primaryDark = Color.fromARGB(255, 34, 65, 177);
   static const Color primaryLight = Color(0xFF8fa3e8);
   static const Color backgroundColor = Color(0xFFF8F9FC);
   static const Color chatBubbleColor = Color(0xFFE7EFFD);
@@ -466,7 +466,7 @@ class _ChatScreenState extends State<ChatScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: const Icon(Icons.insert_drive_file, color: Colors.blue),
+              leading: const Icon(Icons.insert_drive_file, color: Color(0xFF5a73d1)),
               title: const Text('Document'),
               onTap: () {
                 Navigator.pop(context);
@@ -512,7 +512,7 @@ class _ChatScreenState extends State<ChatScreen> {
     return Scaffold(
       backgroundColor: backgroundColor,
       appBar: AppBar(
-        toolbarHeight: 90,
+        toolbarHeight: 80,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -550,12 +550,12 @@ class _ChatScreenState extends State<ChatScreen> {
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: [
-                Color(0xFF6f88e2),
-                Color(0xFF5a73d1),
-                Color(0xFF4a63c0),
+                 Color(0xFF4a63c0),
+                  Color(0xFF3a53b0),
+                  Color(0xFF2a43a0),
               ],
             ),
-            borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
+            borderRadius: BorderRadius.vertical(bottom: Radius.circular(22)),
           ),
         ),
         actions: [
@@ -657,7 +657,7 @@ class _ChatScreenState extends State<ChatScreen> {
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: message.isFromCurrentUser
-                    ? primaryColor
+                    ? Color(0xFF5a73d1)
                     : chatBubbleColor,
                 borderRadius: BorderRadius.circular(16),
               ),
@@ -672,7 +672,7 @@ class _ChatScreenState extends State<ChatScreen> {
                         fontSize: 12,
                         color: message.isFromCurrentUser
                             ? Colors.white
-                            : primaryColor,
+                            : Color(0xFF5a73d1),
                       ),
                     ),
                   const SizedBox(height: 4),
@@ -727,7 +727,7 @@ class _ChatScreenState extends State<ChatScreen> {
       children: [
         Icon(
           Icons.insert_drive_file,
-          color: message.isFromCurrentUser ? Colors.white : primaryColor,
+          color: message.isFromCurrentUser ? Colors.white :Color(0xFF5a73d1),
           size: 24,
         ),
         const SizedBox(width: 8),
@@ -842,12 +842,12 @@ class _ChatScreenState extends State<ChatScreen> {
       child: Row(
         children: [
           IconButton(
-            icon: Icon(Icons.attach_file, color: primaryColor),
+            icon: Icon(Icons.attach_file, color: const Color.fromARGB(255, 61, 75, 201)),
             onPressed: _showAttachmentOptions,
             tooltip: 'Attach File',
           ),
           IconButton(
-            icon: Icon(Icons.photo_camera, color: primaryColor),
+            icon: Icon(Icons.photo_camera, color: const Color.fromARGB(255, 42, 75, 194)),
             onPressed: _attachImage,
             tooltip: 'Take Photo',
           ),
@@ -872,7 +872,7 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
           const SizedBox(width: 8),
           CircleAvatar(
-            backgroundColor: primaryColor,
+            backgroundColor: const Color.fromARGB(255, 51, 83, 197),
             child: IconButton(
               icon: const Icon(Icons.send, color: Colors.white),
               onPressed: _sendMessage,
@@ -912,7 +912,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: primaryColor,
+                  color: const Color.fromARGB(255, 52, 83, 196),
                 ),
               ),
             ),
@@ -923,7 +923,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   final participant = _groupParticipants[index];
                   return ListTile(
                     leading: CircleAvatar(
-                      backgroundColor: primaryColor,
+                      backgroundColor: const Color.fromARGB(255, 48, 81, 197),
                       child: Text(
                         participant.avatar,
                         style: const TextStyle(color: Colors.white),
@@ -1200,7 +1200,7 @@ class _CallScreenState extends State<CallScreen> with TickerProviderStateMixin {
                   ),
                   _buildCallButton(
                     icon: _isSpeakerOn ? Icons.volume_up : Icons.volume_off,
-                    backgroundColor: _isSpeakerOn ? Colors.blue : Colors.grey.shade800,
+                    backgroundColor: _isSpeakerOn ? Color(0xFF5a73d1): Colors.grey.shade800,
                     onPressed: () {
                       setState(() {
                         _isSpeakerOn = !_isSpeakerOn;

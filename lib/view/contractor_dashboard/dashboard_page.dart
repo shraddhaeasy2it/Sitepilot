@@ -483,14 +483,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     color: Colors.white.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: IconButton(
-                    icon: const Icon(
-                      Icons.notifications_outlined,
-                      color: Colors.white,
-                      size: 24,
-                    ),
-                    onPressed: _showNotifications,
-                  ),
+                  
                 ),
               ],
             )
@@ -517,9 +510,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-  void _showNotifications() {
-    // Notification logic here
-  }
 }
 
 class SitesManagementModal extends StatefulWidget {

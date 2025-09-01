@@ -33,6 +33,7 @@ dependencies:
   pdf: ^3.10.2
   agora_rtc_engine: ^6.3.0
   cached_network_image: ^3.3.0
+  iconsax: ^0.0.8
   
   
 dev_dependencies:

@@ -1,4 +1,5 @@
-import 'package:ecoteam_app/models/dashboard/site_model.dart';
+
+import 'package:ecoteam_app/models/site_model.dart';
 import 'package:flutter/material.dart';
 
 

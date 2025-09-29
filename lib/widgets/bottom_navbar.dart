@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 class CustomBottomNavBar extends StatelessWidget {
   final int currentIndex;
@@ -22,9 +23,7 @@ class CustomBottomNavBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        
-        
-       border: Border(
+         border: Border(
           top: BorderSide(
             color: Colors.grey.withOpacity(0.2),
             width: 0.5,
@@ -65,10 +64,10 @@ class CustomBottomNavBar extends StatelessWidget {
             
             destinations: [
               _buildNavigationDestination(0, Icons.dashboard_outlined, Icons.dashboard, 'Dashboard'),
-              _buildNavigationDestination(1, Icons.people_outline, Icons.people, 'Worker'),
+              _buildNavigationDestination(1, FontAwesomeIcons.screwdriverWrench, FontAwesomeIcons.screwdriverWrench, 'Material'),
               // _buildNavigationDestination(2, Icons.task_alt_outlined, Icons.task, 'Task'),
-              _buildNavigationDestination(3, Icons.calendar_today_outlined, Icons.calendar_today, 'Attendance'),
-              _buildNavigationDestination(4, Icons.more_horiz_outlined, Icons.more_horiz, 'More'),
+              _buildNavigationDestination(3, FontAwesomeIcons.tractor, FontAwesomeIcons.tractor, 'Machinary'),
+              _buildNavigationDestination(4, FontAwesomeIcons.ellipsis, FontAwesomeIcons.ellipsis, 'More'),
             ],
           ),
         ),
@@ -93,19 +92,15 @@ class CustomBottomNavBar extends StatelessWidget {
         child: Icon(
           icon, 
           color: unselectedItemColor, 
-          size: 24,
+          size: 21,
         ),
       ),
       selectedIcon: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
-        // decoration: BoxDecoration(
-        //   borderRadius: BorderRadius.circular(20), // Pill shape
-        //   color: selectedItemColor.withOpacity(0.15),
-        // ),
         child: Icon(
           selectedIcon, 
           color: selectedItemColor, 
-          size: 25,
+          size: 22,
         ),
       ),
       label: label,

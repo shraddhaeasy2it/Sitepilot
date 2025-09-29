@@ -170,30 +170,7 @@ class _LoginSelectorPageState extends State<LoginSelectorPage> {
                 const SizedBox(height: 10),
 
                 // Sign up prompt
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      "New to User?",
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: Colors.white,
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        // Navigate to sign up
-                      },
-                      child: Text(
-                        'Create Account',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          decoration: TextDecoration.underline,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                
               ],
             ),
           ),

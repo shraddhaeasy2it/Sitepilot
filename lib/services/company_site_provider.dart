@@ -1,6 +1,6 @@
 import 'package:ecoteam_app/services/api_ser.dart';
 import 'package:flutter/material.dart';
-import 'package:ecoteam_app/models/dashboard/site_model.dart';
+import 'package:ecoteam_app/models/site_model.dart';
 import 'package:uuid/uuid.dart';
 
 class CompanySiteProvider extends ChangeNotifier {

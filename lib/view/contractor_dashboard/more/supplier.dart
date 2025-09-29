@@ -1186,13 +1186,14 @@
 // }
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:open_file/open_file.dart';
 import 'package:syncfusion_flutter_xlsio/xlsio.dart' as xls;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'package:ecoteam_app/models/dashboard/site_model.dart';
+import 'package:ecoteam_app/models/site_model.dart';
 
 class SupplierLedger extends StatefulWidget {
   final String? selectedSiteId;
@@ -2445,7 +2446,7 @@ class _SupplierLedgerState extends State<SupplierLedger> {
       backgroundColor: backgroundColor,
       appBar: AppBar(
         elevation: 0,
-        toolbarHeight: 80,
+        toolbarHeight: 80.h,
         backgroundColor: Colors.transparent,
         title: RichText(
           text: TextSpan(
@@ -2479,7 +2480,7 @@ class _SupplierLedgerState extends State<SupplierLedger> {
         flexibleSpace: Container(
           decoration: BoxDecoration(
             borderRadius: const BorderRadius.vertical(
-              bottom: Radius.circular(24),
+              bottom: Radius.circular(25),
             ),
             gradient: const LinearGradient(
               begin: Alignment.topCenter,

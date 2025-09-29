@@ -1,16 +1,21 @@
+import 'package:ecoteam_app/models/site_model.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 
 class PaymentsDetailScreen extends StatefulWidget {
-  final String siteId;
-  final String siteName;
-  const PaymentsDetailScreen({
+   final String? selectedSiteId;
+  final Function(String) onSiteChanged;
+  final List<Site> sites;
+  
+   PaymentsDetailScreen({
     super.key,
-    required this.siteId,
-    required this.siteName,
+    required this.selectedSiteId,
+    required this.onSiteChanged,
+    required this.sites,
   });
 
   @override
@@ -64,27 +69,27 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
         appBar: AppBar(
           toolbarHeight: 80,
           title: RichText(
-            text: TextSpan(
-              children: [
-                TextSpan(
-                  text: 'Payments - ',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: isSmallScreen ? 18 : 20,
-                    fontWeight: FontWeight.w600,
-                  ),
+          text: TextSpan(
+            children: [
+              const TextSpan(
+                text: 'Payments - ',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
                 ),
-                TextSpan(
-                  text: widget.siteName,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: isSmallScreen ? 14 : 16,
-                    fontWeight: FontWeight.w400,
-                  ),
+              ),
+              TextSpan(
+                text:_getCurrentSiteName(),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w400,
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
+        ),
           iconTheme: const IconThemeData(color: Colors.white),
           backgroundColor: Colors.transparent,
           flexibleSpace: Container(
@@ -98,7 +103,7 @@ class _PaymentsDetailScreenState extends State<PaymentsDetailScreen> {
                   Color(0xFF2a43a0),
                 ],
               ),
-              borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
+              borderRadius: BorderRadius.vertical(bottom: Radius.circular(25)),
             ),
           ),
         ),
@@ -1142,5 +1147,17 @@ void _showAddRequestDialog() {
         },
       ),
     );
+  }
+  
+   String _getCurrentSiteName() {
+    if (widget.selectedSiteId == null) {
+      return 'All Sites';
+    }
+    final site = widget.sites.firstWhere(
+      (site) => site.id == widget.selectedSiteId,
+      orElse: () =>
+          Site(id: '', name: 'Unknown Site', address: '', companyId: ''),
+    );
+    return site.name;
   }
 }

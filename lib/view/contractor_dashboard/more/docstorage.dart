@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:open_file/open_file.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -8,7 +8,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:provider/provider.dart';
 import 'package:ecoteam_app/services/company_site_provider.dart';
-import 'package:ecoteam_app/models/dashboard/site_model.dart';
+import 'package:ecoteam_app/models/site_model.dart';
 
 // Constants
 class DocumentStorageConstants {
@@ -529,7 +529,7 @@ class _DocumentStorageScreenState extends State<DocumentStorageScreen>
 
   PreferredSizeWidget _buildAppBar(BuildContext context) {
     return AppBar(
-      toolbarHeight: widget.isSmallMobile ? 70 : 80,
+      toolbarHeight: 80.h,
       automaticallyImplyLeading: !widget.isSmallMobile,
       title: RichText(
         overflow: TextOverflow.ellipsis,
@@ -606,7 +606,7 @@ class _DocumentStorageScreenState extends State<DocumentStorageScreen>
               Color(0xFF2a43a0),
             ],
           ),
-          borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(25)),
         ),
       ),
       elevation: 0,

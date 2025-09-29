@@ -1,11 +1,11 @@
 import 'dart:convert';
-import 'package:ecoteam_app/models/dashboard/dashboard_model.dart';
-import 'package:ecoteam_app/models/dashboard/site_model.dart';
+import 'package:ecoteam_app/models/dashboard_model.dart';
+import 'package:ecoteam_app/models/site_model.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://workdo.easy2it.com/api';
+  static const String baseUrl = 'http://sitepilot.easy2it.in/api';
 
   static var sites;
 

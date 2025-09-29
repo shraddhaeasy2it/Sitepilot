@@ -1,17 +1,160 @@
-import 'package:ecoteam_app/models/dashboard/dashboard_model.dart';
-import 'package:ecoteam_app/models/dashboard/site_model.dart';
+import 'package:ecoteam_app/main.dart';
+import 'package:ecoteam_app/models/birthday_model.dart';
+import 'package:ecoteam_app/models/dashboard_model.dart';
+import 'package:ecoteam_app/models/site_model.dart';
 import 'package:ecoteam_app/services/api_ser.dart';
 import 'package:ecoteam_app/services/company_site_provider.dart';
 import 'package:ecoteam_app/view/contractor_dashboard/attendance_screen.dart';
+import 'package:ecoteam_app/view/contractor_dashboard/more/machinary.dart';
+import 'package:ecoteam_app/view/contractor_dashboard/more/inventory.dart';
 import 'package:ecoteam_app/view/contractor_dashboard/more/material_screen.dart';
 import 'package:ecoteam_app/view/contractor_dashboard/more/more_screen.dart';
-import 'package:ecoteam_app/view/contractor_dashboard/task.dart';
+import 'package:ecoteam_app/view/contractor_dashboard/more/supplier.dart';
+import 'package:ecoteam_app/view/contractor_dashboard/more/tools_screen.dart';
 import 'package:ecoteam_app/view/contractor_dashboard/worker_screen.dart';
 import 'package:ecoteam_app/widgets/bottom_navbar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:intl/intl.dart';
 import 'package:lottie/lottie.dart';
 import 'package:provider/provider.dart';
+
+// Activity Model
+class Activity {
+  final String id;
+  String title;
+  String scope;
+  int quantity;
+  String unit;
+  int completedQuantity;
+  String priority;
+  String status;
+  DateTime createdAt;
+
+  int get balanceQuantity => quantity - completedQuantity;
+
+  Activity({
+    required this.id,
+    required this.title,
+    required this.scope,
+    required this.quantity,
+    required this.unit,
+    required this.completedQuantity,
+    required this.priority,
+    required this.status,
+    required this.createdAt,
+  });
+
+  Activity copyWith({
+    String? id,
+    String? title,
+    String? scope,
+    int? quantity,
+    String? unit,
+    int? completedQuantity,
+    String? priority,
+    String? status,
+    DateTime? createdAt,
+  }) {
+    return Activity(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      scope: scope ?? this.scope,
+      quantity: quantity ?? this.quantity,
+      unit: unit ?? this.unit,
+      completedQuantity: completedQuantity ?? this.completedQuantity,
+      priority: priority ?? this.priority,
+      status: status ?? this.status,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+}
+
+// Activity Provider
+class ActivityProvider with ChangeNotifier {
+  final List<Activity> _activities = [
+    Activity(
+      id: '1',
+      title: 'Foundation Progress',
+      scope: 'Foundation work',
+      quantity: 100,
+      unit: 'sq ft',
+      completedQuantity: 85,
+      priority: 'high',
+      status: 'pending',
+      createdAt: DateTime.now().subtract(const Duration(hours: 2)),
+    ),
+    Activity(
+      id: '2',
+      title: 'Material Delivery',
+      scope: 'Steel beams delivery',
+      quantity: 50,
+      unit: 'tons',
+      completedQuantity: 50,
+      priority: 'medium',
+      status: 'pending',
+      createdAt: DateTime.now().subtract(const Duration(hours: 6)),
+    ),
+
+    Activity(
+      id: '3',
+      title: 'Team Meeting',
+      scope: 'Weekly coordination meeting',
+      quantity: 1,
+      unit: 'meeting',
+      completedQuantity: 1,
+      priority: 'low',
+      status: 'completed',
+      createdAt: DateTime.now().subtract(const Duration(days: 2)),
+    ),
+  ];
+
+  List<Activity> get activities => _activities;
+
+  List<Activity> get pendingActivities =>
+      _activities.where((activity) => activity.status == 'pending').toList();
+
+  List<Activity> get completedActivities =>
+      _activities.where((activity) => activity.status == 'completed').toList();
+
+  void addActivity(Activity activity) {
+    _activities.insert(0, activity);
+    notifyListeners();
+  }
+
+  void updateActivity(String id, Activity updatedActivity) {
+    final index = _activities.indexWhere((activity) => activity.id == id);
+    if (index != -1) {
+      _activities[index] = updatedActivity;
+      notifyListeners();
+    }
+  }
+
+  void markComplete(String id) {
+    final index = _activities.indexWhere((activity) => activity.id == id);
+    if (index != -1) {
+      _activities[index] = _activities[index].copyWith(
+        status: 'completed',
+        completedQuantity: _activities[index].quantity,
+      );
+      notifyListeners();
+    }
+  }
+
+  void markPending(String id) {
+    final index = _activities.indexWhere((activity) => activity.id == id);
+    if (index != -1) {
+      _activities[index] = _activities[index].copyWith(status: 'pending');
+      notifyListeners();
+    }
+  }
+
+  void deleteActivity(String id) {
+    _activities.removeWhere((activity) => activity.id == id);
+    notifyListeners();
+  }
+}
 
 class DashboardScreen extends StatefulWidget {
   final Site? selectedSite;
@@ -87,14 +230,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
           onSitesUpdated: _onSitesUpdated,
           dashboardData: _dashboardData,
         ),
-        WorkersScreen(
-          key: const PageStorageKey('workers'),
+        MaterialScreen(
+          key: const PageStorageKey('materials'),
           selectedSiteId: _selectedSiteId,
           onSiteChanged: _onSiteChanged,
           sites: _sites,
         ),
-        AttendanceScreen(
-          key: const PageStorageKey('attendance'),
+        MachineryScreen(
+          key: const PageStorageKey('machinery'),
           selectedSiteId: _selectedSiteId,
           onSiteChanged: _onSiteChanged,
           sites: _sites,
@@ -150,20 +293,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
           onSitesUpdated: _onSitesUpdated,
           dashboardData: _dashboardData,
         ),
-        WorkersScreen(
-          key: const PageStorageKey('workers'),
-          selectedSiteId: _selectedSiteId,
-          onSiteChanged: _onSiteChanged,
-          sites: _sites,
-        ),
         MaterialScreen(
           key: const PageStorageKey('materials'),
           selectedSiteId: _selectedSiteId,
           onSiteChanged: _onSiteChanged,
           sites: _sites,
         ),
-        AttendanceScreen(
-          key: const PageStorageKey('attendance'),
+        MachineryScreen(
+          key: const PageStorageKey('machinery'),
           selectedSiteId: _selectedSiteId,
           onSiteChanged: _onSiteChanged,
           sites: _sites,
@@ -306,10 +443,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               const SizedBox(height: 10),
               const Text(
                 'Please wait while we load your data...',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey,
-                ),
+                style: TextStyle(fontSize: 14, color: Colors.grey),
               ),
             ],
           ),
@@ -355,10 +489,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 const Text(
                   'Please check your internet connection and try again',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.grey,
-                    fontSize: 16,
-                  ),
+                  style: TextStyle(color: Colors.grey, fontSize: 16),
                 ),
                 const SizedBox(height: 32),
                 ElevatedButton(
@@ -378,10 +509,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                   child: const Text(
                     'Try Again',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                   ),
                 ),
               ],
@@ -396,7 +524,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       appBar: _currentIndex == 0
           ? AppBar(
               iconTheme: const IconThemeData(color: Colors.white),
-              toolbarHeight: 75,
+              toolbarHeight: 80.h,
               elevation: 0,
               backgroundColor: Colors.transparent,
               flexibleSpace: Container(
@@ -425,13 +553,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
               title: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (widget.companyName != null)
-                    const SizedBox(height: 8),
+                  if (widget.companyName != null) const SizedBox(height: 8),
                   if (widget.companyName != null)
                     Text(
                       widget.companyName!,
-                      style: const TextStyle(
-                        fontSize: 16,
+                      style: TextStyle(
+                        fontSize: 16.sp,
                         fontWeight: FontWeight.w500,
                         color: Color.fromARGB(239, 255, 255, 255),
                       ),
@@ -458,9 +585,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                             ),
                                           )
                                           .name),
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: Colors.white,
-                            fontSize: 20,
+                            fontSize: 20.sp,
                             fontWeight: FontWeight.w400,
                           ),
                         ),
@@ -483,7 +610,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     color: Colors.white.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  
                 ),
               ],
             )
@@ -509,7 +635,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       // Implement scroll to top for dashboard if needed
     }
   }
-
 }
 
 class SitesManagementModal extends StatefulWidget {
@@ -820,9 +945,7 @@ class _SitesManagementModalState extends State<SitesManagementModal> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF4a63c0),
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 16,
-                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -883,9 +1006,7 @@ class _SitesManagementModalState extends State<SitesManagementModal> {
                       itemBuilder: (context, index) {
                         final site = widget.sites[index];
                         return Container(
-                          margin: const EdgeInsets.only(
-                            bottom: 12,
-                          ),
+                          margin: const EdgeInsets.only(bottom: 12),
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(16),
@@ -985,32 +1106,38 @@ class DashboardContent extends StatelessWidget {
       onRefresh: () async {},
       color: const Color(0xFF4a63c0),
       backgroundColor: Colors.white,
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(
-          horizontal: 20,
-          vertical: 12,
-        ),
-        child: Column(
-          children: [
-            _buildSummaryGrid(dashboardData!),
-            const SizedBox(height: 24),
-            _buildRecentActivities(),
-            const SizedBox(height: 20),
-          ],
-        ),
+      child: Stack(
+        children: [
+          SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            child: Column(
+              children: [
+                _buildSummaryGrid(dashboardData!),
+                const SizedBox(height: 24),
+                _buildRecentActivities(),
+                const SizedBox(height: 24),
+                _buildBirthdayReminders(),
+                const SizedBox(height: 120), // Space for FABs
+              ],
+            ),
+          ),
+          Positioned(
+            bottom: 10,
+            right: 16,
+            child: FloatingActionButton(
+              onPressed: () => _showAddActivityBottomSheet(context),
+              backgroundColor: const Color(0xFF4a63c0),
+              child: const Icon(Icons.add, color: Colors.white),
+              tooltip: 'Add Activity',
+            ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildSummaryGrid(DashboardData data) {
     final summaryItems = [
-      {
-        'icon': Icons.inventory_2_outlined,
-        'title': 'Inventory',
-        'value': data.totalPicking.toString(),
-        'subtitle': 'Items in stock',
-        'color': const Color(0xFF6366F1),
-      },
       {
         'icon': Icons.groups_outlined,
         'title': 'Workers',
@@ -1020,9 +1147,9 @@ class DashboardContent extends StatelessWidget {
       },
       {
         'icon': Icons.fact_check_outlined,
-        'title': 'Inspections',
+        'title': 'Machinary',
         'value': data.totalInspection.toString(),
-        'subtitle': 'Completed',
+        'subtitle': 'Total Count',
         'color': const Color(0xFFF59E0B),
       },
       {
@@ -1046,8 +1173,14 @@ class DashboardContent extends StatelessWidget {
         'subtitle': 'Status',
         'color': const Color.fromARGB(255, 184, 55, 162),
       },
+      {
+        'icon': Icons.build_outlined,
+        'title': 'Assets',
+        'value': data.totalInspection.toString(),
+        'subtitle': 'Total Items',
+        'color': const Color(0xFF00ACC1),
+      },
     ];
-
     return GridView.builder(
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 3,
@@ -1061,18 +1194,103 @@ class DashboardContent extends StatelessWidget {
       itemBuilder: (context, index) {
         final item = summaryItems[index];
         final color = item['color'] as Color;
-
-        return TweenAnimationBuilder(
+        final int targetValue = int.tryParse(item['value'] as String) ?? 0;
+        return TweenAnimationBuilder<double>(
           tween: Tween<double>(begin: 0.8, end: 1.0),
-          duration: const Duration(milliseconds: 500),
+          duration: const Duration(seconds: 3),
           curve: Curves.easeOutBack,
           builder: (context, double scale, child) {
             return Transform.scale(
               scale: scale,
               child: GestureDetector(
-                onTap: () {},
+                onTap: () {
+                  // Navigate to respective page based on index
+                  switch (index) {
+                    // case 0: // Inventory
+                    //   Navigator.push(
+                    //     context,
+                    //     MaterialPageRoute(
+                    //       builder: (context) =>
+                    //         InventoryDetailScreen(selectedSiteId: selectedSiteId, onSiteChanged: onSiteChanged, sites: sites)
+                    //     ),
+                    //   );
+                    //   break;
+                    case 0: // Workers
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => WorkersScreen(
+                            selectedSiteId: selectedSiteId,
+                            onSiteChanged: onSiteChanged,
+                            sites: sites,
+                          ),
+                        ),
+                      );
+                      break;
+                    case 1: // Machinary
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => MachineryScreen(
+                            selectedSiteId: selectedSiteId,
+                            onSiteChanged: onSiteChanged,
+                            sites: sites,
+                          ),
+                        ),
+                      );
+                      break;
+                    case 2: // Attendance
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => AttendanceScreen(
+                            selectedSiteId: selectedSiteId,
+                            onSiteChanged: onSiteChanged,
+                            sites: sites,
+                          ),
+                        ),
+                      );
+                      break;
+                    case 3: // Material
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => MaterialScreen(
+                            selectedSiteId: selectedSiteId,
+                            onSiteChanged: onSiteChanged,
+                            sites: sites,
+                          ),
+                        ),
+                      );
+                      break;
+                    case 4: // Supplier
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => SupplierLedger(
+                            selectedSiteId: selectedSiteId,
+                            onSiteChanged: onSiteChanged,
+                            sites: sites,
+                          ),
+                        ),
+                      );
+                      break;
+                    case 5: // Assets/Tools
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ToolsScreen(
+                            selectedSiteId: selectedSiteId,
+                            onSiteChanged: onSiteChanged,
+                            sites: sites,
+                          ),
+                        ),
+                      );
+                      break;
+                  }
+                },
                 child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 300),
+                  duration: const Duration(milliseconds: 1000),
                   curve: Curves.easeInOut,
                   decoration: BoxDecoration(
                     color: color.withOpacity(0.02),
@@ -1091,7 +1309,13 @@ class DashboardContent extends StatelessWidget {
                     ],
                   ),
                   child: Padding(
-                    padding: const EdgeInsets.all(9),
+                    padding: EdgeInsets.all(
+                      Responsive.isSmall(context)
+                          ? 6.w
+                          : Responsive.isLarge(context)
+                          ? 12.w
+                          : 9.w,
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -1101,43 +1325,42 @@ class DashboardContent extends StatelessWidget {
                             Icon(
                               item['icon'] as IconData,
                               color: color,
-                              size: 18,
+                              size: 18.sp,
                             ),
-                            AnimatedContainer(
-                              duration: const Duration(milliseconds: 300),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 3,
-                              ),
-                              child: Text(
-                                item['value'] as String,
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: color,
-                                ),
-                              ),
+                            TweenAnimationBuilder<int>(
+                              tween: IntTween(begin: 0, end: targetValue),
+                              duration: const Duration(seconds: 1),
+                              builder: (context, value, child) {
+                                return Text(
+                                  value.toString(),
+                                  style: TextStyle(
+                                    fontSize: 18.sp,
+                                    fontWeight: FontWeight.bold,
+                                    color: color,
+                                  ),
+                                );
+                              },
                             ),
                           ],
                         ),
-                        const SizedBox(height: 13),
+                        SizedBox(height: 13.h),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
                               item['title'] as String,
-                              style: const TextStyle(
-                                fontSize: 15,
+                              style: TextStyle(
+                                fontSize: 15.sp,
                                 fontWeight: FontWeight.w600,
-                                color: Color(0xFF1F2937),
+                                color: const Color(0xFF1F2937),
                               ),
                             ),
-                            const SizedBox(height: 3),
+                            SizedBox(height: 3.h),
                             Text(
                               item['subtitle'] as String,
-                              style: const TextStyle(
-                                fontSize: 10,
-                                color: Color(0xFF6B7280),
+                              style: TextStyle(
+                                fontSize: 10.sp,
+                                color: const Color(0xFF6B7280),
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -1155,207 +1378,1568 @@ class DashboardContent extends StatelessWidget {
     );
   }
 
-
-Widget _buildRecentActivities() {
-  // Keep activities list outside so it can be updated dynamically
-  List<Map<String, dynamic>> activities = [
-    {
-      'icon': Icons.update,
-      'title': 'Foundation Progress',
-      'subtitle': 'Foundation work 85% completed',
-      'time': '2h ago',
-      'color': const Color(0xFF10B981),
-      'priority': 'high',
-      'status': 'pending',
-    },
-    {
-      'icon': Icons.local_shipping,
-      'title': 'Material Delivery',
-      'subtitle': 'Steel beams delivered to site',
-      'time': '6h ago',
-      'color': const Color(0xFFF59E0B),
-      'priority': 'medium',
-      'status': 'pending',
-    },
-    {
-      'icon': Icons.assignment_late,
-      'title': 'Inspection Required',
-      'subtitle': 'Electrical work needs inspection',
-      'time': 'Yesterday',
-      'color': const Color(0xFFEF4444),
-      'priority': 'urgent',
-      'status': 'pending',
-    },
-    {
-      'icon': Icons.people,
-      'title': 'Team Meeting',
-      'subtitle': 'Weekly coordination meeting completed',
-      'time': '2 days ago',
-      'color': const Color(0xFF8B5CF6),
-      'priority': 'low',
-      'status': 'completed',
-    },
-  ];
-
-  return StatefulBuilder(
-    builder: (BuildContext context, StateSetter setState) {
-      final pendingActivities = activities.where((a) => a['status'] == 'pending').toList();
-      final completedActivities = activities.where((a) => a['status'] == 'completed').toList();
-
-      return Column(
-        children: [
-          _buildActivitySection("Pending Activities", pendingActivities, setState, false),
-          const SizedBox(height: 20),
-          if (completedActivities.isNotEmpty)
-            _buildActivitySection("Completed Activities", completedActivities, setState, true),
-        ],
-      );
-    },
-  );
-}
-
-// Section builder
-Widget _buildActivitySection(
-    String title, List<Map<String, dynamic>> data, StateSetter setState, bool completed) {
-  return Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Text(title,
-          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF1F2937))),
-      const SizedBox(height: 16),
-      ListView.separated(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: data.length,
-        separatorBuilder: (context, index) => const SizedBox(height: 16),
-        itemBuilder: (context, index) {
-          final activity = data[index];
-          return _buildActivityCard(activity, setState, completed);
-        },
-      ),
-    ],
-  );
-}
-
-// Activity card with dynamic buttons
-Widget _buildActivityCard(Map<String, dynamic> activity, StateSetter setState, bool completed) {
-  return Container(
-    padding: const EdgeInsets.all(14),
-    decoration: BoxDecoration(
-      color: const Color.fromARGB(255, 248, 249, 252),
-      borderRadius: BorderRadius.circular(6),
-      border: Border.all(color: Colors.grey.shade100,),
-    ),
-    child: Column(
+  Widget _buildBirthdaySection(
+    String title,
+    List<Birthday> birthdays, {
+    required bool isToday,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 15.sp,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF1F2937),
+          ),
+        ),
+        SizedBox(height: 12.h),
+        ListView.separated(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: birthdays.length,
+          separatorBuilder: (context, index) => SizedBox(height: 12.h),
+          itemBuilder: (context, index) {
+            final birthday = birthdays[index];
+            return _buildBirthdayCard(birthday, isToday: isToday);
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBirthdayCard(Birthday birthday, {required bool isToday}) {
+    return Consumer<BirthdayProvider>(
+      builder: (context, birthdayProvider, child) {
+        return Container(
+          padding: EdgeInsets.all(10.h),
+          decoration: BoxDecoration(
+            color: isToday
+                ? Colors.yellow.shade50
+                : const Color.fromARGB(255, 248, 249, 252),
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(
+              color: isToday ? Colors.yellow.shade200 : Colors.grey.shade100,
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(12.h),
+                decoration: BoxDecoration(
+                  color: isToday
+                      ? const Color.fromARGB(255, 255, 225, 181)
+                      : Colors.pink.shade100,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(
+                  isToday ? Icons.cake : Icons.card_giftcard,
+                  color: isToday ? Colors.orange : Colors.pink,
+                  size: 22.sp,
+                ),
+              ),
+              SizedBox(width: 16.w),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      birthday.name,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16.sp,
+                        color: Color(0xFF1F2937),
+                        letterSpacing: -0.3,
+                      ),
+                    ),
+                    SizedBox(height: 6.h),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.calendar_today_rounded,
+                          size: 14.sp,
+                          color: Color(0xFF6B7280),
+                        ),
+                        SizedBox(width: 6.w),
+                        Text(
+                          DateFormat('MMM dd, yyyy').format(birthday.date),
+                          style: TextStyle(
+                            color: Color(0xFF6B7280),
+                            fontSize: 13.sp,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (!isToday) ...[
+                      SizedBox(height: 6.h),
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 10.w,
+                          vertical: 4.h,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _getDaysLeftColor(
+                            birthday.daysUntilBirthday,
+                          ).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          birthday.daysUntilBirthday == 0
+                              ? '🎉 Today!'
+                              : '${birthday.daysUntilBirthday} ${birthday.daysUntilBirthday == 1 ? 'day' : 'days'} left',
+                          style: TextStyle(
+                            color: _getDaysLeftColor(
+                              birthday.daysUntilBirthday,
+                            ),
+                            fontSize: 12.sp,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ] else ...[
+                      SizedBox(height: 6.h),
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 10.w,
+                          vertical: 4.h,
+                        ),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              Colors.orange.shade400,
+                              Colors.red.shade400,
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.orange.withOpacity(0.5),
+                              blurRadius: 4,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.celebration,
+                              color: Colors.white,
+                              size: 14.sp,
+                            ),
+                            SizedBox(width: 4.w),
+                            Text(
+                              "It's their birthday!",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 10.sp,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              IconButton(
+                icon: Icon(Icons.delete, size: 18.sp, color: Colors.red),
+                onPressed: () => birthdayProvider.deleteBirthday(birthday.id),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildRecentActivities() {
+    return Consumer<ActivityProvider>(
+      builder: (context, activityProvider, child) {
+        final pendingActivities = activityProvider.pendingActivities;
+        final completedActivities = activityProvider.completedActivities;
+
+        return Column(
           children: [
-            Container(
-              width: 2.5,
-              height: 40,
-              decoration: BoxDecoration(
-                color: activity['priority'] == 'urgent'
-                    ? const Color.fromARGB(255, 255, 104, 93)
-                    : activity['priority'] == 'high'
-                        ? const Color.fromARGB(255, 255, 172, 47)
-                        : const Color.fromARGB(255, 94, 182, 253),
-                borderRadius: BorderRadius.circular(2),
+            _buildActivitySection(
+              "Pending Activities",
+              pendingActivities,
+              false,
+            ),
+            SizedBox(height: 20.h),
+            if (completedActivities.isNotEmpty)
+              _buildActivitySection(
+                "Completed Activities",
+                completedActivities,
+                true,
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildBirthdayReminders() {
+    return Consumer<BirthdayProvider>(
+      builder: (context, birthdayProvider, child) {
+        final upcomingBirthdays = birthdayProvider.upcomingBirthdays;
+        final todaysBirthdays = birthdayProvider.todaysBirthdays;
+
+        if (upcomingBirthdays.isEmpty && todaysBirthdays.isEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Birthday Reminders',
+              style: TextStyle(
+                fontSize: 20.sp,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1F2937),
               ),
             ),
-            const SizedBox(width: 12),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: (activity['color'] as Color).withOpacity(0.1),
-                borderRadius: BorderRadius.circular(14),
+            SizedBox(height: 16.h),
+            if (todaysBirthdays.isNotEmpty) ...[
+              _buildBirthdaySection(
+                "Today's Birthdays",
+                todaysBirthdays,
+                isToday: true,
               ),
-              child: Icon(activity['icon'] as IconData,
-                  color: activity['color'] as Color, size: 22),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
+              SizedBox(height: 20.h),
+            ],
+            if (upcomingBirthdays.isNotEmpty)
+              _buildBirthdaySection(
+                "Upcoming Birthdays",
+                upcomingBirthdays,
+                isToday: false,
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  // Section builder
+  Widget _buildActivitySection(
+    String title,
+    List<Activity> data,
+    bool completed,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 20.sp,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF1F2937),
+          ),
+        ),
+        SizedBox(height: 16.h),
+        ListView.separated(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: data.length,
+          separatorBuilder: (context, index) => SizedBox(height: 16.h),
+          itemBuilder: (context, index) {
+            final activity = data[index];
+            return _buildActivityCard(activity, completed);
+          },
+        ),
+      ],
+    );
+  }
+
+  // Activity card with dynamic buttons
+  Widget _buildActivityCard(Activity activity, bool completed) {
+    IconData getIconForActivity() {
+      switch (activity.priority) {
+        case 'urgent':
+          return Icons.assignment_late;
+        case 'high':
+          return Icons.update;
+        case 'medium':
+          return Icons.local_shipping;
+        case 'low':
+          return Icons.people;
+        default:
+          return Icons.task;
+      }
+    }
+
+    Color getColorForActivity() {
+      switch (activity.priority) {
+        case 'urgent':
+          return const Color(0xFFEF4444);
+        case 'high':
+          return const Color(0xFF10B981);
+        case 'medium':
+          return const Color(0xFFF59E0B);
+        case 'low':
+          return const Color(0xFF8B5CF6);
+        default:
+          return const Color(0xFF6B7280);
+      }
+    }
+
+    String getTimeAgo(BuildContext context) {
+      final now = DateTime.now();
+      final difference = now.difference(activity.createdAt);
+      final isSmall = Responsive.isSmall(context);
+
+      if (difference.inDays >= 7) {
+        // More than a week ago, show date
+        final date = activity.createdAt;
+        final today = DateTime(now.year, now.month, now.day);
+        final yesterday = today.subtract(const Duration(days: 1));
+        final activityDate = DateTime(date.year, date.month, date.day);
+
+        if (activityDate == today) {
+          return 'Today';
+        } else if (activityDate == yesterday) {
+          return 'Yesterday';
+        } else {
+          return isSmall ? '${date.day}/${date.month}' : '${date.day}/${date.month}/${date.year}';
+        }
+      } else if (difference.inDays > 0) {
+        return isSmall ? '${difference.inDays}d ago' : '${difference.inDays} day${difference.inDays > 1 ? 's' : ''} ago';
+      } else if (difference.inHours > 0) {
+        return '${difference.inHours}h ago';
+      } else if (difference.inMinutes > 0) {
+        return '${difference.inMinutes}m ago';
+      } else {
+        return 'Now';
+      }
+    }
+
+    return Consumer<ActivityProvider>(
+      builder: (context, activityProvider, child) {
+        final progressPercentage = activity.quantity > 0
+            ? (activity.completedQuantity / activity.quantity)
+            : 0.0;
+
+        return Dismissible(
+          key: ValueKey(activity.id),
+          direction: DismissDirection.horizontal,
+          background: Container(
+            alignment: Alignment.centerLeft,
+            padding: EdgeInsets.only(left: 10.w),
+            color: Colors.blue.shade100,
+            child: Icon(Icons.edit, color: Colors.blue.shade700, size: 28.sp),
+          ),
+          secondaryBackground: Container(
+            alignment: Alignment.centerRight,
+            padding: EdgeInsets.only(right: 20.w),
+            color: Colors.red.shade100,
+            child: Icon(Icons.delete, color: Colors.red.shade700, size: 28.sp),
+          ),
+          confirmDismiss: (direction) async {
+            if (direction == DismissDirection.startToEnd) {
+              // Swipe right -> edit
+              _showAddActivityBottomSheet(context, existingActivity: activity);
+              return false;
+            } else if (direction == DismissDirection.endToStart) {
+              // Swipe left -> delete
+              _showDeleteConfirmationDialog(context, activity, activityProvider);
+              return false;
+            }
+            return false;
+          },
+          child: InkWell(
+            onTap: () => _showActivityDetailsBottomSheet(context, activity),
+            borderRadius: BorderRadius.circular(16.r),
+            child: Container(
+              margin: EdgeInsets.only(bottom: 16.h),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16.r),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.04),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                    spreadRadius: 0,
+                  ),
+                ],
+                border: Border.all(color: Colors.grey.shade50, width: 1),
+              ),
+              child: Padding(
+              padding: EdgeInsets.all(Responsive.isSmall(context) ? 12.h : 20.h),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(activity['title'] as String,
-                      style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 16,
-                          color: Color(0xFF1F2937))),
-                  const SizedBox(height: 4),
-                  Text(activity['subtitle'] as String,
-                      style: const TextStyle(
-                        color: Color(0xFF6B7280),
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      )),
+                // Header Row with Title and Time
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Priority indicator
+                    Container(
+                      width: 3.w,
+                      height: Responsive.isSmall(context) ? 30.h : 40.h,
+                      decoration: BoxDecoration(
+                        color: activity.priority == 'urgent'
+                            ? const Color(0xFFEF4444)
+                            : activity.priority == 'high'
+                            ? const Color(0xFFF59E0B)
+                            : activity.priority == 'medium'
+                            ? const Color(0xFF3B82F6)
+                            : const Color(0xFF8B5CF6),
+                        borderRadius: BorderRadius.circular(2.r),
+                      ),
+                    ),
+                    SizedBox(width: Responsive.isSmall(context) ? 12.w : 16.w),
+                    // Priority Icon
+                    Container(
+                      padding: EdgeInsets.all(Responsive.isSmall(context) ? 6.w : 7.w),
+                      decoration: BoxDecoration(
+                        color: getColorForActivity().withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(10.r),
+                      ),
+                      child: Icon(
+                        getIconForActivity(),
+                        color: getColorForActivity(),
+                        size: Responsive.isSmall(context) ? 14.sp : 16.sp,
+                      ),
+                    ),
+                    SizedBox(width: Responsive.isSmall(context) ? 8.w : 12.w),
+                    // Title and Scope in Expanded Column
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            activity.title,
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: Responsive.isSmall(context) ? 12.sp : 14.sp,
+                              color: const Color(0xFF1F2937),
+                              letterSpacing: -0.5,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          SizedBox(height: Responsive.isSmall(context) ? 4.h : 8.h),
+                          Text(
+                            activity.scope,
+                            style: TextStyle(
+                              color: const Color(0xFF6B7280),
+                              fontSize: Responsive.isSmall(context) ? 10.sp : 12.sp,
+                              fontWeight: FontWeight.w400,
+                              height: 1.4,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Time badge
+                    ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxWidth: Responsive.isSmall(context) ? 60.w : 80.w,
+                      ),
+                      child: Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: Responsive.isSmall(context) ? 6.w : 10.w,
+                          vertical: Responsive.isSmall(context) ? 2.h : 4.h,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(20.r),
+                          border: Border.all(
+                            color: Colors.grey.shade200,
+                            width: 1,
+                          ),
+                        ),
+                        child: Text(
+                          getTimeAgo(context),
+                          style: TextStyle(
+                            color: const Color(0xFF64748B),
+                            fontSize: Responsive.isSmall(context) ? 8.sp : 10.sp,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                SizedBox(height: Responsive.isSmall(context) ? 6.h : 10.h),
+
+                // Progress and Mark Complete in Row
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // Circular Progress and Progress Info
+                    Row(
+                      children: [
+                        // Circular Progress
+                        GestureDetector(
+                          onTap: () => _showQuickQuantityEditDialog(context, activity, activityProvider),
+                          child: Container(
+                            width: Responsive.isSmall(context) ? 40.0 : 50.0,
+                            height: Responsive.isSmall(context) ? 40.0 : 50.0,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: LinearGradient(
+                                colors: [
+                                  getColorForActivity().withOpacity(0.15),
+                                  getColorForActivity().withOpacity(0.08),
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                            ),
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                SizedBox(
+                                  width: Responsive.isSmall(context) ? 32.0 : 40.0,
+                                  height: Responsive.isSmall(context) ? 32.0 : 40.0,
+                                  child: CircularProgressIndicator(
+                                    value: progressPercentage,
+                                    backgroundColor: Colors.grey.shade100,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      getColorForActivity(),
+                                    ),
+                                    strokeWidth: 2.w,
+                                  ),
+                                ),
+                                Text(
+                                  '${(progressPercentage * 100).round()}%',
+                                  style: TextStyle(
+                                    fontSize: Responsive.isSmall(context) ? 8.sp : 10.sp,
+                                    fontWeight: FontWeight.w800,
+                                    color: getColorForActivity(),
+                                    letterSpacing: -0.3,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+
+                        SizedBox(width: Responsive.isSmall(context) ? 8.w : 12.w),
+
+                        // Progress Info
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '${activity.completedQuantity}/${activity.quantity} ${activity.unit}',
+                              style: TextStyle(
+                                fontSize: Responsive.isSmall(context) ? 10.sp : 11.sp,
+                                fontWeight: FontWeight.w500,
+                                color: const Color(0xFF64748B),
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+
+                    // Status Button
+                    if (!completed)
+                      InkWell(
+                        onTap: () => activityProvider.markComplete(activity.id),
+                        borderRadius: BorderRadius.circular(25.r),
+                        child: Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: Responsive.isSmall(context) ? 8.w : 12.w,
+                            vertical: Responsive.isSmall(context) ? 6.h : 8.h,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.green.shade50,
+                            borderRadius: BorderRadius.circular(20.r),
+                            border: Border.all(
+                              color: Colors.green.shade200,
+                              width: 1,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.check_circle_outline,
+                                color: Colors.green.shade600,
+                                size: Responsive.isSmall(context) ? 14.sp : 16.sp,
+                              ),
+                              SizedBox(width: 6.w),
+                              Text(
+                                Responsive.isSmall(context) ? 'Complete' : 'Mark Complete',
+                                style: TextStyle(
+                                  fontSize: Responsive.isSmall(context) ? 10.sp : 11.sp,
+                                  color: Colors.green.shade700,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+                    else
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: Responsive.isSmall(context) ? 8.w : 12.w,
+                          vertical: Responsive.isSmall(context) ? 6.h : 8.h,
+                        ),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              Colors.orange.shade50,
+                              Colors.orange.shade100,
+                            ],
+                            begin: Alignment.centerLeft,
+                            end: Alignment.centerRight,
+                          ),
+                          borderRadius: BorderRadius.circular(20.r),
+                          border: Border.all(
+                            color: Colors.orange.shade200,
+                            width: 1,
+                          ),
+                        ),
+                        child: InkWell(
+                          onTap: () =>
+                              activityProvider.markPending(activity.id),
+                          borderRadius: BorderRadius.circular(20.r),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.refresh,
+                                color: Colors.orange.shade600,
+                                size: Responsive.isSmall(context) ? 14.sp : 16.sp,
+                              ),
+                              SizedBox(width: Responsive.isSmall(context) ? 4.w : 6.w),
+                              Text(
+                                Responsive.isSmall(context) ? 'Reopen' : 'Reopen Task',
+                                style: TextStyle(
+                                  fontSize: Responsive.isSmall(context) ? 10.sp : 11.sp,
+                                  color: Colors.orange.shade700,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+      },
+    );
+  }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  void _showDeleteConfirmationDialog(
+    BuildContext context,
+    Activity activity,
+    ActivityProvider activityProvider,
+  ) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: Row(
+          children: [
+            Icon(Icons.delete_forever, color: Colors.red, size: 28),
+            SizedBox(width: 12),
+            Text(
+              'Delete Activity',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.red.shade700,
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          'Are you sure you want to delete "${activity.title}"?\n\nThis action cannot be undone.',
+          style: TextStyle(fontSize: 16),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.grey[600],
+            ),
+            child: Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              activityProvider.deleteActivity(activity.id);
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Activity "${activity.title}" deleted successfully'),
+                  backgroundColor: Colors.red,
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showActivityDetailsBottomSheet(BuildContext context, Activity activity) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenHeight < 600 || screenWidth < 400;
+    final progressPercentage = activity.quantity > 0 ? (activity.completedQuantity / activity.quantity) : 0.0;
+
+    IconData getIconForActivity() {
+      switch (activity.priority) {
+        case 'urgent': return Icons.assignment_late;
+        case 'high': return Icons.update;
+        case 'medium': return Icons.local_shipping;
+        case 'low': return Icons.people;
+        default: return Icons.task;
+      }
+    }
+
+    Color getColorForActivity() {
+      switch (activity.priority) {
+        case 'urgent': return const Color(0xFFEF4444);
+        case 'high': return const Color(0xFF10B981);
+        case 'medium': return const Color(0xFFF59E0B);
+        case 'low': return const Color(0xFF8B5CF6);
+        default: return const Color(0xFF6B7280);
+      }
+    }
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        constraints: BoxConstraints(
+          maxHeight: screenHeight * (isSmallScreen ? 0.75 : 0.65),
+        ),
+        child: DraggableScrollableSheet(
+          initialChildSize: isSmallScreen ? 0.85 : 0.65,
+          minChildSize: 0.5,
+          maxChildSize: 0.95,
+          builder: (context, scrollController) {
+            return Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black26,
+                    blurRadius: 25,
+                    offset: Offset(0, -8),
+                  ),
                 ],
               ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(10),
+              child: SafeArea(
+                child: Column(
+                  children: [
+                    // Header with gradient
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 20.h),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            getColorForActivity().withOpacity(0.1),
+                            getColorForActivity().withOpacity(0.05),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+                      ),
+                      child: Column(
+                        children: [
+                          // Drag handle
+                          Center(
+                            child: Container(
+                              width: 40.w,
+                              height: 4.h,
+                              decoration: BoxDecoration(
+                                color: Colors.grey[400],
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                            ),
+                          ),
+                          SizedBox(height: 16.h),
+                          // Activity icon and title
+                          Row(
+                            children: [
+                              Container(
+                                padding: EdgeInsets.all(16.w),
+                                decoration: BoxDecoration(
+                                  color: getColorForActivity().withOpacity(0.15),
+                                  borderRadius: BorderRadius.circular(16.r),
+                                  border: Border.all(
+                                    color: getColorForActivity().withOpacity(0.2),
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Icon(
+                                  getIconForActivity(),
+                                  color: getColorForActivity(),
+                                  size: 32.sp,
+                                ),
+                              ),
+                              SizedBox(width: 16.w),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      activity.title,
+                                      style: TextStyle(
+                                        fontSize: 20.sp,
+                                        fontWeight: FontWeight.bold,
+                                        color: const Color(0xFF1F2937),
+                                      ),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    SizedBox(height: 4.h),
+                                    Container(
+                                      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                                      decoration: BoxDecoration(
+                                        color: activity.status == 'completed'
+                                            ? Colors.green.shade100
+                                            : Colors.orange.shade100,
+                                        borderRadius: BorderRadius.circular(12.r),
+                                      ),
+                                      child: Text(
+                                        activity.status.toUpperCase(),
+                                        style: TextStyle(
+                                          fontSize: 10.sp,
+                                          fontWeight: FontWeight.w600,
+                                          color: activity.status == 'completed'
+                                              ? Colors.green.shade700
+                                              : Colors.orange.shade700,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Content
+                    Expanded(
+                      child: SingleChildScrollView(
+                        controller: scrollController,
+                        padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 20.h),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Progress Section
+                            Container(
+                              padding: EdgeInsets.all(20.w),
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade50,
+                                borderRadius: BorderRadius.circular(16.r),
+                                border: Border.all(color: Colors.grey.shade100),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.trending_up,
+                                        color: getColorForActivity(),
+                                        size: 20.sp,
+                                      ),
+                                      SizedBox(width: 8.w),
+                                      Text(
+                                        'Progress',
+                                        style: TextStyle(
+                                          fontSize: 16.sp,
+                                          fontWeight: FontWeight.w600,
+                                          color: const Color(0xFF1F2937),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  SizedBox(height: 16.h),
+                                  Row(
+                                    children: [
+                                      // Circular Progress
+                                      Container(
+                                        width: 60.w,
+                                        height: 60.h,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          gradient: LinearGradient(
+                                            colors: [
+                                              getColorForActivity().withOpacity(0.15),
+                                              getColorForActivity().withOpacity(0.08),
+                                            ],
+                                            begin: Alignment.topLeft,
+                                            end: Alignment.bottomRight,
+                                          ),
+                                        ),
+                                        child: Stack(
+                                          alignment: Alignment.center,
+                                          children: [
+                                            SizedBox(
+                                              width: 50.w,
+                                              height: 50.h,
+                                              child: CircularProgressIndicator(
+                                                value: progressPercentage,
+                                                backgroundColor: Colors.grey.shade200,
+                                                valueColor: AlwaysStoppedAnimation<Color>(
+                                                  getColorForActivity(),
+                                                ),
+                                                strokeWidth: 3.w,
+                                              ),
+                                            ),
+                                            Text(
+                                              '${(progressPercentage * 100).round()}%',
+                                              style: TextStyle(
+                                                fontSize: 12.sp,
+                                                fontWeight: FontWeight.bold,
+                                                color: getColorForActivity(),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      SizedBox(width: 16.w),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              '${activity.completedQuantity}/${activity.quantity} ${activity.unit}',
+                                              style: TextStyle(
+                                                fontSize: 18.sp,
+                                                fontWeight: FontWeight.bold,
+                                                color: const Color(0xFF1F2937),
+                                              ),
+                                            ),
+                                            SizedBox(height: 4.h),
+                                            Text(
+                                              '${activity.balanceQuantity} ${activity.unit} remaining',
+                                              style: TextStyle(
+                                                fontSize: 12.sp,
+                                                color: const Color(0xFF6B7280),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                           
+
+                            SizedBox(height: 20.h),
+
+                            // Scope Section
+                            Container(
+                              padding: EdgeInsets.all(20.w),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(16.r),
+                                border: Border.all(color: Colors.grey.shade200),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.grey.shade100,
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.description,
+                                        color: const Color(0xFF6B7280),
+                                        size: 20.sp,
+                                      ),
+                                      SizedBox(width: 8.w),
+                                      Text(
+                                        'Scope',
+                                        style: TextStyle(
+                                          fontSize: 16.sp,
+                                          fontWeight: FontWeight.w600,
+                                          color: const Color(0xFF1F2937),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  SizedBox(height: 12.h),
+                                  Text(
+                                    activity.scope,
+                                    style: TextStyle(
+                                      fontSize: 14.sp,
+                                      color: const Color(0xFF374151),
+                                      height: 1.5,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                            SizedBox(height: 20.h),
+
+                            // Timeline
+                            Container(
+                              padding: EdgeInsets.all(20.w),
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade50,
+                                borderRadius: BorderRadius.circular(16.r),
+                                border: Border.all(color: Colors.grey.shade100),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.access_time,
+                                    color: const Color(0xFF6B7280),
+                                    size: 20.sp,
+                                  ),
+                                  SizedBox(width: 12.w),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Created',
+                                          style: TextStyle(
+                                            fontSize: 12.sp,
+                                            color: const Color(0xFF6B7280),
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                        Text(
+                                          DateFormat('MMM dd, yyyy • hh:mm a').format(activity.createdAt),
+                                          style: TextStyle(
+                                            fontSize: 14.sp,
+                                            color: const Color(0xFF1F2937),
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                            SizedBox(height: 32.h),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              child: Text(activity['time'] as String,
-                  style: const TextStyle(
-                      color: Color(0xFF6B7280),
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600)),
-            ),
-          ],
+            );
+          },
         ),
-        const SizedBox(height: 12),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            if (!completed)
-              TextButton(
-                onPressed: () {
-                  setState(() {
-                    activity['status'] = 'completed';
-                  });
-                },
-                style: TextButton.styleFrom(
-                  backgroundColor: Colors.green.shade50,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                ),
-                child: const Text('Mark Complete',
-                    style: TextStyle(fontSize: 12, color: Colors.green)),
-              )
-            else
-              TextButton(
-                onPressed: () {
-                  setState(() {
-                    activity['status'] = 'pending';
-                  });
-                },
-                style: TextButton.styleFrom(
-                  backgroundColor: Colors.orange.shade50,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                ),
-                child: const Text('Reopen',
-                    style: TextStyle(fontSize: 12, color: Colors.orange)),
-              ),
-            const SizedBox(width: 8),
-            IconButton(
-              icon: const Icon(Icons.delete, size: 18, color: Colors.red),
-              onPressed: () {
-                setState(() {
-                  // In a real app, you would remove from the actual data source
-                  // For this example, we'll just mark it as deleted
-                  activity['status'] = 'deleted';
-                });
+      ),
+    );
+  }
+
+  void _showAddActivityBottomSheet(
+    BuildContext context, {
+    Activity? existingActivity,
+  }) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+    final isKeyboardOpen = keyboardHeight > 0;
+    final isSmallScreen = screenHeight < 600 || screenWidth < 400;
+    final isEditing = existingActivity != null;
+    final titleController = TextEditingController(
+      text: isEditing ? existingActivity.title : '',
+    );
+    final scopeController = TextEditingController(
+      text: isEditing ? existingActivity.scope : '',
+    );
+    final quantityController = TextEditingController(
+      text: isEditing ? existingActivity.quantity.toString() : '',
+    );
+    final unitController = TextEditingController(
+      text: isEditing ? existingActivity.unit : '',
+    );
+    final completedQuantityController = TextEditingController(
+      text: isEditing ? existingActivity.completedQuantity.toString() : '0',
+    );
+    String selectedPriority = isEditing ? existingActivity.priority : 'medium';
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        constraints: BoxConstraints(
+          maxHeight:
+              screenHeight *
+              (isKeyboardOpen ? 0.98 : (isSmallScreen ? 0.85 : 0.9)),
+        ),
+        child: DraggableScrollableSheet(
+          initialChildSize: isKeyboardOpen ? 0.95 : (isSmallScreen ? 0.9 : 0.7),
+          minChildSize: isKeyboardOpen ? 0.8 : (isSmallScreen ? 0.7 : 0.5),
+          maxChildSize: 0.98,
+          builder: (context, scrollController) {
+            return StatefulBuilder(
+              builder: (context, setSheetState) {
+                return Container(
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(28),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black26,
+                        blurRadius: 20,
+                        offset: Offset(0, -5),
+                      ),
+                    ],
+                  ),
+                  child: SafeArea(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 20.w,
+                        vertical: 24.h,
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Center(
+                            child: Container(
+                              width: 40.w,
+                              height: 4.h,
+                              decoration: BoxDecoration(
+                                color: Colors.grey[300],
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                            ),
+                          ),
+                          SizedBox(height: 16.h),
+                          Row(
+                            children: [
+                              Icon(
+                                isEditing ? Icons.edit : Icons.add_task,
+                                color: Color(0xFF4a63c0),
+                                size: 28.sp,
+                              ),
+                              SizedBox(width: 16.w),
+                              Expanded(
+                                child: Text(
+                                  isEditing
+                                      ? 'Edit Activity'
+                                      : 'Add New Activity',
+                                  style: TextStyle(
+                                    fontSize: 24.sp,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black87,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 32.h),
+                          Flexible(
+                            child: SingleChildScrollView(
+                              controller: scrollController,
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  TextField(
+                                    controller: titleController,
+                                    decoration: InputDecoration(
+                                      labelText: 'Activity Title',
+                                      hintText: 'e.g. Foundation Work',
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.all(
+                                          Radius.circular(12.r),
+                                        ),
+                                      ),
+                                      prefixIcon: Icon(
+                                        Icons.title,
+                                        color: Color.fromARGB(255, 46, 74, 179),
+                                        size: 20.sp,
+                                      ),
+                                      contentPadding: EdgeInsets.symmetric(
+                                        vertical: 8.h,
+                                        horizontal: 12.w,
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(height: 12.h),
+                                  TextField(
+                                    controller: scopeController,
+                                    decoration: InputDecoration(
+                                      labelText: 'Scope',
+                                      hintText:
+                                          'e.g. Foundation work for building A',
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.all(
+                                          Radius.circular(12.r),
+                                        ),
+                                      ),
+                                      prefixIcon: Icon(
+                                        Icons.description,
+                                        color: Color.fromARGB(255, 46, 74, 179),
+                                        size: 20.sp,
+                                      ),
+                                      contentPadding: EdgeInsets.symmetric(
+                                        vertical: 8.h,
+                                        horizontal: 12.w,
+                                      ),
+                                    ),
+                                    maxLines: 1,
+                                  ),
+                                  SizedBox(height: 12.h),
+                                  TextField(
+                                    controller: quantityController,
+                                    keyboardType: TextInputType.number,
+                                    decoration: InputDecoration(
+                                      labelText: 'Quantity',
+                                      hintText: 'e.g. 100',
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.all(
+                                          Radius.circular(12.r),
+                                        ),
+                                      ),
+                                      prefixIcon: Icon(
+                                        Icons.numbers,
+                                        color: Color.fromARGB(255, 46, 74, 179),
+                                        size: 20.sp,
+                                      ),
+                                      contentPadding: EdgeInsets.symmetric(
+                                        vertical: 8.h,
+                                        horizontal: 12.w,
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(height: 12.h),
+                                  TextField(
+                                    controller: unitController,
+                                    decoration: InputDecoration(
+                                      labelText: 'Unit',
+                                      hintText: 'e.g. sq ft, tons',
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.all(
+                                          Radius.circular(12.r),
+                                        ),
+                                      ),
+                                      prefixIcon: Icon(
+                                        Icons.straighten,
+                                        color: Color.fromARGB(255, 46, 74, 179),
+                                        size: 20.sp,
+                                      ),
+                                      contentPadding: EdgeInsets.symmetric(
+                                        vertical: 8.h,
+                                        horizontal: 12.w,
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(height: 12.h),
+                                  TextField(
+                                    controller: completedQuantityController,
+                                    keyboardType: TextInputType.number,
+                                    decoration: InputDecoration(
+                                      labelText: 'Completed Quantity',
+                                      hintText: 'e.g. 85',
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.all(
+                                          Radius.circular(12.r),
+                                        ),
+                                      ),
+                                      prefixIcon: Icon(
+                                        Icons.check_circle,
+                                        color: Color.fromARGB(255, 46, 74, 179),
+                                        size: 20.sp,
+                                      ),
+                                      contentPadding: EdgeInsets.symmetric(
+                                        vertical: 8.h,
+                                        horizontal: 12.w,
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(height: 8.h),
+                                  StatefulBuilder(
+                                    builder: (context, setBalanceState) {
+                                      final quantity =
+                                          int.tryParse(
+                                            quantityController.text,
+                                          ) ??
+                                          0;
+                                      final completed =
+                                          int.tryParse(
+                                            completedQuantityController.text,
+                                          ) ??
+                                          0;
+                                      final balance = quantity - completed;
+                                      return Text(
+                                        'Balance Quantity: $balance',
+                                        style: TextStyle(
+                                          fontSize: 12.sp,
+                                          color: balance >= 0
+                                              ? Colors.green
+                                              : Colors.red,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                  SizedBox(height: 16.h),
+                                  DropdownButtonFormField<String>(
+                                    value: selectedPriority,
+                                    decoration: InputDecoration(
+                                      labelText: 'Priority',
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.all(
+                                          Radius.circular(12.r),
+                                        ),
+                                      ),
+                                      prefixIcon: Icon(Icons.flag, size: 20.sp),
+                                      contentPadding: EdgeInsets.symmetric(
+                                        vertical: 8.h,
+                                        horizontal: 12.w,
+                                      ),
+                                    ),
+                                    items: const [
+                                      DropdownMenuItem(
+                                        value: 'low',
+                                        child: Text('Low Priority'),
+                                      ),
+                                      DropdownMenuItem(
+                                        value: 'medium',
+                                        child: Text('Medium Priority'),
+                                      ),
+                                      DropdownMenuItem(
+                                        value: 'high',
+                                        child: Text('High Priority'),
+                                      ),
+                                      DropdownMenuItem(
+                                        value: 'urgent',
+                                        child: Text('Urgent'),
+                                      ),
+                                    ],
+                                    onChanged: (value) {
+                                      if (value != null) {
+                                        setSheetState(
+                                          () => selectedPriority = value,
+                                        );
+                                      }
+                                    },
+                                  ),
+                                  SizedBox(height: 24.h),
+                                  Container(
+                                    height: 56.h,
+                                    decoration: BoxDecoration(
+                                      gradient: const LinearGradient(
+                                        colors: [
+                                          Color(0xFF6f88e2),
+                                          Color(0xFF4a63c0),
+                                        ],
+                                        begin: Alignment.centerLeft,
+                                        end: Alignment.centerRight,
+                                      ),
+                                      borderRadius: BorderRadius.circular(16.r),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: const Color(
+                                            0xFF4a63c0,
+                                          ).withOpacity(0.3),
+                                          blurRadius: 12,
+                                          offset: const Offset(0, 6),
+                                        ),
+                                      ],
+                                    ),
+                                    child: ElevatedButton.icon(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.transparent,
+                                        shadowColor: Colors.transparent,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            16.r,
+                                          ),
+                                        ),
+                                      ),
+                                      icon: Icon(
+                                        isEditing ? Icons.update : Icons.add,
+                                        color: Colors.white,
+                                        size: 22.sp,
+                                      ),
+                                      label: Text(
+                                        isEditing
+                                            ? 'Update Activity'
+                                            : 'Add Activity',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 16.sp,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      onPressed: () {
+                                        if (titleController.text
+                                                .trim()
+                                                .isEmpty ||
+                                            scopeController.text
+                                                .trim()
+                                                .isEmpty ||
+                                            quantityController.text
+                                                .trim()
+                                                .isEmpty ||
+                                            unitController.text
+                                                .trim()
+                                                .isEmpty) {
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            const SnackBar(
+                                              content: Text(
+                                                'Please fill all required fields',
+                                              ),
+                                            ),
+                                          );
+                                          return;
+                                        }
+
+                                        final quantity =
+                                            int.tryParse(
+                                              quantityController.text,
+                                            ) ??
+                                            0;
+                                        final completedQuantity =
+                                            int.tryParse(
+                                              completedQuantityController.text,
+                                            ) ??
+                                            0;
+
+                                        final activityProvider =
+                                            Provider.of<ActivityProvider>(
+                                              context,
+                                              listen: false,
+                                            );
+
+                                        final activity = Activity(
+                                          id: isEditing
+                                              ? existingActivity!.id
+                                              : DateTime.now()
+                                                    .millisecondsSinceEpoch
+                                                    .toString(),
+                                          title: titleController.text.trim(),
+                                          scope: scopeController.text.trim(),
+                                          quantity: quantity,
+                                          unit: unitController.text.trim(),
+                                          completedQuantity: completedQuantity,
+                                          priority: selectedPriority,
+                                          status: isEditing
+                                              ? existingActivity!.status
+                                              : 'pending',
+                                          createdAt: isEditing
+                                              ? existingActivity!.createdAt
+                                              : DateTime.now(),
+                                        );
+
+                                        if (isEditing) {
+                                          activityProvider.updateActivity(
+                                            activity.id,
+                                            activity,
+                                          );
+                                        } else {
+                                          activityProvider.addActivity(
+                                            activity,
+                                          );
+                                        }
+                                        Navigator.pop(context);
+
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              'Activity "${activity.title}" ${isEditing ? 'updated' : 'added'} successfully',
+                                            ),
+                                            backgroundColor: Colors.green,
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
               },
-            ),
-          ],
+            );
+          },
         ),
-      ],
-    ),
-  );
-}
- Widget _buildEmptyState() {
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(20.0),
@@ -1387,14 +2971,151 @@ Widget _buildActivityCard(Map<String, dynamic> activity, StateSetter setState, b
             const Text(
               'Data will appear here once available',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 16,
-                color: Color(0xFF6B7280),
-              ),
+              style: TextStyle(fontSize: 16, color: Color(0xFF6B7280)),
             ),
           ],
         ),
       ),
     );
+  }
+
+  void _showQuickQuantityEditDialog(BuildContext context, Activity activity, ActivityProvider activityProvider) {
+    final remainingQuantity = activity.balanceQuantity;
+    final TextEditingController quantityController = TextEditingController(
+      text: remainingQuantity.toString(),
+    );
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: Text(
+          'Mark Progress',
+          style: TextStyle(
+            fontSize: 18.sp,
+            fontWeight: FontWeight.bold,
+            color: const Color(0xFF1F2937),
+          ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '${activity.title}\nRemaining: ${remainingQuantity} ${activity.unit}',
+              style: TextStyle(
+                fontSize: 14.sp,
+                color: const Color(0xFF6B7280),
+              ),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: 16.h),
+            TextField(
+              controller: quantityController,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                labelText: 'Quantity to Complete',
+                hintText: 'Enter amount to mark complete',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                suffixText: activity.unit,
+              ),
+            ),
+            SizedBox(height: 8.h),
+            StatefulBuilder(
+              builder: (context, setState) {
+                final enteredQuantity = int.tryParse(quantityController.text) ?? 0;
+                final isValid = enteredQuantity >= 0 && enteredQuantity <= remainingQuantity;
+
+                return Column(
+                  children: [
+                    Text(
+                      'New Remaining: ${remainingQuantity - enteredQuantity} ${activity.unit}',
+                      style: TextStyle(
+                        fontSize: 12.sp,
+                        color: (remainingQuantity - enteredQuantity) >= 0 ? Colors.green : Colors.red,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    if (!isValid)
+                      Text(
+                        enteredQuantity > remainingQuantity
+                            ? 'Cannot exceed remaining quantity'
+                            : 'Must be non-negative',
+                        style: TextStyle(
+                          fontSize: 12.sp,
+                          color: Colors.red,
+                        ),
+                      ),
+                  ],
+                );
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Cancel',
+              style: TextStyle(color: Colors.grey[600]),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final quantityToComplete = int.tryParse(quantityController.text) ?? 0;
+              if (quantityToComplete >= 0 && quantityToComplete <= remainingQuantity) {
+                // Update the current activity with the completed quantity
+                final updatedActivity = activity.copyWith(
+                  completedQuantity: activity.completedQuantity + quantityToComplete,
+                  status: (activity.completedQuantity + quantityToComplete) >= activity.quantity ? 'completed' : 'pending',
+                );
+                activityProvider.updateActivity(activity.id, updatedActivity);
+
+                // Calculate remaining quantity after completing the entered amount
+                final newRemainingQuantity = remainingQuantity - quantityToComplete;
+
+                // Create a new activity with the remaining quantity as the new total (if there's remaining work)
+                if (newRemainingQuantity > 0) {
+                  final newActivity = Activity(
+                    id: DateTime.now().millisecondsSinceEpoch.toString(),
+                    title: activity.title,
+                    scope: activity.scope,
+                    quantity: newRemainingQuantity,
+                    unit: activity.unit,
+                    completedQuantity: 0, // Start fresh with 0 completed
+                    priority: activity.priority,
+                    status: 'pending',
+                    createdAt: DateTime.now(),
+                  );
+                  activityProvider.addActivity(newActivity);
+                }
+
+                Navigator.pop(context);
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF4a63c0),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: const Text(
+              'Update',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _getDaysLeftColor(int daysLeft) {
+    if (daysLeft == 0) return Colors.red;
+    if (daysLeft <= 3) return Colors.red.shade600;
+    if (daysLeft <= 7) return Colors.orange.shade600;
+    return Colors.green.shade600;
   }
 }

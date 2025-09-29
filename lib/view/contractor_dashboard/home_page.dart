@@ -1,11 +1,13 @@
 import 'dart:typed_data';
-import 'package:ecoteam_app/models/dashboard/site_model.dart';
+import 'package:ecoteam_app/models/site_model.dart';
 import 'package:ecoteam_app/services/company_site_provider.dart';
 import 'package:ecoteam_app/view/contractor_dashboard/chat_screen.dart';
 import 'package:ecoteam_app/view/contractor_dashboard/dashboard_page.dart';
 import 'package:ecoteam_app/view/contractor_dashboard/notification.dart';
 import 'package:ecoteam_app/view/contractor_dashboard/profilepage.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
@@ -112,6 +114,7 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
             debugPrint('Site changed to: $siteId');
           },
           sites: siteList,
+          currentCompany: currentCompany,
         ),
       ),
     );
@@ -136,47 +139,37 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                 borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
               ),
               child: Padding(
-                padding: const EdgeInsets.all(24),
+                padding: EdgeInsets.all(24.h),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Center(
-                      child: Container(
-                        width: 60,
-                        height: 5,
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade300,
-                          borderRadius: BorderRadius.circular(3),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    const Text(
+                    SizedBox(height: 20.h),
+                    Text(
                       'Update Progress',
                       style: TextStyle(
-                        fontSize: 22,
+                        fontSize: 22.sp,
                         fontWeight: FontWeight.bold,
                         color: Color(0xFF2A2A2A),
                       ),
                     ),
-                    const SizedBox(height: 20),
+                    SizedBox(height: 20.h),
                     Text(
                       site.name,
-                      style: const TextStyle(
-                        fontSize: 18,
+                      style: TextStyle(
+                        fontSize: 18.sp,
                         fontWeight: FontWeight.w500,
                         color: Color(0xFF4a63c0),
                       ),
                     ),
-                    const SizedBox(height: 30),
+                    SizedBox(height: 30.h),
                     Column(
                       children: [
                         Stack(
                           alignment: Alignment.center,
                           children: [
                             SizedBox(
-                              width: 100,
-                              height: 100,
+                              width: 90.w,
+                              height: 90.h,
                               child: CircularProgressIndicator(
                                 value: newProgress,
                                 backgroundColor: Colors.grey.shade200,
@@ -188,8 +181,8 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                             ),
                             Text(
                               '${(newProgress * 100).round()}%',
-                              style: const TextStyle(
-                                fontSize: 20,
+                              style: TextStyle(
+                                fontSize: 19.sp,
                                 fontWeight: FontWeight.bold,
                                 color: Color(0xFF4a63c0),
                               ),
@@ -208,7 +201,7 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                       ],
                     ),
 
-                    const SizedBox(height: 30),
+                    SizedBox(height: 30.h),
                     Slider(
                       value: newProgress,
                       min: 0.0,
@@ -222,66 +215,74 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                         });
                       },
                     ),
-                    const SizedBox(height: 30),
+                    SizedBox(height: 30.h),
                     Row(
                       children: [
                         Expanded(
-                          child: TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            style: TextButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                side: BorderSide(color: Colors.grey.shade300),
+                          child: Container(
+                            height: 40.h,
+                            width: 90.w,
+                            child: TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              style: TextButton.styleFrom(
+                                padding: EdgeInsets.all(12.h),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  side: BorderSide(color: Colors.grey.shade300),
+                                ),
                               ),
-                            ),
-                            child: const Text(
-                              'Cancel',
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.grey,
+                              child: Text(
+                                'Cancel',
+                                style: TextStyle(
+                                  fontSize: 15.sp,
+                                  color: Colors.grey,
+                                ),
                               ),
                             ),
                           ),
                         ),
-                        const SizedBox(width: 16),
+                        SizedBox(width: 16.w),
                         Expanded(
-                          child: ElevatedButton(
-                            onPressed: () {
-                              setState(() {
-                                _siteDataMap[site.id] = site.copyWith(
-                                  progress: newProgress,
-                                );
-                              });
-                              Navigator.pop(context);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    'Progress updated to ${(newProgress * 100).round()}%',
+                          child: Container(
+                            height: 40.h,
+                            width: 90.w,
+                            child: ElevatedButton(
+                              onPressed: () {
+                                setState(() {
+                                  _siteDataMap[site.id] = site.copyWith(
+                                    progress: newProgress,
+                                  );
+                                });
+                                Navigator.pop(context);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      'Progress updated to ${(newProgress * 100).round()}%',
+                                    ),
+                                    backgroundColor: Colors.green,
                                   ),
-                                  backgroundColor: Colors.green,
+                                );
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF4a63c0),
+                                padding: EdgeInsets.all(12.h),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
-                              );
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF4a63c0),
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
                               ),
-                            ),
-                            child: const Text(
-                              'Update',
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.white,
+                              child: Text(
+                                'Update',
+                                style: TextStyle(
+                                  fontSize: 15.sp,
+                                  color: Colors.white,
+                                ),
                               ),
                             ),
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 20),
+                    SizedBox(height: 20.h),
                   ],
                 ),
               ),
@@ -332,7 +333,7 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                 ),
               ),
               child: AppBar(
-                toolbarHeight: 90,
+                toolbarHeight: 80.h,
                 backgroundColor: Colors.transparent,
                 elevation: 0,
                 shape: const RoundedRectangleBorder(
@@ -344,29 +345,25 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                   padding: const EdgeInsets.only(top: 12),
                   child: Row(
                     children: [
-                      const Icon(
-                        Icons.business,
-                        color: Colors.white70,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 3),
+                      Icon(Icons.business, color: Colors.white70, size: 21.w),
+                      SizedBox(width: 10.w),
                       if (isLoading)
                         SizedBox(
-                          width: 150,
+                          width: 150.w,
                           child: Row(
                             children: [
-                              const Text(
+                              Text(
                                 'Loading...',
                                 style: TextStyle(
-                                  fontSize: 18,
+                                  fontSize: 18.sp,
                                   fontWeight: FontWeight.w600,
                                   color: Colors.white,
                                 ),
                               ),
-                              const SizedBox(width: 10),
+                              SizedBox(width: 10.w),
                               SizedBox(
-                                width: 20,
-                                height: 20,
+                                width: 20.w,
+                                height: 20.h,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
                                   color: Colors.white,
@@ -382,7 +379,8 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                 ),
                 actions: [
                   IconButton(
-                    icon: const Icon(Icons.notifications, size: 24),
+                    icon: const FaIcon(FontAwesomeIcons.bell, size: 20),
+
                     onPressed: () {
                       Navigator.push(
                         context,
@@ -394,10 +392,10 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                     },
                     color: Colors.white,
                   ),
-                  const SizedBox(width: 5),
+                  const SizedBox(width: 2),
                   IconButton(
                     onPressed: _navigateToChatScreen,
-                    icon: const Icon(Icons.chat_rounded, size: 24),
+                    icon: const FaIcon(FontAwesomeIcons.commentDots, size: 20),
                     color: Colors.white,
                   ),
                   const SizedBox(width: 5),
@@ -427,37 +425,37 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.all(20),
+            padding: EdgeInsets.all(20.h),
             child: Row(
               children: [
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const SizedBox(height: 8),
-                      const Text(
+                      SizedBox(height: 8.h),
+                      Text(
                         'Sites Overview',
                         style: TextStyle(
-                          fontSize: 28,
+                          fontSize: 26.sp,
                           fontWeight: FontWeight.bold,
                           color: Color(0xFF2A2A2A),
                           letterSpacing: -0.5,
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      SizedBox(height: 8.h),
                       Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 16.h,
+                          vertical: 8.w,
                         ),
                         decoration: BoxDecoration(
                           color: Color(0xFF4a63c0).withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(20),
+                          borderRadius: BorderRadius.circular(20.r),
                         ),
                         child: Text(
                           '${sites.length} active sites',
-                          style: const TextStyle(
-                            fontSize: 14,
+                          style: TextStyle(
+                            fontSize: 14.sp,
                             fontWeight: FontWeight.w600,
                             color: Color(0xFF4a63c0),
                           ),
@@ -699,30 +697,23 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
   Widget _buildCustomCompanyDropdown() {
     return GestureDetector(
       onTap: () => _showCompanySelectionBottomSheet(),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              constraints: const BoxConstraints(maxWidth: 200),
-              child: Text(
-                currentCompany ?? 'Select Company',
-                style: const TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                ),
-                overflow: TextOverflow.ellipsis,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            constraints: const BoxConstraints(maxWidth: 200),
+            child: Text(
+              currentCompany ?? 'Select Company',
+              style: TextStyle(
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
               ),
+              overflow: TextOverflow.ellipsis,
             ),
-            const Icon(
-              Icons.keyboard_arrow_down,
-              color: Colors.white,
-              size: 20,
-            ),
-          ],
-        ),
+          ),
+          Icon(Icons.keyboard_arrow_down, color: Colors.white, size: 22.sp),
+        ],
       ),
     );
   }
@@ -1057,7 +1048,7 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
             color: Colors.white,
             borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
           ),
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.all(24.h),
           child: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1065,22 +1056,22 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
               children: [
                 Center(
                   child: Container(
-                    width: 60,
-                    height: 5,
+                    width: 60.w,
+                    height: 5.h,
                     decoration: BoxDecoration(
                       color: Colors.grey.shade300,
                       borderRadius: BorderRadius.circular(3),
                     ),
                   ),
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: 16.h),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
+                    Text(
                       'Edit Site',
                       style: TextStyle(
-                        fontSize: 22,
+                        fontSize: 22.sp,
                         fontWeight: FontWeight.bold,
                         color: Color(0xFF2A2A2A),
                       ),
@@ -1091,94 +1082,101 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
-                Center(
-                  child: Stack(
-                    children: [
-                      GestureDetector(
-                        onTap: () async {
-                          final bytes = await _pickImage();
-                          if (bytes != null) {
-                            setState(() {
-                              imageBytes = bytes;
-                            });
-                          }
-                        },
-                        child: Container(
-                          width: 120,
-                          height: 120,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(16),
-                            color: Colors.grey.shade100,
-                            border: Border.all(
-                              color: Colors.grey.shade300,
-                              width: 1,
+                SizedBox(height: 16.h),
+                Container(
+                  child: Center(
+                    child: Stack(
+                      children: [
+                        GestureDetector(
+                          onTap: () async {
+                            final bytes = await _pickImage();
+                            if (bytes != null) {
+                              setState(() {
+                                imageBytes = bytes;
+                              });
+                            }
+                          },
+                          child: Container(
+                            width: 120.w,
+                            height: 120.h,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(16),
+                              color: Colors.grey.shade100,
+                              border: Border.all(
+                                color: Colors.grey.shade300,
+                                width: 1,
+                              ),
                             ),
-                          ),
-                          child: imageBytes != null
-                              ? ClipRRect(
-                                  borderRadius: BorderRadius.circular(16),
-                                  child: Image.memory(
-                                    imageBytes!,
-                                    fit: BoxFit.cover,
-                                  ),
-                                )
-                              : (site.imageUrl != null
-                                    ? ClipRRect(
-                                        borderRadius: BorderRadius.circular(16),
-                                        child: Image.asset(
-                                          site.imageUrl!,
-                                          fit: BoxFit.cover,
-                                          errorBuilder:
-                                              (context, error, stackTrace) {
-                                                return const Center(
-                                                  child: Icon(
-                                                    Icons.business,
-                                                    size: 40,
-                                                    color: Colors.grey,
-                                                  ),
-                                                );
-                                              },
-                                        ),
-                                      )
-                                    : Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          Icon(
-                                            Icons.add_a_photo,
-                                            size: 30,
-                                            color: Colors.grey.shade400,
+                            child: imageBytes != null
+                                ? ClipRRect(
+                                    borderRadius: BorderRadius.circular(16),
+                                    child: Image.memory(
+                                      imageBytes!,
+                                      fit: BoxFit.cover,
+                                    ),
+                                  )
+                                : (site.imageUrl != null
+                                      ? ClipRRect(
+                                          borderRadius: BorderRadius.circular(
+                                            16,
                                           ),
-                                          const SizedBox(height: 8),
-                                          Text(
-                                            'Add Photo',
-                                            style: TextStyle(
-                                              color: Colors.grey.shade600,
-                                              fontSize: 12,
+                                          child: Image.asset(
+                                            site.imageUrl!,
+                                            fit: BoxFit.cover,
+                                            errorBuilder:
+                                                (context, error, stackTrace) {
+                                                  return Center(
+                                                    child: Icon(
+                                                      Icons.business,
+                                                      size: 40.sp,
+                                                      color: Colors.grey,
+                                                    ),
+                                                  );
+                                                },
+                                          ),
+                                        )
+                                      : Column(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            Icon(
+                                              Icons.add_a_photo,
+                                              size: 30.sp,
+                                              color: Colors.grey.shade400,
                                             ),
-                                          ),
-                                        ],
-                                      )),
+                                            const SizedBox(height: 8),
+                                            Text(
+                                              'Add Photo',
+                                              style: TextStyle(
+                                                color: Colors.grey.shade600,
+                                                fontSize: 12.sp,
+                                              ),
+                                            ),
+                                          ],
+                                        )),
+                          ),
                         ),
-                      ),
-                      const Icon(Icons.add_a_photo_outlined),
-                    ],
+                        GestureDetector(
+                          onTap: () => _pickImage(),
+                          child: Icon(Icons.add_a_photo_outlined),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-                const SizedBox(height: 20),
+                SizedBox(height: 20.h),
                 _buildModernInputField(
                   controller: nameController,
                   label: 'Site Name',
                   icon: Icons.construction,
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: 16.h),
                 _buildModernInputField(
                   controller: addressController,
                   label: 'Address',
                   icon: Icons.location_on,
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: 16.h),
                 Row(
                   children: [
                     Expanded(
@@ -1189,7 +1187,7 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                         isDateField: true,
                       ),
                     ),
-                    const SizedBox(width: 16),
+                    SizedBox(width: 16.w),
                     Expanded(
                       child: _buildModernInputField(
                         controller: endDateController,
@@ -1200,11 +1198,11 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: 16.h),
 
                 SizedBox(
                   width: double.infinity,
-                  height: 50,
+                  height: 50.h,
                   child: ElevatedButton(
                     onPressed: () {
                       if (nameController.text.isNotEmpty &&
@@ -1253,15 +1251,15 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      elevation: 2,
+                      elevation: 1,
                     ),
-                    child: const Text(
+                    child: Text(
                       'Update Site',
-                      style: TextStyle(fontSize: 16, color: Colors.white),
+                      style: TextStyle(fontSize: 16.sp, color: Colors.white),
                     ),
                   ),
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: 16.h),
               ],
             ),
           ),
@@ -1278,7 +1276,7 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
   }) {
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(12.h),
         boxShadow: [
           BoxShadow(
             color: Colors.grey.withOpacity(0.1),
@@ -1304,7 +1302,7 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Color(0xFF4a63c0), width: 2),
+            borderSide: const BorderSide(color: Color(0xFF4a63c0), width: 1),
           ),
           filled: true,
           fillColor: Colors.white,
@@ -1369,10 +1367,10 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
             children: [
               Icon(Icons.warning, size: 48, color: Colors.orange.shade600),
               const SizedBox(height: 16),
-              const Text(
+              Text(
                 'Delete Site?',
                 style: TextStyle(
-                  fontSize: 20,
+                  fontSize: 20.sp,
                   fontWeight: FontWeight.bold,
                   color: Color(0xFF4a63c0),
                 ),
@@ -1383,7 +1381,7 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.grey.shade600),
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: 24.h),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
@@ -1502,6 +1500,7 @@ class SiteCard extends StatelessWidget {
     required this.onStatusTap,
     required this.isGridView,
   }) : super(key: key);
+
   String getProgressLabel(double progress) {
     final percent = (progress * 100).round();
     if (percent == 0) return "Not Started";
@@ -1513,369 +1512,432 @@ class SiteCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: isGridView ? 170 : double.infinity,
-      height: isGridView ? 130 : 150,
-      margin: EdgeInsets.symmetric(
-        horizontal: isGridView ? 6 : 1,
-        vertical: isGridView ? 6 : 6,
-      ),
-      child: Card(
-        color: const Color(0xFFF8FAFC),
-        elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-          side: const BorderSide(
-            color: Color.fromARGB(255, 224, 227, 253),
-            width: 1,
-          ),
+    return Card(
+      color: const Color(0xFFF8FAFC),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10.r),
+        side: const BorderSide(
+          color: Color.fromARGB(246, 215, 218, 245),
+          width: 1,
         ),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(8),
-          child: Padding(
-            padding: EdgeInsets.all(isGridView ? 7 : 12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: isGridView ? 45 : 55,
-                      height: isGridView ? 45 : 55,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8),
-                        color: const Color.fromARGB(255, 221, 229, 253),
-                      ),
-                      child: site.imageBytes != null
-                          ? ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: Image.memory(
-                                site.imageBytes!,
-                                fit: BoxFit.cover,
-                              ),
-                            )
-                          : (site.imageUrl != null
-                                ? ClipRRect(
-                                    borderRadius: BorderRadius.circular(8),
-                                    child: Image.asset(
-                                      site.imageUrl!,
-                                      fit: BoxFit.cover,
-                                      errorBuilder:
-                                          (context, error, stackTrace) {
-                                            return const Center(
-                                              child: Icon(
-                                                Icons.construction,
-                                                size: 22,
-                                                color: Color.fromARGB(
-                                                  255,
-                                                  211,
-                                                  93,
-                                                  93,
-                                                ),
-                                              ),
-                                            );
-                                          },
-                                    ),
-                                  )
-                                : const Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(
-                                        Icons.add_a_photo,
-                                        size: 24,
-                                        color: Colors.grey,
-                                      ),
-                                      SizedBox(height: 4),
-                                      Text(
-                                        'Add Photo',
-                                        style: TextStyle(
-                                          color: Colors.grey,
-                                          fontSize: 10,
-                                        ),
-                                      ),
-                                    ],
-                                  )),
+      ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8.r),
+        child: Padding(
+          padding: EdgeInsets.all(isGridView ? 7.h : 12.h),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: isGridView ? 45.w : 55.w,
+                    height: isGridView ? 45.h : 55.h,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8.r),
+                      color: const Color.fromARGB(255, 221, 229, 253),
                     ),
-                    const SizedBox(width: 13),
+                    child: site.imageBytes != null
+                        ? ClipRRect(
+                            borderRadius: BorderRadius.circular(8.r),
+                            child: Image.memory(
+                              site.imageBytes!,
+                              fit: BoxFit.cover,
+                            ),
+                          )
+                        : (site.imageUrl != null
+                              ? ClipRRect(
+                                  borderRadius: BorderRadius.circular(8.r),
+                                  child: Image.asset(
+                                    site.imageUrl!,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return Center(
+                                        child: Icon(
+                                          Icons.construction,
+                                          size: 22.sp,
+                                          color: Color.fromARGB(
+                                            255,
+                                            211,
+                                            93,
+                                            93,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                )
+                              : Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.add_a_photo,
+                                      size: 24.sp,
+                                      color: Colors.grey,
+                                    ),
+                                    SizedBox(height: 4.h),
+                                    Text(
+                                      'Add Photo',
+                                      style: TextStyle(
+                                        color: Colors.grey,
+                                        fontSize: 10.sp,
+                                      ),
+                                    ),
+                                  ],
+                                )),
+                  ),
+                  SizedBox(width: 13.w),
+                  if (!isGridView)
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const SizedBox(height: 12),
+                          SizedBox(height: 12.h),
                           Text(
                             site.name,
-                            style: const TextStyle(
-                              fontSize: 18,
+                            style: TextStyle(
+                              fontSize: 18.sp,
                               fontWeight: FontWeight.bold,
                               color: Color(0xFF2A2A2A),
                             ),
                             maxLines: isGridView ? 2 : 1,
                             overflow: TextOverflow.ellipsis,
                           ),
-                          const SizedBox(height: 6),
+                          SizedBox(height: 6.h),
                           Text(
                             site.address,
-                            style: const TextStyle(
-                              fontSize: 12,
+                            style: TextStyle(
+                              fontSize: 12.sp,
                               color: Colors.grey,
                             ),
                             maxLines: isGridView ? 2 : 1,
                             overflow: TextOverflow.ellipsis,
                           ),
-                          const SizedBox(height: 10),
+                          SizedBox(height: 10.h),
                         ],
                       ),
                     ),
-                    if (!isGridView)
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        mainAxisSize: MainAxisSize.min,
+                  if (isGridView)
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          GestureDetector(
-                            onTap: site.onProgressTap,
-                            child: Column(
+                          SizedBox(height: 10.h),
+                          Text(
+                            site.name,
+                            style: TextStyle(
+                              fontSize: 17.sp,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF2A2A2A),
+                            ),
+                            maxLines: isGridView ? 2 : 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          SizedBox(height: 4.h),
+                          Text(
+                            site.address,
+                            style: TextStyle(
+                              fontSize: 11.sp,
+                              color: Colors.grey,
+                            ),
+                            maxLines: isGridView ? 2 : 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          SizedBox(height: 8.h),
+                        ],
+                      ),
+                    ),
+                  if (!isGridView)
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        GestureDetector(
+                          onTap: site.onProgressTap,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              TweenAnimationBuilder<double>(
+                                tween: Tween<double>(
+                                  begin: 0,
+                                  end: site.progress,
+                                ),
+                                duration: const Duration(
+                                  seconds: 1,
+                                ), // adjust speed
+                                curve: Curves.easeOut,
+                                builder: (context, value, child) {
+                                  return Stack(
+                                    alignment: Alignment.center,
+                                    children: [
+                                      SizedBox(
+                                        width: 35.w,
+                                        height: 35.h,
+                                        child: CircularProgressIndicator(
+                                          value: value, // animated progress
+                                          backgroundColor: Colors.grey.shade300,
+                                          valueColor:
+                                              const AlwaysStoppedAnimation<
+                                                Color
+                                              >(Color(0xFF4a63c0)),
+                                          strokeWidth: 3.w,
+                                        ),
+                                      ),
+                                      Text(
+                                        '${(value * 100).round()}%', // animated percentage
+                                        style: TextStyle(
+                                          fontSize: 11.sp,
+                                          fontWeight: FontWeight.bold,
+                                          color: const Color(0xFF4a63c0),
+                                        ),
+                                      ),
+                                    ],
+                                  );
+                                },
+                              ),
+                              SizedBox(height: 4.h),
+                              Text(
+                                getProgressLabel(site.progress),
+                                style: TextStyle(
+                                  fontSize: 10.sp,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        SizedBox(width: 17.w),
+                        Container(
+                          height: 25.h,
+                          width: 25.w,
+                          child: GestureDetector(
+                            onTap: onEdit,
+                            child: FaIcon(
+                              FontAwesomeIcons.pencil,
+                              size: 17.sp,
+                              color: Color.fromRGBO(38, 59, 175, 1),
+                            ),
+                          ),
+                        ),
+                        SizedBox(width: 15.w),
+                        Container(
+                          height: 25.h,
+                          width: 25.w,
+
+                          child: GestureDetector(
+                            onTap: onDelete,
+                            child: FaIcon(
+                              FontAwesomeIcons.trashCan,
+                              size: 17.sp,
+                              color: Color.fromARGB(255, 248, 117, 108),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                ],
+              ),
+              if (isGridView)
+                Divider(
+                  height: 3.h,
+                  thickness: 1.w,
+                  color: Color.fromARGB(255, 220, 228, 252),
+                ),
+              if (!isGridView)
+                Divider(
+                  height: 12.h,
+                  thickness: 1.w,
+                  color: Color.fromARGB(255, 220, 228, 252),
+                ),
+              SizedBox(height: 6.h),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  if (!isGridView)
+                    Row(
+                      children: [
+                        GestureDetector(
+                          onTap: onStatusTap,
+                          child: Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 6.w,
+                              vertical: 2.h,
+                            ),
+                            decoration: BoxDecoration(
+                              color: _getStatusColor(
+                                site.status,
+                              ).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(4.r),
+                              border: Border.all(
+                                color: _getStatusColor(
+                                  site.status,
+                                ).withOpacity(0.1),
+                                width: 1.w,
+                              ),
+                            ),
+                            child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Stack(
-                                  alignment: Alignment.center,
-                                  children: [
-                                    SizedBox(
-                                      width: 32,
-                                      height: 32,
-                                      child: CircularProgressIndicator(
-                                        value: site.progress,
-                                        backgroundColor: Colors.grey.shade300,
-                                        valueColor:
-                                            const AlwaysStoppedAnimation<Color>(
-                                              Color(0xFF4a63c0),
-                                            ),
-                                        strokeWidth: 2,
-                                      ),
-                                    ),
-                                    Text(
-                                      '${(site.progress * 100).round()}%',
-                                      style: const TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.bold,
-                                        color: Color(0xFF4a63c0),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 4),
+                                SizedBox(width: 3.w),
                                 Text(
-                                  getProgressLabel(
-                                    site.progress,
-                                  ), // 🔹 Construction label
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w500,
-                                    color: Colors.black87,
+                                  site.status,
+                                  style: TextStyle(
+                                    fontSize: 13.sp,
+                                    fontWeight: FontWeight.w600,
+                                    color: _getStatusColor(site.status),
                                   ),
                                 ),
                               ],
                             ),
                           ),
-                          const SizedBox(width: 17),
-                          GestureDetector(
-                            onTap: onEdit,
-                            child: Icon(
-                              Icons.edit,
-                              size: 19,
-                              color: Color.fromRGBO(38, 59, 175, 1),
-                            ),
-                          ),
-                          const SizedBox(width: 20),
-                          GestureDetector(
-                            onTap: onDelete,
-                            child: Icon(
-                              Icons.delete_outline_rounded,
-                              size: 19,
-                              color: Color.fromARGB(255, 248, 117, 108),
-                            ),
-                          ),
-                        ],
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 2),
-                const Divider(
-                  height: 12,
-                  thickness: 1,
-                  color: Color.fromARGB(255, 220, 228, 252),
-                ),
-                const SizedBox(height: 6),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    if (!isGridView)
-                      Row(
+                        ),
+                      ],
+                    ),
+                  if (isGridView)
+                    Expanded(
+                      child: Row(
                         children: [
-                          GestureDetector(
-                            onTap: onStatusTap,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: _getStatusColor(
-                                  site.status,
-                                ).withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(4),
-                                border: Border.all(
-                                  color: _getStatusColor(
-                                    site.status,
-                                  ).withOpacity(0.1),
-                                  width: 1,
+                         GestureDetector(
+                          onTap: site.onProgressTap,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              TweenAnimationBuilder<double>(
+                                tween: Tween<double>(
+                                  begin: 0,
+                                  end: site.progress,
                                 ),
+                                duration: const Duration(
+                                  seconds: 1,
+                                ), // adjust speed
+                                curve: Curves.easeOut,
+                                builder: (context, value, child) {
+                                  return Stack(
+                                    alignment: Alignment.center,
+                                    children: [
+                                      SizedBox(
+                                        width: 35.w,
+                                        height: 35.h,
+                                        child: CircularProgressIndicator(
+                                          value: value, // animated progress
+                                          backgroundColor: Colors.grey.shade300,
+                                          valueColor:
+                                              const AlwaysStoppedAnimation<
+                                                Color
+                                              >(Color(0xFF4a63c0)),
+                                          strokeWidth: 3.w,
+                                        ),
+                                      ),
+                                      Text(
+                                        '${(value * 100).round()}%', // animated percentage
+                                        style: TextStyle(
+                                          fontSize: 11.sp,
+                                          fontWeight: FontWeight.bold,
+                                          color: const Color(0xFF4a63c0),
+                                        ),
+                                      ),
+                                    ],
+                                  );
+                                },
                               ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const SizedBox(width: 3),
-                                  Text(
-                                    site.status,
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
-                                      color: _getStatusColor(site.status),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
+                              
+                            ],
                           ),
-                        ],
-                      ),
-                    if (isGridView)
-                      Expanded(
-                        child: Row(
-                          children: [
-                            GestureDetector(
-                              onTap: site.onProgressTap,
-
-                              child: Stack(
-                                alignment: Alignment.center,
-                                children: [
-                                  SizedBox(
-                                    width: 35,
-                                    height: 35,
-                                    child: CircularProgressIndicator(
-                                      value: site.progress,
-                                      backgroundColor: Colors.grey,
-                                      valueColor:
-                                          const AlwaysStoppedAnimation<Color>(
-                                            Color(0xFF4a63c0),
-                                          ),
-                                      strokeWidth: 2,
-                                    ),
-                                  ),
-                                  Text(
-                                    '${(site.progress * 100).round()}%',
-                                    style: const TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.bold,
-                                      color: Color(0xFF4a63c0),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            SizedBox(width: 4),
-                            Expanded(
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.end,
-                                children: [
-                                  IconButton(
-                                    onPressed: onEdit,
-                                    icon: Icon(
-                                      Icons.edit,
-                                      size: 16,
-                                      color: Color.fromARGB(255, 61, 61, 61),
-                                    ),
-                                    padding: EdgeInsets.zero,
-                                    constraints: const BoxConstraints(),
-                                    visualDensity: VisualDensity.compact,
-                                  ),
-                                  IconButton(
-                                    onPressed: onDelete,
-                                    icon: Icon(
-                                      Icons.delete_outline_rounded,
-                                      size: 16,
-                                      color: Color.fromARGB(255, 221, 96, 88),
-                                    ),
-                                    padding: EdgeInsets.zero,
-                                    constraints: const BoxConstraints(),
-                                    visualDensity: VisualDensity.compact,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
                         ),
-                      ),
-                    if (!isGridView)
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.calendar_today,
-                            color: Color.fromARGB(255, 114, 114, 138),
-                            size: 18,
-                          ),
-                          SizedBox(width: 4),
-                          Text(
-                            '${site.startDate}     ${site.endDate}',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Color.fromARGB(255, 116, 119, 148),
+                          SizedBox(width: 4.w),
+                          Expanded(
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                IconButton(
+                                  onPressed: onEdit,
+                                  icon: Icon(
+                                    Icons.edit,
+                                    size: 19.sp,
+                                    color: Color.fromARGB(255, 61, 61, 61),
+                                  ),
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(),
+                                  visualDensity: VisualDensity.compact,
+                                ),
+                                IconButton(
+                                  onPressed: onDelete,
+                                  icon: Icon(
+                                    Icons.delete_outline_rounded,
+                                    size: 19.sp,
+                                    color: Color.fromARGB(255, 221, 96, 88),
+                                  ),
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(),
+                                  visualDensity: VisualDensity.compact,
+                                ),
+                              ],
                             ),
                           ),
                         ],
                       ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-
-                if (isGridView) ...[
-                  // 🔹 Status container added
-                  GestureDetector(
-                    onTap: onStatusTap,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
+                    ),
+                  if (!isGridView)
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.calendar_today,
+                          color: Color.fromARGB(255, 114, 114, 138),
+                          size: 18.sp,
+                        ),
+                        SizedBox(width: 4.w),
+                        Text(
+                          '${site.startDate}     ${site.endDate}',
+                          style: TextStyle(
+                            fontSize: 12.sp,
+                            color: Color.fromARGB(255, 116, 119, 148),
+                          ),
+                        ),
+                      ],
+                    ),
+                ],
+              ),
+              SizedBox(height: 8.h),
+              if (isGridView) ...[
+                // Status container
+                GestureDetector(
+                  onTap: onStatusTap,
+                  child: Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 6.w,
+                      vertical: 2.h,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _getStatusColor(site.status).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(4.r),
+                      border: Border.all(
                         color: _getStatusColor(site.status).withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(4),
-                        border: Border.all(
-                          color: _getStatusColor(site.status).withOpacity(0.1),
-                          width: 1,
-                        ),
+                        width: 1.w,
                       ),
-                      child: Text(
-                        site.status,
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: _getStatusColor(site.status),
-                        ),
+                    ),
+                    child: Text(
+                      site.status,
+                      style: TextStyle(
+                        fontSize: 11.sp,
+                        fontWeight: FontWeight.w600,
+                        color: _getStatusColor(site.status),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 9),
-
-                  // 🔹 Your existing dates
-                  Text(
-                    '${site.startDate}    ${site.endDate}',
-                    style: const TextStyle(fontSize: 10, color: Colors.grey),
-                  ),
-                ],
+                ),
+                SizedBox(height: 9.h),
+                // Dates
+                Text(
+                  '${site.startDate}    ${site.endDate}',
+                  style: TextStyle(fontSize: 10.sp, color: Colors.grey),
+                ),
               ],
-            ),
+            ],
           ),
         ),
       ),
@@ -1894,21 +1956,6 @@ class SiteCard extends StatelessWidget {
         return const Color.fromARGB(255, 181, 78, 199);
       default:
         return const Color.fromARGB(255, 71, 87, 156);
-    }
-  }
-
-  IconData _getStatusIcon(String status) {
-    switch (status.toLowerCase()) {
-      case 'active':
-        return Icons.play_arrow;
-      case 'on hold':
-        return Icons.pause;
-      case 'completed':
-        return Icons.check;
-      case 'planning':
-        return Icons.schedule;
-      default:
-        return Icons.help;
     }
   }
 }

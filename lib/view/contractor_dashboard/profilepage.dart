@@ -1,6 +1,9 @@
+import 'dart:convert';
+import 'dart:io';
+import 'package:ecoteam_app/services/profile_service.dart';
 import 'package:ecoteam_app/utils/responsive_utils.dart';
-import 'package:ecoteam_app/view/auth/login.dart';
 import 'package:ecoteam_app/view/auth/login_selector.dart';
+import 'package:ecoteam_app/view/contractor_dashboard/help.dart';
 import 'package:ecoteam_app/widgets/responsive_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -19,18 +22,12 @@ class _ProfileScreenState extends State<ProfileScreen>
     with TickerProviderStateMixin {
   bool _isExpanded = false;
 
-  final bool _notificationsEnabled = true;
-  final String _language = 'English';
   final _formKey = GlobalKey<FormState>();
-  final TextEditingController _nameController = TextEditingController(
-    text: 'John Deo',
-  );
+  final TextEditingController _nameController = TextEditingController();
   final TextEditingController _positionController = TextEditingController(
     text: 'Construction Site Manager',
   );
-  final TextEditingController _emailController = TextEditingController(
-    text: 'John@example.com',
-  );
+  final TextEditingController _emailController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController(
     text: '+966501234567',
   );
@@ -46,7 +43,11 @@ class _ProfileScreenState extends State<ProfileScreen>
   final TextEditingController _experienceController = TextEditingController(
     text: '10 years',
   );
-  String? _profileImageUrl = 'assets/avtar.jpg'; // Default profile image
+  final TextEditingController _birthdateController = TextEditingController(
+    text: 'Oct 04, 2024'
+  );
+  DateTime? _selectedBirthdate;
+  String? _profileImageUrl = 'assets/avtar.jpg';
 
   // Leave Management Variables
   int _availableLeaves = 21;
@@ -107,14 +108,67 @@ class _ProfileScreenState extends State<ProfileScreen>
         );
     _animationController.forward();
 
-    // Calculate Sunday credits (example logic)
+    // Load user data from SharedPreferences
+    _loadUserData();
+
     _calculateSundayCredits();
   }
 
+  Future<void> _shareProfile() async {
+    try {
+      await ProfileService.shareProfile(
+        name: _nameController.text,
+        position: _positionController.text,
+        email: _emailController.text,
+        phone: _phoneController.text,
+        department: _departmentController.text,
+        projects: _projectsController.text,
+        skills: _skillsController.text,
+        experience: _experienceController.text,
+      );
+      _showSnackBar('Profile shared successfully');
+    } catch (e) {
+      _showSnackBar('Failed to share profile');
+    }
+  }
+
+  Future<void> _loadUserData() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userDataString = prefs.getString('user_data');
+
+      // Load profile image
+      _profileImageUrl = prefs.getString('profile_image') ?? 'assets/avtar.jpg';
+
+      if (userDataString != null) {
+        final userData = jsonDecode(userDataString);
+
+        setState(() {
+          _nameController.text = userData['name'] ?? 'John Deo';
+          _emailController.text = userData['email'] ?? 'John@example.com';
+          if (userData['birthdate'] != null) {
+            _selectedBirthdate = DateTime.parse(userData['birthdate']);
+            _birthdateController.text = DateFormat('MMM dd, yyyy').format(_selectedBirthdate!);
+          }
+        });
+      } else {
+        setState(() {
+          _nameController.text = 'John Deo';
+          _emailController.text = 'John@example.com';
+        });
+      }
+    } catch (e) {
+      print('Error loading user data: $e');
+      setState(() {
+        _nameController.text = 'John Deo';
+        _emailController.text = 'John@example.com';
+      });
+    }
+  }
+
   void _calculateSundayCredits() {
-    // In a real app, this would calculate actual Sundays worked
     setState(() {
-      _sundayCredits = 4; // Example value
+      _sundayCredits = 4;
     });
   }
 
@@ -129,6 +183,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     _projectsController.dispose();
     _skillsController.dispose();
     _experienceController.dispose();
+    _birthdateController.dispose();
     _leaveTypeController.dispose();
     _leaveReasonController.dispose();
     super.dispose();
@@ -169,6 +224,10 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
   }
 
+  // ... [Rest of the code remains exactly the same until the end of the file]
+  // All other methods (buildSettingsCard, buildSliverAppBar, buildUserCard, etc.)
+  // remain completely unchanged
+
   Widget _buildSettingsCard() {
     return Container(
       decoration: BoxDecoration(
@@ -176,17 +235,47 @@ class _ProfileScreenState extends State<ProfileScreen>
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Color(0xFF667EEA).withOpacity(0.08),
-            blurRadius: 20,
-            offset: Offset(0, 8),
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 15,
+            offset: Offset(0, 6),
           ),
         ],
       ),
       child: Padding(
-        padding: EdgeInsets.all(8),
+        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // ✅ Title
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12, left: 4),
+              child: Text(
+                "Settings",
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF374151),
+                ),
+              ),
+            ),
+
+            // ✅ Help Section
+            _buildSettingItem(
+              Icons.help_outline,
+              'Help & Support',
+              Icon(Icons.chevron_right, color: Colors.grey.shade500),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const HelpPage()),
+                );
+              },
+              // implement this
+            ),
+
+            Divider(color: Colors.grey.shade200, thickness: 1, height: 20),
+
+            // ✅ Logout Section
             _buildSettingItem(
               Icons.logout_outlined,
               'Sign Out',
@@ -204,6 +293,36 @@ class _ProfileScreenState extends State<ProfileScreen>
           ],
         ),
       ),
+    );
+  }
+
+  // Reusable item widget
+  Widget _buildSettingItem(
+    IconData icon,
+    String title,
+    Widget trailing, {
+    VoidCallback? onTap,
+  }) {
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: Container(
+        padding: EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: Color(0xFFEEF2FF),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Icon(icon, color: Color(0xFF4F46E5)),
+      ),
+      title: Text(
+        title,
+        style: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w500,
+          color: Color(0xFF111827),
+        ),
+      ),
+      trailing: trailing,
+      onTap: onTap,
     );
   }
 
@@ -254,16 +373,13 @@ class _ProfileScreenState extends State<ProfileScreen>
               ),
               child: ElevatedButton(
                 onPressed: () async {
-                  Navigator.pop(context); // Close the dialog
+                  Navigator.pop(context);
 
-                  // Clear login info
                   final prefs = await SharedPreferences.getInstance();
                   await prefs.clear();
 
-                  // Show snack or toast
                   _showSnackBar('Signed out successfully');
 
-                  // Navigate to login screen
                   Navigator.pushAndRemoveUntil(
                     context,
                     MaterialPageRoute(
@@ -291,35 +407,6 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
   }
 
-  Widget _buildSettingItem(IconData icon, String label, Widget trailing) {
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: 12),
-      child: Row(
-        children: [
-          Container(
-            padding: EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: Color(0xFFF1F5F9),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, size: 20, color: Color(0xFF475569)),
-          ),
-          SizedBox(width: 16),
-          Expanded(
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-                color: Color(0xFF1E293B),
-              ),
-            ),
-          ),
-          trailing,
-        ],
-      ),
-    );
-  }
 
   Widget _buildSliverAppBar() {
     return SliverAppBar(
@@ -354,7 +441,7 @@ class _ProfileScreenState extends State<ProfileScreen>
           style: TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.w600,
-            fontSize: 24,
+            fontSize: 20,
           ),
         ),
         centerTitle: true,
@@ -415,7 +502,10 @@ class _ProfileScreenState extends State<ProfileScreen>
                       child: CircleAvatar(
                         radius: 35,
                         backgroundImage: _profileImageUrl != null
-                            ? AssetImage(_profileImageUrl!)
+                            ? (_profileImageUrl!.startsWith('assets/')
+                                  ? AssetImage(_profileImageUrl!)
+                                        as ImageProvider
+                                  : FileImage(File(_profileImageUrl!)))
                             : null,
                         backgroundColor: Colors.white,
                         child: _profileImageUrl == null
@@ -535,12 +625,15 @@ class _ProfileScreenState extends State<ProfileScreen>
                             'Experience',
                             _experienceController.text,
                           ),
+                          _buildDetailItem(
+                            Icons.cake_outlined,
+                            'Birthdate',
+                            _birthdateController.text.isNotEmpty ? _birthdateController.text : 'Not set',
+                          ),
                         ],
                         SizedBox(height: 24),
                         _buildGradientButton(
-                          onPressed: () {
-                            _showSnackBar('Profile shared successfully');
-                          },
+                          onPressed: _shareProfile,
                           text: 'Share Profile',
                           icon: Icons.share_outlined,
                           isPrimary: true,
@@ -629,10 +722,15 @@ class _ProfileScreenState extends State<ProfileScreen>
                         _buildImagePickerOption(
                           Icons.delete_outline,
                           'Remove Photo',
-                          () {
+                          () async {
                             setState(() {
                               _profileImageUrl = null;
                             });
+
+                            // Clear from SharedPreferences
+                            final prefs = await SharedPreferences.getInstance();
+                            await prefs.remove('profile_image');
+
                             Navigator.pop(context);
                             _showSnackBar('Profile photo removed');
                           },
@@ -694,6 +792,11 @@ class _ProfileScreenState extends State<ProfileScreen>
         setState(() {
           _profileImageUrl = pickedFile.path;
         });
+
+        // Save to SharedPreferences
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('profile_image', pickedFile.path);
+
         _showSnackBar('Profile picture updated');
       }
     } catch (e) {
@@ -721,7 +824,7 @@ class _ProfileScreenState extends State<ProfileScreen>
           style: TextStyle(
             color: Color.fromARGB(255, 64, 64, 65),
             fontWeight: FontWeight.w600,
-            fontSize: 16,
+            fontSize: 14,
           ),
         ),
         style: OutlinedButton.styleFrom(
@@ -773,7 +876,6 @@ class _ProfileScreenState extends State<ProfileScreen>
                         color: Color(0xFF1E293B),
                       ),
                     ),
-                    
                   ],
                 ),
               ),
@@ -836,6 +938,63 @@ class _ProfileScreenState extends State<ProfileScreen>
                             'Experience',
                             Icons.work_outline,
                           ),
+                          SizedBox(height: 16),
+                          InkWell(
+                            onTap: () async {
+                              final date = await showDatePicker(
+                                context: context,
+                                initialDate: _selectedBirthdate ?? DateTime.now().subtract(Duration(days: 365 * 25)),
+                                firstDate: DateTime(1900),
+                                lastDate: DateTime.now(),
+                                builder: (context, child) {
+                                  return Theme(
+                                    data: Theme.of(context).copyWith(
+                                      colorScheme: ColorScheme.light(
+                                        primary: Color(0xFF6f88e2),
+                                        onPrimary: Colors.white,
+                                        surface: Colors.white,
+                                        onSurface: Colors.black,
+                                      ),
+                                    ),
+                                    child: child!,
+                                  );
+                                },
+                              );
+                              if (date != null) {
+                                setState(() {
+                                  _selectedBirthdate = date;
+                                  _birthdateController.text = DateFormat('MMM dd, yyyy').format(date);
+                                });
+                              }
+                            },
+                            child: TextFormField(
+                              controller: _birthdateController,
+                              enabled: false,
+                              style: TextStyle(fontSize: 14),
+                              decoration: InputDecoration(
+                                labelText: 'Birthdate',
+                                labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                                floatingLabelStyle: TextStyle(color: Color(0xFF6f88e2), fontSize: 14),
+                                prefixIcon: Icon(Icons.cake_outlined, color: Colors.grey.shade500, size: 15),
+                                suffixIcon: Icon(Icons.calendar_today, color: Colors.grey.shade500, size: 15),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: BorderSide(color: Colors.grey.shade300),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: BorderSide(color: Colors.grey.shade300),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: BorderSide(color: Color(0xFF6f88e2), width: 1),
+                                ),
+                                filled: true,
+                                fillColor: Colors.white,
+                                contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                              ),
+                            ),
+                          ),
                           SizedBox(height: 24),
 
                           // Buttons
@@ -859,8 +1018,17 @@ class _ProfileScreenState extends State<ProfileScreen>
                               ),
                               SizedBox(width: 12),
                               ElevatedButton(
-                                onPressed: () {
+                                onPressed: () async {
                                   if (_formKey.currentState!.validate()) {
+                                    // Save to SharedPreferences
+                                    final prefs = await SharedPreferences.getInstance();
+                                    final userData = {
+                                      'name': _nameController.text,
+                                      'email': _emailController.text,
+                                      'birthdate': _selectedBirthdate?.toIso8601String(),
+                                    };
+                                    await prefs.setString('user_data', jsonEncode(userData));
+
                                     setState(() {});
                                     Navigator.pop(context);
                                     _showSnackBar(
@@ -912,7 +1080,7 @@ class _ProfileScreenState extends State<ProfileScreen>
       decoration: InputDecoration(
         labelText: label,
         labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
-        floatingLabelStyle: TextStyle(color: Color(0xFF6f88e2),fontSize: 14),
+        floatingLabelStyle: TextStyle(color: Color(0xFF6f88e2), fontSize: 14),
         prefixIcon: Icon(icon, color: Colors.grey.shade500, size: 15),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
@@ -992,37 +1160,50 @@ class _ProfileScreenState extends State<ProfileScreen>
     return Container(
       height: 40,
       decoration: BoxDecoration(
-        color: Color.fromARGB(255, 218, 226, 252),
+        gradient: isPrimary
+            ? LinearGradient(
+                colors: [Color(0xFF4a63c0), Color(0xFF3a53b0)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              )
+            : LinearGradient(
+                colors: [Color(0xFFF1F5F9), Color(0xFFE2E8F0)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Color.fromARGB(255, 109, 109, 109).withOpacity(0.2),
-            blurRadius: 5,
-            offset: Offset(0, 3),
-          ),
-        ],
+        boxShadow: isPrimary
+            ? [
+                BoxShadow(
+                  color: Color(0xFF4a63c0).withOpacity(0.3),
+                  blurRadius: 5,
+                  offset: Offset(0, 3),
+                ),
+              ]
+            : null,
       ),
       child: ElevatedButton.icon(
         onPressed: onPressed,
-        icon: Icon(icon, color: Color.fromARGB(255, 5, 18, 61), size: 20),
+        icon: Icon(
+          icon,
+          color: isPrimary ? Colors.white : Color(0xFF4a63c0),
+          size: 20,
+        ),
         label: Text(
           text,
           style: TextStyle(
-            color: Color.fromARGB(255, 54, 54, 54),
+            color: isPrimary ? Colors.white : Color(0xFF4a63c0),
             fontWeight: FontWeight.w600,
-            fontSize: 16,
+            fontSize: 14,
           ),
         ),
-        style:
-            ElevatedButton.styleFrom(
-              backgroundColor: Colors.transparent,
-              shadowColor: Colors.transparent,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-            ).copyWith(
-              backgroundColor: MaterialStateProperty.all(Colors.transparent),
-            ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          shadowColor: Colors.transparent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+        ),
       ),
     );
   }
@@ -1252,371 +1433,422 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   void _showApplyLeaveDialog() {
-  final leaveTypes = ['Annual', 'Sick', 'Emergency', 'Compensation'];
-  String? selectedLeaveType;
+    final leaveTypes = ['Annual', 'Sick', 'Emergency', 'Compensation'];
+    String? selectedLeaveType;
 
-  showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    builder: (context) {
-      return StatefulBuilder(
-        builder: (context, setState) {
-          return Padding(
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.of(context).viewInsets.bottom,
-            ),
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(
-                    ResponsiveUtils.responsiveValue(
-                      context,
-                      smallMobile: 16.0,
-                      largeMobile: 18.0,
-                      tablet: 20.0,
-                    ),
-                  ),
-                  topRight: Radius.circular(
-                    ResponsiveUtils.responsiveValue(
-                      context,
-                      smallMobile: 16.0,
-                      largeMobile: 18.0,
-                      tablet: 20.0,
-                    ),
-                  ),
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black26,
-                    blurRadius: 10,
-                    offset: Offset(0, -2),
-                  ),
-                ],
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
               ),
-              child: Wrap(
-                children: [
-                  // drag handle
-                  Center(
-                    child: Container(
-                      width: 50,
-                      height: 5,
-                      margin: EdgeInsets.symmetric(vertical: 12),
-                      decoration: BoxDecoration(
-                        color: const Color.fromARGB(255, 201, 200, 200),
-                        borderRadius: BorderRadius.circular(12),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(
+                      ResponsiveUtils.responsiveValue(
+                        context,
+                        smallMobile: 16.0,
+                        largeMobile: 18.0,
+                        tablet: 20.0,
+                      ),
+                    ),
+                    topRight: Radius.circular(
+                      ResponsiveUtils.responsiveValue(
+                        context,
+                        smallMobile: 16.0,
+                        largeMobile: 18.0,
+                        tablet: 20.0,
                       ),
                     ),
                   ),
-
-                  // Title & Close
-                  Padding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black26,
+                      blurRadius: 10,
+                      offset: Offset(0, -2),
                     ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        ResponsiveText(
-                          'Apply for Leave',
-                          smallMobileFontSize: 16,
-                          largeMobileFontSize: 18,
-                          tabletFontSize: 20,
-                          style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF1E293B),
-                          ),
+                  ],
+                ),
+                child: Wrap(
+                  children: [
+                    // drag handle
+                    Center(
+                      child: Container(
+                        width: 50,
+                        height: 5,
+                        margin: EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(
+                          color: const Color.fromARGB(255, 201, 200, 200),
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                      ],
+                      ),
                     ),
-                  ),
-                  Divider(),
 
-                  Padding(
-                    padding: EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Leave Type
-                        DropdownButtonFormField<String>(
-                          decoration: InputDecoration(
-                            labelText: 'Leave Type',
-                            filled: true,
-                            fillColor: Color.fromARGB(255, 255, 255, 255),
-                            contentPadding: EdgeInsets.all(16),
-                            
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(
-                                color: const Color.fromARGB(255, 216, 216, 216),
-                                width: 1.0,
-                              ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(
-                                color: const Color.fromARGB(255, 108, 134, 247),
-                                width: 1.0,
-                              ),
+                    // Title & Close
+                    Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          ResponsiveText(
+                            'Apply for Leave',
+                            smallMobileFontSize: 16,
+                            largeMobileFontSize: 18,
+                            tabletFontSize: 20,
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF1E293B),
                             ),
                           ),
-                          value: selectedLeaveType,
-                          items: leaveTypes.map((type) {
-                            return DropdownMenuItem(
-                              value: type,
-                              child: ResponsiveText(
-                                type,
-                                smallMobileFontSize: 14,
-                                largeMobileFontSize: 15,
-                                tabletFontSize: 16,
-                              ),
-                            );
-                          }).toList(),
-                          onChanged: (value) {
-                            setState(() {
-                              selectedLeaveType = value;
-                            });
-                          },
-                        ),
-                        SizedBox(height: 16),
+                        ],
+                      ),
+                    ),
+                    Divider(),
 
-                        // Date Pickers
-                        Row(
-                          children: [
-                            Expanded(
-                              child: InkWell(
-                                onTap: () async {
-                                  final date = await showDatePicker(
-                                    context: context,
-                                    initialDate: DateTime.now(),
-                                    firstDate: DateTime.now(),
-                                    lastDate: DateTime.now().add(
-                                      Duration(days: 365),
-                                    ),
-                                  );
-                                  if (date != null) {
-                                    setState(() {
-                                      _leaveStartDate = date;
-                                    });
-                                  }
-                                },
-                                child: InputDecorator(
-                                  decoration: InputDecoration(
-                                    labelText: 'Start Date',
-                                    filled: true,
-                                    fillColor: Color.fromARGB(255, 255, 255, 255),
-                                    
-                                    enabledBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                      borderSide: BorderSide(
-                                        color:  const Color.fromARGB(255, 212, 212, 212),
-                                        width: 1.0,
-                                      ),
-                                    ),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                      borderSide: BorderSide(
-                                        color:const Color.fromARGB(255, 108, 134, 247),
-                                        width: 1.0,
-                                      ),
-                                    ),
+                    Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Leave Type
+                          DropdownButtonFormField<String>(
+                            decoration: InputDecoration(
+                              labelText: 'Leave Type',
+                              filled: true,
+                              fillColor: Color.fromARGB(255, 255, 255, 255),
+                              contentPadding: EdgeInsets.all(16),
+
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(
+                                  color: const Color.fromARGB(
+                                    255,
+                                    216,
+                                    216,
+                                    216,
                                   ),
-                                  child: ResponsiveText(
-                                    _leaveStartDate != null
-                                        ? DateFormat(
-                                            'MMM dd, yyyy',
-                                          ).format(_leaveStartDate!)
-                                        : 'Select date',
-                                    smallMobileFontSize: 14,
-                                    largeMobileFontSize: 15,
-                                    tabletFontSize: 16,
+                                  width: 1.0,
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(
+                                  color: const Color.fromARGB(
+                                    255,
+                                    108,
+                                    134,
+                                    247,
                                   ),
+                                  width: 1.0,
                                 ),
                               ),
                             ),
-                            SizedBox(width: 14),
-                            Expanded(
-                              child: InkWell(
-                                onTap: () async {
-                                  if (_leaveStartDate == null) {
+                            value: selectedLeaveType,
+                            items: leaveTypes.map((type) {
+                              return DropdownMenuItem(
+                                value: type,
+                                child: ResponsiveText(
+                                  type,
+                                  smallMobileFontSize: 14,
+                                  largeMobileFontSize: 15,
+                                  tabletFontSize: 16,
+                                ),
+                              );
+                            }).toList(),
+                            onChanged: (value) {
+                              setState(() {
+                                selectedLeaveType = value;
+                              });
+                            },
+                          ),
+                          SizedBox(height: 16),
+
+                          // Date Pickers
+                          Row(
+                            children: [
+                              Expanded(
+                                child: InkWell(
+                                  onTap: () async {
+                                    final date = await showDatePicker(
+                                      context: context,
+                                      initialDate: DateTime.now(),
+                                      firstDate: DateTime.now(),
+                                      lastDate: DateTime.now().add(
+                                        Duration(days: 365),
+                                      ),
+                                    );
+                                    if (date != null) {
+                                      setState(() {
+                                        _leaveStartDate = date;
+                                      });
+                                    }
+                                  },
+                                  child: InputDecorator(
+                                    decoration: InputDecoration(
+                                      labelText: 'Start Date',
+                                      filled: true,
+                                      fillColor: Color.fromARGB(
+                                        255,
+                                        255,
+                                        255,
+                                        255,
+                                      ),
+
+                                      enabledBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                        borderSide: BorderSide(
+                                          color: const Color.fromARGB(
+                                            255,
+                                            212,
+                                            212,
+                                            212,
+                                          ),
+                                          width: 1.0,
+                                        ),
+                                      ),
+                                      focusedBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                        borderSide: BorderSide(
+                                          color: const Color.fromARGB(
+                                            255,
+                                            108,
+                                            134,
+                                            247,
+                                          ),
+                                          width: 1.0,
+                                        ),
+                                      ),
+                                    ),
+                                    child: ResponsiveText(
+                                      _leaveStartDate != null
+                                          ? DateFormat(
+                                              'MMM dd, yyyy',
+                                            ).format(_leaveStartDate!)
+                                          : 'Select date',
+                                      smallMobileFontSize: 14,
+                                      largeMobileFontSize: 15,
+                                      tabletFontSize: 16,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              SizedBox(width: 14),
+                              Expanded(
+                                child: InkWell(
+                                  onTap: () async {
+                                    if (_leaveStartDate == null) {
+                                      _showSnackBar(
+                                        'Please select start date first',
+                                      );
+                                      return;
+                                    }
+                                    final date = await showDatePicker(
+                                      context: context,
+                                      initialDate: _leaveStartDate!.add(
+                                        Duration(days: 1),
+                                      ),
+                                      firstDate: _leaveStartDate!,
+                                      lastDate: DateTime.now().add(
+                                        Duration(days: 365),
+                                      ),
+                                    );
+                                    if (date != null) {
+                                      setState(() {
+                                        _leaveEndDate = date;
+                                      });
+                                    }
+                                  },
+                                  child: InputDecorator(
+                                    decoration: InputDecoration(
+                                      labelText: 'End Date',
+                                      filled: true,
+                                      fillColor: Color.fromARGB(
+                                        255,
+                                        255,
+                                        255,
+                                        255,
+                                      ),
+
+                                      enabledBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                        borderSide: BorderSide(
+                                          color: const Color.fromARGB(
+                                            255,
+                                            211,
+                                            211,
+                                            211,
+                                          ),
+                                          width: 1.0,
+                                        ),
+                                      ),
+                                      focusedBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                        borderSide: BorderSide(
+                                          color: const Color.fromARGB(
+                                            255,
+                                            108,
+                                            134,
+                                            247,
+                                          ),
+                                          width: 1.0,
+                                        ),
+                                      ),
+                                    ),
+                                    child: ResponsiveText(
+                                      _leaveEndDate != null
+                                          ? DateFormat(
+                                              'MMM dd, yyyy',
+                                            ).format(_leaveEndDate!)
+                                          : 'Select date',
+                                      smallMobileFontSize: 14,
+                                      largeMobileFontSize: 15,
+                                      tabletFontSize: 16,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 16),
+
+                          // Reason
+                          TextField(
+                            controller: _leaveReasonController,
+                            maxLines: 3,
+                            decoration: InputDecoration(
+                              labelText: 'Reason',
+                              filled: true,
+                              fillColor: Color.fromARGB(255, 255, 255, 255),
+
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(
+                                  color: const Color.fromARGB(
+                                    255,
+                                    216,
+                                    216,
+                                    216,
+                                  ),
+                                  width: 1.0,
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(
+                                  color: const Color.fromARGB(
+                                    255,
+                                    108,
+                                    134,
+                                    247,
+                                  ),
+                                  width: 1.0,
+                                ),
+                              ),
+                            ),
+                          ),
+                          SizedBox(height: 20),
+
+                          // Buttons
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context),
+                                child: ResponsiveText(
+                                  'Cancel',
+                                  smallMobileFontSize: 14,
+                                  largeMobileFontSize: 15,
+                                  tabletFontSize: 16,
+                                ),
+                              ),
+                              SizedBox(width: 16),
+                              ElevatedButton(
+                                onPressed: () {
+                                  if (selectedLeaveType == null) {
+                                    _showSnackBar('Please select leave type');
+                                    return;
+                                  }
+                                  if (_leaveStartDate == null ||
+                                      _leaveEndDate == null) {
+                                    _showSnackBar('Please select date range');
+                                    return;
+                                  }
+                                  if (_leaveReasonController.text.isEmpty) {
                                     _showSnackBar(
-                                      'Please select start date first',
+                                      'Please enter reason for leave',
                                     );
                                     return;
                                   }
-                                  final date = await showDatePicker(
-                                    context: context,
-                                    initialDate: _leaveStartDate!.add(
-                                      Duration(days: 1),
-                                    ),
-                                    firstDate: _leaveStartDate!,
-                                    lastDate: DateTime.now().add(
-                                      Duration(days: 365),
-                                    ),
+
+                                  final newRequest = LeaveRequest(
+                                    id: '00${_leaveRequests.length + 1}',
+                                    type: selectedLeaveType!,
+                                    startDate: _leaveStartDate!,
+                                    endDate: _leaveEndDate!,
+                                    status: 'Pending',
+                                    reason: _leaveReasonController.text,
                                   );
-                                  if (date != null) {
-                                    setState(() {
-                                      _leaveEndDate = date;
-                                    });
-                                  }
-                                },
-                                child: InputDecorator(
-                                  decoration: InputDecoration(
-                                    labelText: 'End Date',
-                                    filled: true,
-                                    fillColor: Color.fromARGB(255, 255, 255, 255),
-                                   
-                                    enabledBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                      borderSide: BorderSide(
-                                        color:  const Color.fromARGB(255, 211, 211, 211),
-                                        width: 1.0,
-                                      ),
-                                    ),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                      borderSide: BorderSide(
-                                        color:const Color.fromARGB(255, 108, 134, 247),
-                                        width: 1.0,
-                                      ),
-                                    ),
-                                  ),
-                                  child: ResponsiveText(
-                                    _leaveEndDate != null
-                                        ? DateFormat(
-                                            'MMM dd, yyyy',
-                                          ).format(_leaveEndDate!)
-                                        : 'Select date',
-                                    smallMobileFontSize: 14,
-                                    largeMobileFontSize: 15,
-                                    tabletFontSize: 16,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 16),
 
-                        // Reason
-                        TextField(
-                          controller: _leaveReasonController,
-                          maxLines: 3,
-                          decoration: InputDecoration(
-                            labelText: 'Reason',
-                            filled: true,
-                            fillColor: Color.fromARGB(255, 255, 255, 255),
-                           
-                            enabledBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                      borderSide: BorderSide(
-                                        color:  const Color.fromARGB(255, 216, 216, 216),
-                                        width: 1.0,
-                                      ),
-                                    ),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                      borderSide: BorderSide(
-                                        color:const Color.fromARGB(255, 108, 134, 247),
-                                        width: 1.0,
-                                      ),
-                            ),
-                          ),
-                        ),
-                        SizedBox(height: 20),
+                                  setState(() {
+                                    _leaveRequests.insert(0, newRequest);
+                                    if (selectedLeaveType != 'Compensation') {
+                                      final days =
+                                          _leaveEndDate!
+                                              .difference(_leaveStartDate!)
+                                              .inDays +
+                                          1;
+                                      _availableLeaves -= days;
+                                    }
+                                  });
 
-                        // Buttons
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(context),
-                              child: ResponsiveText(
-                                'Cancel',
-                                smallMobileFontSize: 14,
-                                largeMobileFontSize: 15,
-                                tabletFontSize: 16,
-                              ),
-                            ),
-                            SizedBox(width: 16),
-                            ElevatedButton(
-                              onPressed: () {
-                                if (selectedLeaveType == null) {
-                                  _showSnackBar('Please select leave type');
-                                  return;
-                                }
-                                if (_leaveStartDate == null ||
-                                    _leaveEndDate == null) {
-                                  _showSnackBar('Please select date range');
-                                  return;
-                                }
-                                if (_leaveReasonController.text.isEmpty) {
+                                  _leaveStartDate = null;
+                                  _leaveEndDate = null;
+                                  _leaveReasonController.clear();
+
+                                  Navigator.pop(context);
                                   _showSnackBar(
-                                    'Please enter reason for leave',
+                                    'Leave request submitted successfully',
                                   );
-                                  return;
-                                }
-
-                                final newRequest = LeaveRequest(
-                                  id: '00${_leaveRequests.length + 1}',
-                                  type: selectedLeaveType!,
-                                  startDate: _leaveStartDate!,
-                                  endDate: _leaveEndDate!,
-                                  status: 'Pending',
-                                  reason: _leaveReasonController.text,
-                                );
-
-                                setState(() {
-                                  _leaveRequests.insert(0, newRequest);
-                                  if (selectedLeaveType != 'Compensation') {
-                                    final days =
-                                        _leaveEndDate!
-                                            .difference(_leaveStartDate!)
-                                            .inDays +
-                                        1;
-                                    _availableLeaves -= days;
-                                  }
-                                });
-
-                                _leaveStartDate = null;
-                                _leaveEndDate = null;
-                                _leaveReasonController.clear();
-
-                                Navigator.pop(context);
-                                _showSnackBar(
-                                  'Leave request submitted successfully',
-                                );
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Color(0xFF6f88e2),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Color(0xFF6f88e2),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                child: ResponsiveText(
+                                  'Submit',
+                                  smallMobileFontSize: 14,
+                                  largeMobileFontSize: 15,
+                                  tabletFontSize: 16,
+                                  style: TextStyle(color: Colors.white),
                                 ),
                               ),
-                              child: ResponsiveText(
-                                'Submit',
-                                smallMobileFontSize: 14,
-                                largeMobileFontSize: 15,
-                                tabletFontSize: 16,
-                                style: TextStyle(color: Colors.white),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          );
-        },
-      );
-    },
-  );
-}
+            );
+          },
+        );
+      },
+    );
+  }
+
   void _showAllLeaveRequests() {
     showModalBottomSheet(
       context: context,
@@ -1656,7 +1888,6 @@ class _ProfileScreenState extends State<ProfileScreen>
                         color: Color(0xFF1E293B),
                       ),
                     ),
-                    
                   ],
                 ),
               ),

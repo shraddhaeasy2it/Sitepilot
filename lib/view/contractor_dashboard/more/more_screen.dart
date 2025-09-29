@@ -1,14 +1,15 @@
 import 'package:ecoteam_app/view/contractor_dashboard/more/docstorage.dart';
 import 'package:ecoteam_app/view/contractor_dashboard/more/supplier.dart';
-import '../../../models/dashboard/site_model.dart';
-import 'inspection.dart';
-import 'material_screen.dart';
+import 'package:ecoteam_app/view/contractor_dashboard/worker_screen.dart';
+import 'package:ecoteam_app/view/contractor_dashboard/attendance_screen.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import '../../../models/site_model.dart';
+import 'tools_screen.dart';
 import 'package:flutter/material.dart';
 import 'mancount.dart';
-import 'expences.dart';
-import 'inventory.dart';
 import 'paymentreq.dart';
-import 'picking.dart';
+
 
 class MoreScreen extends StatefulWidget {
   final String? selectedSiteId;
@@ -47,57 +48,60 @@ class _MoreScreenState extends State<MoreScreen> {
   /// Dynamic module definitions
   late final List<Map<String, dynamic>> _modules = [
     {
-      'title': 'Materials',
-      'icon': Icons.inventory_2_rounded,
-      'color': Colors.orange[50]!,
-      'accentColor': Colors.orange,
-      'builder': () => MaterialScreen(
+      'title': 'Workers',
+      'icon': FontAwesomeIcons.personDigging,
+      'color': Colors.blue[50]!,
+      'accentColor': Colors.blue,
+      'builder': () => WorkersScreen(
         selectedSiteId: _selectedSiteId,
         onSiteChanged: widget.onSiteChanged,
         sites: widget.sites,
       ),
     },
     {
-      'title': 'Machinery',
-      'icon': Icons.precision_manufacturing_rounded,
-      'color': Colors.purple[50]!,
-      'accentColor': Colors.purple,
-      'builder': () => MachineryDetailScreen(
-        siteId: _selectedSiteId,
-        siteName: _getSiteName(),
+      'title': 'Assets/Tools',
+      'icon': FontAwesomeIcons.wrench,
+      'color': Colors.teal[50]!,
+      'accentColor': const Color.fromARGB(255, 0, 150, 150),
+      'builder': () => ToolsScreen(
+        selectedSiteId: _selectedSiteId,
+        onSiteChanged: widget.onSiteChanged,
+        sites: widget.sites,
       ),
     },
     {
-      'title': 'Inventory',
-      'icon': Icons.insights_rounded,
-      'color': Colors.blue[50]!,
-      'accentColor': Colors.blue,
-      'builder': () => InventoryDetailScreen(
-        siteId: _selectedSiteId,
-        siteName: _getSiteName(),
+      'title': 'Attendance',
+      'icon': Icons.check_circle_rounded,
+      'color': Colors.green[50]!,
+      'accentColor': Colors.green,
+      'builder': () => AttendanceScreen(
+        selectedSiteId: _selectedSiteId,
+        onSiteChanged: widget.onSiteChanged,
+        sites: widget.sites,
       ),
     },
+    // {
+    //   'title': 'Inventory',
+    //   'icon': Icons.insights_rounded,
+    //   'color': Colors.blue[50]!,
+    //   'accentColor': Colors.blue,
+    //   'builder': () => InventoryDetailScreen(selectedSiteId: _selectedSiteId, onSiteChanged: widget.onSiteChanged, sites: widget.sites)
+    // },
     {
       'title': 'Payments',
-      'icon': Icons.payment_rounded,
+      'icon': FontAwesomeIcons.creditCard,
       'color': Colors.lightBlue[50]!,
       'accentColor': Colors.lightBlue[700]!,
-      'builder': () => PaymentsDetailScreen(
-        siteId: _selectedSiteId,
-        siteName: _getSiteName(),
-      ),
+      'builder': () => PaymentsDetailScreen(selectedSiteId: _selectedSiteId, onSiteChanged: widget.onSiteChanged, sites: widget.sites)
     },
     {
       'title': 'Manpower',
       'icon': Icons.groups_rounded,
-      'color': Colors.green[50]!,
-      'accentColor': Colors.green,
-      'builder': () => ManpowerCountScreen(
-        siteId: _selectedSiteId,
-        siteName: _getSiteName(),
-      ),
+      'color': const Color.fromARGB(255, 253, 231, 255)!,
+      'accentColor': const Color.fromARGB(255, 177, 73, 190),
+      'builder': () => ManpowerCountScreen(selectedSiteId: _selectedSiteId, onSiteChanged: widget.onSiteChanged, sites: widget.sites)
     },
-    // {
+    // 
     //   'title': 'Inspection',
     //   'icon': Icons.insert_page_break_rounded,
     //   'color': Colors.pink[50]!,
@@ -131,7 +135,7 @@ class _MoreScreenState extends State<MoreScreen> {
     },
     {
       'title': 'Supplier Ledger',
-      'icon': Icons.support_agent_rounded,
+      'icon': FontAwesomeIcons.handshake,
       'color': Colors.brown[50]!,
       'accentColor': const Color.fromARGB(255, 187, 74, 54),
       'builder': () => SupplierLedger(
@@ -141,22 +145,6 @@ class _MoreScreenState extends State<MoreScreen> {
       ),
     }
   ];
-
-  String _getSiteName() {
-    return widget.sites
-        .firstWhere(
-          (site) => site.id == _selectedSiteId,
-          orElse: () =>
-              Site(id: '', name: 'Unknown', address: '', companyId: ''),
-        )
-        .name;
-  }
-
-  void _onSiteChanged(String siteId) {
-    setState(() {
-      _selectedSiteId = siteId;
-    });
-  }
 
   void _showSiteSelectorBottomSheet() {
     setState(() {
@@ -266,7 +254,7 @@ class _MoreScreenState extends State<MoreScreen> {
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        toolbarHeight: 80,
+        toolbarHeight: 80.h,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -293,7 +281,7 @@ class _MoreScreenState extends State<MoreScreen> {
                     style: TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.w500,
-                      fontSize: 22,
+                      fontSize: 22.sp,
                     ),
                   ),
                   if (widget.sites.isNotEmpty) SizedBox(width: 8),
@@ -308,7 +296,7 @@ class _MoreScreenState extends State<MoreScreen> {
               style: TextStyle(
                 color: Colors.white70,
                 fontWeight: FontWeight.w400,
-                fontSize: 16,
+                fontSize: 16.sp,
               ),
             ),
           ],
@@ -325,10 +313,10 @@ class _MoreScreenState extends State<MoreScreen> {
                   colors: [
                     Color(0xFF4a63c0),
                     Color(0xFF3a53b0),
-                    Color(0xFF2a43a0),
+                    Color.fromARGB(255, 42, 67, 160),
                   ],
                 ),
-            borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
+            borderRadius: BorderRadius.vertical(bottom: Radius.circular(25)),
           ),
         ),
       ),
@@ -471,6 +459,8 @@ class _MoreScreenState extends State<MoreScreen> {
     );
   }
 }
+
+
 
 // Extension to clamp values
 extension Clamp on double {

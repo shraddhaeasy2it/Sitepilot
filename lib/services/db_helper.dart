@@ -1,5 +1,5 @@
 
-import 'package:ecoteam_app/models/dashboard/picking_model.dart';
+import 'package:ecoteam_app/models/picking_model.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';

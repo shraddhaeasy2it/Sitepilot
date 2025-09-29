@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
-import 'package:ecoteam_app/models/dashboard/site_model.dart';
+import 'package:ecoteam_app/models/site_model.dart';
+import 'package:ecoteam_app/services/report_services.dart';
 
 class MaterialScreen extends StatefulWidget {
   final String? selectedSiteId;
@@ -42,14 +45,34 @@ class MaterialItem {
   });
 }
 
+class MaterialUsage {
+  final String id;
+  final String materialId;
+  final double quantityUsed;
+  final String purpose;
+  final String site;
+  final DateTime date;
+
+  MaterialUsage({
+    required this.id,
+    required this.materialId,
+    required this.quantityUsed,
+    required this.purpose,
+    required this.site,
+    required this.date,
+  });
+}
+
 class _MaterialScreenState extends State<MaterialScreen> {
   List<MaterialItem> materials = [];
+  List<MaterialUsage> materialUsages = [];
+  late ValueNotifier<List<MaterialUsage>> materialUsagesNotifier;
   bool isLoading = false;
   String searchQuery = '';
   String? selectedSiteFilter;
   static const Color primaryColor = Color(0xFF6f88e2);
   static const Color primaryDark = Color(0xFF5a73d1);
-  static const Color backgroundColor = Color(0xFFF8F9FF);
+  static const Color backgroundColor = Color.fromARGB(255, 249, 249, 253);
   static const Color cardColor = Colors.white;
   static const Color textPrimary = Color(0xFF2D3748);
   static const Color textSecondary = Color(0xFF718096);
@@ -74,6 +97,7 @@ class _MaterialScreenState extends State<MaterialScreen> {
   void initState() {
     super.initState();
     selectedSiteFilter = widget.selectedSiteId;
+    materialUsagesNotifier = ValueNotifier(materialUsages);
     _loadMaterials();
   }
 
@@ -714,12 +738,12 @@ class _MaterialScreenState extends State<MaterialScreen> {
           hintText: hint,
           prefixIcon: Icon(
             icon,
-            color: hasError ? Colors.red : primaryColor,
-            size: 22,
+            color: hasError ? Colors.red : const Color.fromARGB(255, 105, 110, 126),
+            size: 20,
           ),
           errorText: hasError ? 'Required' : null,
           filled: true,
-          fillColor: cardColor,
+          fillColor: const Color.fromARGB(255, 255, 255, 255),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
             borderSide: BorderSide.none,
@@ -773,7 +797,7 @@ class _MaterialScreenState extends State<MaterialScreen> {
         value: value,
         decoration: InputDecoration(
           labelText: label,
-          prefixIcon: Icon(icon, color: primaryColor, size: 22),
+          prefixIcon: Icon(icon, color: const Color.fromARGB(255, 95, 100, 122), size: 20),
           filled: true,
           fillColor: cardColor,
           border: OutlineInputBorder(
@@ -1234,11 +1258,11 @@ class _MaterialScreenState extends State<MaterialScreen> {
       ),
       child: Row(
         children: [
-          Icon(
-            icon,
-            size: isSmallScreen ? 14 : 16,
-            color: primaryColor,
-          ),
+          // Icon(
+          //   icon,
+          //   size: isSmallScreen ? 14 : 16,
+          //   color: const Color.fromARGB(255, 109, 109, 109),
+          // ),
           const SizedBox(width: 6),
           Expanded(
             child: Column(
@@ -1315,13 +1339,293 @@ class _MaterialScreenState extends State<MaterialScreen> {
     );
   }
 
+  void _showMaterialUsageBottomSheet(BuildContext context, List<MaterialItem> materials, Function(MaterialUsage) onUsageAdded, Function(MaterialItem) onMaterialUpdated) {
+    MaterialItem? selectedMaterial;
+    final quantityController = TextEditingController();
+    final purposeController = TextEditingController();
+    DateTime selectedDate = DateTime.now();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.6,
+        minChildSize: 0.4,
+        maxChildSize: 0.8,
+        builder: (context, scrollController) {
+          return StatefulBuilder(
+            builder: (context, setSheetState) {
+              return Container(
+                decoration: const BoxDecoration(
+                  color: backgroundColor,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black26,
+                      blurRadius: 20,
+                      offset: Offset(0, -5),
+                    ),
+                  ],
+                ),
+                child: Padding(
+                  padding: EdgeInsets.only(
+                    bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+                    left: 20,
+                    right: 20,
+                    top: 24,
+                  ),
+                  child: Scrollbar(
+                    controller: scrollController,
+                    thumbVisibility: false,
+                    child: SingleChildScrollView(
+                      controller: scrollController,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Center(
+                            child: Container(
+                              width: 40,
+                              height: 4,
+                              decoration: BoxDecoration(
+                                color: Colors.grey[300],
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                            ),
+                          ),
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: primaryColor.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Icon(
+                                  Icons.inventory,
+                                  color: primaryColor,
+                                  size: 28,
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              const Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Mark Material Usage',
+                                      style: TextStyle(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFF2D3748),
+                                      ),
+                                    ),
+                                    Text(
+                                      'Select material and enter usage details',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: Color(0xFF718096),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 32),
+                          DropdownButtonFormField<MaterialItem>(
+                            value: selectedMaterial,
+                            decoration: InputDecoration(
+                              labelText: 'Select Material',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              prefixIcon: Icon(Icons.inventory_2, color: primaryColor),
+                              filled: true,
+                              fillColor: cardColor,
+                            ),
+                            items: filteredMaterials.map((material) {
+                              return DropdownMenuItem(
+                                value: material,
+                                child: Text('${material.name} (${material.quantity} ${material.unit})'),
+                              );
+                            }).toList(),
+                            onChanged: (value) {
+                              setSheetState(() => selectedMaterial = value);
+                            },
+                          ),
+                          const SizedBox(height: 20),
+                          TextField(
+                            controller: quantityController,
+                            decoration: InputDecoration(
+                              labelText: 'Quantity Used',
+                              hintText: selectedMaterial != null ? 'Max: ${selectedMaterial!.quantity}' : 'Enter quantity',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              prefixIcon: Icon(Icons.numbers, color: primaryColor),
+                              filled: true,
+                              fillColor: cardColor,
+                            ),
+                            keyboardType: TextInputType.number,
+                          ),
+                          const SizedBox(height: 20),
+                          TextField(
+                            controller: purposeController,
+                            decoration: InputDecoration(
+                              labelText: 'Purpose',
+                              hintText: 'e.g. Foundation work, Wall construction',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              prefixIcon: Icon(Icons.description, color: primaryColor),
+                              filled: true,
+                              fillColor: cardColor,
+                            ),
+                            maxLines: 2,
+                          ),
+                          const SizedBox(height: 20),
+                          ListTile(
+                            title: const Text('Date'),
+                            subtitle: Text(DateFormat('yyyy-MM-dd').format(selectedDate)),
+                            trailing: const Icon(Icons.calendar_today),
+                            onTap: () async {
+                              final date = await showDatePicker(
+                                context: context,
+                                initialDate: selectedDate,
+                                firstDate: DateTime(2020),
+                                lastDate: DateTime(2100),
+                              );
+                              if (date != null) {
+                                setSheetState(() => selectedDate = date);
+                              }
+                            },
+                          ),
+                          const SizedBox(height: 32),
+                          Container(
+                            height: 56,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [primaryColor, primaryDark],
+                                begin: Alignment.centerLeft,
+                                end: Alignment.centerRight,
+                              ),
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: primaryColor.withOpacity(0.3),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 6),
+                                ),
+                              ],
+                            ),
+                            child: ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.transparent,
+                                shadowColor: Colors.transparent,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                              ),
+                              icon: Icon(
+                                Icons.inventory,
+                                color: Colors.white,
+                                size: 22,
+                              ),
+                              label: const Text(
+                                'Mark Usage',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              onPressed: () {
+                                if (selectedMaterial == null ||
+                                    quantityController.text.isEmpty ||
+                                    purposeController.text.isEmpty) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Please fill all fields'),
+                                    ),
+                                  );
+                                  return;
+                                }
+
+                                final quantityUsed = double.tryParse(quantityController.text) ?? 0;
+                                if (quantityUsed <= 0 || quantityUsed > selectedMaterial!.quantity) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        'Invalid quantity. Available: ${selectedMaterial!.quantity} ${selectedMaterial!.unit}',
+                                      ),
+                                    ),
+                                  );
+                                  return;
+                                }
+
+                                // Add usage record
+                                final usage = MaterialUsage(
+                                  id: DateTime.now().millisecondsSinceEpoch.toString(),
+                                  materialId: selectedMaterial!.id,
+                                  quantityUsed: quantityUsed,
+                                  purpose: purposeController.text.trim(),
+                                  site: getSiteName(selectedMaterial!.siteId),
+                                  date: selectedDate,
+                                );
+                                onUsageAdded(usage);
+
+                                // Update material quantity
+                                final updatedMaterial = MaterialItem(
+                                  id: selectedMaterial!.id,
+                                  name: selectedMaterial!.name,
+                                  category: selectedMaterial!.category,
+                                  quantity: selectedMaterial!.quantity - quantityUsed,
+                                  unit: selectedMaterial!.unit,
+                                  supplier: selectedMaterial!.supplier,
+                                  cost: selectedMaterial!.cost,
+                                  status: selectedMaterial!.quantity - quantityUsed <= 0
+                                      ? 'Out of Stock'
+                                      : selectedMaterial!.quantity - quantityUsed < 10
+                                          ? 'Low Stock'
+                                          : 'In Stock',
+                                  lastUpdated: DateTime.now(),
+                                  siteId: selectedMaterial!.siteId,
+                                );
+                                onMaterialUpdated(updatedMaterial);
+
+                                Navigator.pop(context);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      '${quantityUsed} ${selectedMaterial!.unit} of ${selectedMaterial!.name} marked as used',
+                                    ),
+                                    backgroundColor: Colors.green,
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: backgroundColor,
       appBar: AppBar(
         elevation: 0,
-        toolbarHeight: 80,
+        toolbarHeight: 80.h,
         backgroundColor: Colors.transparent,
         title: RichText(
           text: TextSpan(
@@ -1346,23 +1650,56 @@ class _MaterialScreenState extends State<MaterialScreen> {
           ),
         ),
         iconTheme: const IconThemeData(color: Colors.white),
+        actions: [
+          IconButton(
+            icon: const Icon(FontAwesomeIcons.boxOpen),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => MaterialUsageScreen(
+                    materialUsagesNotifier: materialUsagesNotifier,
+                    materials: materials,
+                    onUsageAdded: (usage) {
+                      materialUsages.add(usage);
+                      materialUsagesNotifier.value = List.from(materialUsages);
+                    },
+                    onUsageDeleted: (usage) {
+                      materialUsages.remove(usage);
+                      materialUsagesNotifier.value = List.from(materialUsages);
+                    },
+                    onShowUsageBottomSheet: () => _showMaterialUsageBottomSheet(
+                      context,
+                      materials,
+                      (usage) {
+                        materialUsages.add(usage);
+                        materialUsagesNotifier.value = List.from(materialUsages);
+                      },
+                      (updatedMaterial) {
+                        setState(() {
+                          final index = materials.indexWhere((m) => m.id == updatedMaterial.id);
+                          if (index != -1) materials[index] = updatedMaterial;
+                        });
+                      },
+                    ),
+                  ),
+                ),
+              );
+            },
+            tooltip: 'Material Usage',
+          ),
+        ],
         flexibleSpace: Container(
           decoration: BoxDecoration(
             borderRadius: const BorderRadius.vertical(
-              bottom: Radius.circular(24),
+              bottom: Radius.circular(25),
             ),
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: [Color(0xFF4a63c0), Color(0xFF3a53b0), Color(0xFF2a43a0)],
             ),
-            boxShadow: [
-              BoxShadow(
-                color: primaryColor.withOpacity(0.3),
-                blurRadius: 20,
-                offset: const Offset(0, 10),
-              ),
-            ],
+            
           ),
         ),
       ),
@@ -1403,7 +1740,7 @@ class _MaterialScreenState extends State<MaterialScreen> {
         ),
         child: FloatingActionButton.extended(
           onPressed: () => _showMaterialSheet(),
-          backgroundColor: primaryColor,
+          backgroundColor: const Color.fromARGB(255, 69, 96, 194),
           foregroundColor: Colors.white,
           elevation: 0,
           icon: const Icon(Icons.add),
@@ -1412,6 +1749,1146 @@ class _MaterialScreenState extends State<MaterialScreen> {
             style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
           ),
         ),
+      ),
+    );
+  }
+}
+
+// Material Usage Screen
+class MaterialUsageScreen extends StatefulWidget {
+  final ValueNotifier<List<MaterialUsage>> materialUsagesNotifier;
+  final List<MaterialItem> materials;
+  final Function(MaterialUsage) onUsageAdded;
+  final Function(MaterialUsage) onUsageDeleted;
+  final VoidCallback onShowUsageBottomSheet;
+
+  const MaterialUsageScreen({
+    super.key,
+    required this.materialUsagesNotifier,
+    required this.materials,
+    required this.onUsageAdded,
+    required this.onUsageDeleted,
+    required this.onShowUsageBottomSheet,
+  });
+
+  @override
+  State<MaterialUsageScreen> createState() => _MaterialUsageScreenState();
+}
+
+class _MaterialUsageScreenState extends State<MaterialUsageScreen> {
+  static const Color primaryColor = Color(0xFF6f88e2);
+  static const Color primaryDark = Color(0xFF5a73d1);
+  static const Color backgroundColor = Color.fromARGB(255, 249, 249, 253);
+  static const Color cardColor = Colors.white;
+  static const Color textPrimary = Color(0xFF2D3748);
+  static const Color textSecondary = Color(0xFF718096);
+
+  String? selectedCategoryForReport;
+  DateTime? startDateForReport;
+  DateTime? endDateForReport;
+  String? selectedSiteForReport;
+  String? selectedMaterialForReport;
+
+  final List<String> categoryList = [
+    'Construction',
+    'Reinforcement',
+    'Masonry',
+    'Aggregates',
+    'Electrical',
+    'Plumbing',
+  ];
+
+  String getMaterialName(String materialId) {
+    final material = widget.materials.firstWhere(
+      (m) => m.id == materialId,
+      orElse: () => MaterialItem(
+        id: '',
+        name: 'Unknown Material',
+        category: '',
+        quantity: 0,
+        unit: '',
+        supplier: '',
+        cost: 0,
+        status: '',
+        lastUpdated: DateTime.now(),
+        siteId: '',
+      ),
+    );
+    return material.name;
+  }
+
+  List<String> _getUniqueSitesFromUsage() {
+    final usages = widget.materialUsagesNotifier.value;
+    return usages.map((usage) => usage.site).toSet().toList();
+  }
+
+  void _showPdfFilterDialog(BuildContext context) {
+    // Create local variables for the dialog
+    String? tempCategory = selectedCategoryForReport;
+    DateTime? tempStartDate = startDateForReport;
+    DateTime? tempEndDate = endDateForReport;
+    String? tempSite = selectedSiteForReport;
+    String? tempMaterial = selectedMaterialForReport;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        minChildSize: 0.5,
+        maxChildSize: 0.9,
+        builder: (context, scrollController) => StatefulBuilder(
+          builder: (context, setSheetState) => Container(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black26,
+                  blurRadius: 20,
+                  offset: Offset(0, -5),
+                ),
+              ],
+            ),
+            child: Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+                left: 20,
+                right: 20,
+                top: 24,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Header with drag handle
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[300],
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Title
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF6f88e2).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.filter_list,
+                          color: Color(0xFF6f88e2),
+                          size: 28,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      const Expanded(
+                        child: Text(
+                          'Filter PDF Report',
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF2D3748),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 32),
+
+                  // Scrollable content
+                  Expanded(
+                    child: SingleChildScrollView(
+                      controller: scrollController,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Category Filter
+                          const Text('Category', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey.shade300),
+                              borderRadius: BorderRadius.circular(12),
+                              color: Colors.grey.shade50,
+                            ),
+                            child: DropdownButton<String>(
+                              value: tempCategory,
+                              hint: const Text('All Categories'),
+                              isExpanded: true,
+                              underline: Container(),
+                              items: [
+                                const DropdownMenuItem<String>(
+                                  value: null,
+                                  child: Text('All Categories'),
+                                ),
+                                ...categoryList.map((category) => DropdownMenuItem<String>(
+                                  value: category,
+                                  child: Text(category),
+                                )),
+                              ],
+                              onChanged: (value) {
+                                setSheetState(() => tempCategory = value);
+                              },
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+
+                          // Date Range
+                          const Text('Date Range', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: InkWell(
+                                  onTap: () async {
+                                    final date = await showDatePicker(
+                                      context: context,
+                                      initialDate: tempStartDate ?? DateTime.now(),
+                                      firstDate: DateTime(2020),
+                                      lastDate: DateTime.now(),
+                                    );
+                                    if (date != null) {
+                                      setSheetState(() => tempStartDate = date);
+                                    }
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.all(16),
+                                    decoration: BoxDecoration(
+                                      border: Border.all(color: Colors.grey.shade300),
+                                      borderRadius: BorderRadius.circular(12),
+                                      color: Colors.grey.shade50,
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Start Date',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.grey.shade600,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          tempStartDate != null
+                                              ? DateFormat('MMM dd, yyyy').format(tempStartDate!)
+                                              : 'Select date',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            color: tempStartDate != null ? Colors.black : Colors.grey,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: InkWell(
+                                  onTap: () async {
+                                    final date = await showDatePicker(
+                                      context: context,
+                                      initialDate: tempEndDate ?? DateTime.now(),
+                                      firstDate: DateTime(2020),
+                                      lastDate: DateTime.now(),
+                                    );
+                                    if (date != null) {
+                                      setSheetState(() => tempEndDate = date);
+                                    }
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.all(16),
+                                    decoration: BoxDecoration(
+                                      border: Border.all(color: Colors.grey.shade300),
+                                      borderRadius: BorderRadius.circular(12),
+                                      color: Colors.grey.shade50,
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'End Date',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.grey.shade600,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          tempEndDate != null
+                                              ? DateFormat('MMM dd, yyyy').format(tempEndDate!)
+                                              : 'Select date',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            color: tempEndDate != null ? Colors.black : Colors.grey,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 20),
+
+                          // Site Filter
+                          const Text('Site', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey.shade300),
+                              borderRadius: BorderRadius.circular(12),
+                              color: Colors.grey.shade50,
+                            ),
+                            child: DropdownButton<String>(
+                              value: tempSite,
+                              hint: const Text('All Sites'),
+                              isExpanded: true,
+                              underline: Container(),
+                              items: [
+                                const DropdownMenuItem<String>(
+                                  value: null,
+                                  child: Text('All Sites'),
+                                ),
+                                ..._getUniqueSitesFromUsage().map((siteName) => DropdownMenuItem<String>(
+                                  value: siteName,
+                                  child: Text(siteName),
+                                )),
+                              ],
+                              onChanged: (value) {
+                                setSheetState(() => tempSite = value);
+                              },
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+
+                          // Material Filter
+                          const Text('Material', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey.shade300),
+                              borderRadius: BorderRadius.circular(12),
+                              color: Colors.grey.shade50,
+                            ),
+                            child: DropdownButton<String>(
+                              value: tempMaterial,
+                              hint: const Text('All Materials'),
+                              isExpanded: true,
+                              underline: Container(),
+                              items: [
+                                const DropdownMenuItem<String>(
+                                  value: null,
+                                  child: Text('All Materials'),
+                                ),
+                                ...widget.materials.map((material) => DropdownMenuItem<String>(
+                                  value: material.id,
+                                  child: Text(material.name),
+                                )),
+                              ],
+                              onChanged: (value) {
+                                setSheetState(() => tempMaterial = value);
+                              },
+                            ),
+                          ),
+                          const SizedBox(height: 32),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  // Action buttons
+                  Container(
+                    padding: const EdgeInsets.only(top: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      border: Border(top: BorderSide(color: Colors.grey.shade200)),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => Navigator.pop(context),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              side: BorderSide(color: Colors.grey.shade400),
+                            ),
+                            child: const Text(
+                              'Cancel',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () {
+                              setState(() {
+                                selectedCategoryForReport = tempCategory;
+                                startDateForReport = tempStartDate;
+                                endDateForReport = tempEndDate;
+                                selectedSiteForReport = tempSite;
+                                selectedMaterialForReport = tempMaterial;
+                              });
+                              Navigator.pop(context);
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF6f88e2),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: const Text(
+                              'Apply Filters',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showPdfFilterAndDownload(BuildContext context) async {
+    // Create local variables for the dialog
+    String? tempCategory = selectedCategoryForReport;
+    DateTime? tempStartDate = startDateForReport;
+    DateTime? tempEndDate = endDateForReport;
+    String? tempSite = selectedSiteForReport;
+    String? tempMaterial = selectedMaterialForReport;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        minChildSize: 0.5,
+        maxChildSize: 0.9,
+        builder: (context, scrollController) => StatefulBuilder(
+          builder: (context, setSheetState) => Container(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black26,
+                  blurRadius: 20,
+                  offset: Offset(0, -5),
+                ),
+              ],
+            ),
+            child: Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+                left: 20,
+                right: 20,
+                top: 24,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Header with drag handle
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[300],
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Title
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF6f88e2).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.filter_list,
+                          color: Color(0xFF6f88e2),
+                          size: 28,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      const Expanded(
+                        child: Text(
+                          'Filter PDF Report',
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF2D3748),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 32),
+
+                  // Scrollable content
+                  Expanded(
+                    child: SingleChildScrollView(
+                      controller: scrollController,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Category Filter
+                          const Text('Category', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey.shade300),
+                              borderRadius: BorderRadius.circular(12),
+                              color: Colors.grey.shade50,
+                            ),
+                            child: DropdownButton<String>(
+                              value: tempCategory,
+                              hint: const Text('All Categories'),
+                              isExpanded: true,
+                              underline: Container(),
+                              items: [
+                                const DropdownMenuItem<String>(
+                                  value: null,
+                                  child: Text('All Categories'),
+                                ),
+                                ...categoryList.map((category) => DropdownMenuItem<String>(
+                                  value: category,
+                                  child: Text(category),
+                                )),
+                              ],
+                              onChanged: (value) {
+                                setSheetState(() => tempCategory = value);
+                              },
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+
+                          // Date Range
+                          const Text('Date Range', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: InkWell(
+                                  onTap: () async {
+                                    final date = await showDatePicker(
+                                      context: context,
+                                      initialDate: tempStartDate ?? DateTime.now(),
+                                      firstDate: DateTime(2020),
+                                      lastDate: DateTime.now(),
+                                    );
+                                    if (date != null) {
+                                      setSheetState(() => tempStartDate = date);
+                                    }
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.all(16),
+                                    decoration: BoxDecoration(
+                                      border: Border.all(color: Colors.grey.shade300),
+                                      borderRadius: BorderRadius.circular(12),
+                                      color: Colors.grey.shade50,
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Start Date',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.grey.shade600,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          tempStartDate != null
+                                              ? DateFormat('MMM dd, yyyy').format(tempStartDate!)
+                                              : 'Select date',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            color: tempStartDate != null ? Colors.black : Colors.grey,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: InkWell(
+                                  onTap: () async {
+                                    final date = await showDatePicker(
+                                      context: context,
+                                      initialDate: tempEndDate ?? DateTime.now(),
+                                      firstDate: DateTime(2020),
+                                      lastDate: DateTime.now(),
+                                    );
+                                    if (date != null) {
+                                      setSheetState(() => tempEndDate = date);
+                                    }
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.all(16),
+                                    decoration: BoxDecoration(
+                                      border: Border.all(color: Colors.grey.shade300),
+                                      borderRadius: BorderRadius.circular(12),
+                                      color: Colors.grey.shade50,
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'End Date',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.grey.shade600,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          tempEndDate != null
+                                              ? DateFormat('MMM dd, yyyy').format(tempEndDate!)
+                                              : 'Select date',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            color: tempEndDate != null ? Colors.black : Colors.grey,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 20),
+
+                          // Site Filter
+                          const Text('Site', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey.shade300),
+                              borderRadius: BorderRadius.circular(12),
+                              color: Colors.grey.shade50,
+                            ),
+                            child: DropdownButton<String>(
+                              value: tempSite,
+                              hint: const Text('All Sites'),
+                              isExpanded: true,
+                              underline: Container(),
+                              items: [
+                                const DropdownMenuItem<String>(
+                                  value: null,
+                                  child: Text('All Sites'),
+                                ),
+                                ..._getUniqueSitesFromUsage().map((siteName) => DropdownMenuItem<String>(
+                                  value: siteName,
+                                  child: Text(siteName),
+                                )),
+                              ],
+                              onChanged: (value) {
+                                setSheetState(() => tempSite = value);
+                              },
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+
+                          // Material Filter
+                          const Text('Material', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey.shade300),
+                              borderRadius: BorderRadius.circular(12),
+                              color: Colors.grey.shade50,
+                            ),
+                            child: DropdownButton<String>(
+                              value: tempMaterial,
+                              hint: const Text('All Materials'),
+                              isExpanded: true,
+                              underline: Container(),
+                              items: [
+                                const DropdownMenuItem<String>(
+                                  value: null,
+                                  child: Text('All Materials'),
+                                ),
+                                ...widget.materials.map((material) => DropdownMenuItem<String>(
+                                  value: material.id,
+                                  child: Text(material.name),
+                                )),
+                              ],
+                              onChanged: (value) {
+                                setSheetState(() => tempMaterial = value);
+                              },
+                            ),
+                          ),
+                          const SizedBox(height: 32),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  // Action buttons
+                  Container(
+                    padding: const EdgeInsets.only(top: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      border: Border(top: BorderSide(color: Colors.grey.shade200)),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => Navigator.pop(context),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              side: BorderSide(color: Colors.grey.shade400),
+                            ),
+                            child: const Text(
+                              'Cancel',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () async {
+                              // Apply filters and download PDF
+                              setState(() {
+                                selectedCategoryForReport = tempCategory;
+                                startDateForReport = tempStartDate;
+                                endDateForReport = tempEndDate;
+                                selectedSiteForReport = tempSite;
+                                selectedMaterialForReport = tempMaterial;
+                              });
+                              Navigator.pop(context);
+
+                              // Now download the PDF with applied filters
+                              final usages = widget.materialUsagesNotifier.value;
+                              if (usages.isEmpty) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('No usage data to export')),
+                                );
+                                return;
+                              }
+
+                              // Apply all filters
+                              List<MaterialUsage> filteredUsages = usages;
+
+                              // Date range filter
+                              if (startDateForReport != null || endDateForReport != null) {
+                                filteredUsages = filteredUsages.where((usage) {
+                                  final usageDate = DateTime(usage.date.year, usage.date.month, usage.date.day);
+                                  bool matches = true;
+
+                                  if (startDateForReport != null) {
+                                    final start = DateTime(startDateForReport!.year, startDateForReport!.month, startDateForReport!.day);
+                                    matches = matches && usageDate.isAfter(start.subtract(const Duration(days: 1)));
+                                  }
+
+                                  if (endDateForReport != null) {
+                                    final end = DateTime(endDateForReport!.year, endDateForReport!.month, endDateForReport!.day);
+                                    matches = matches && usageDate.isBefore(end.add(const Duration(days: 1)));
+                                  }
+
+                                  return matches;
+                                }).toList();
+                              }
+
+                              // Site filter
+                              if (selectedSiteForReport != null) {
+                                filteredUsages = filteredUsages.where((usage) => usage.site == selectedSiteForReport).toList();
+                              }
+
+                              // Material filter
+                              if (selectedMaterialForReport != null) {
+                                filteredUsages = filteredUsages.where((usage) => usage.materialId == selectedMaterialForReport).toList();
+                              }
+
+                              // Category filter
+                              if (selectedCategoryForReport != null) {
+                                filteredUsages = filteredUsages.where((usage) {
+                                  final material = widget.materials.firstWhere(
+                                    (m) => m.id == usage.materialId,
+                                    orElse: () => MaterialItem(
+                                      id: '',
+                                      name: '',
+                                      category: '',
+                                      quantity: 0,
+                                      unit: '',
+                                      supplier: '',
+                                      cost: 0,
+                                      status: '',
+                                      lastUpdated: DateTime.now(),
+                                      siteId: '',
+                                    ),
+                                  );
+                                  return material.category == selectedCategoryForReport;
+                                }).toList();
+                              }
+
+                              if (filteredUsages.isEmpty) {
+                                String filterDescription = 'No usage data found';
+                                List<String> appliedFilters = [];
+
+                                if (startDateForReport != null || endDateForReport != null) {
+                                  appliedFilters.add('date range');
+                                }
+                                if (selectedSiteForReport != null) {
+                                  appliedFilters.add('site');
+                                }
+                                if (selectedMaterialForReport != null) {
+                                  appliedFilters.add('material');
+                                }
+                                if (selectedCategoryForReport != null) {
+                                  appliedFilters.add('category');
+                                }
+
+                                if (appliedFilters.isNotEmpty) {
+                                  filterDescription += ' for the selected ${appliedFilters.join(', ')}';
+                                }
+
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(filterDescription),
+                                    backgroundColor: Colors.orange,
+                                  ),
+                                );
+                                return;
+                              }
+
+                              try {
+                                final usageData = filteredUsages.map((usage) => {
+                                  'materialName': getMaterialName(usage.materialId),
+                                  'quantityUsed': usage.quantityUsed,
+                                  'purpose': usage.purpose,
+                                  'site': usage.site,
+                                  'date': DateFormat('yyyy-MM-dd').format(usage.date),
+                                }).toList();
+
+                                // Generate dynamic report title based on applied filters
+                                String reportTitle = 'Material Usage Report';
+                                List<String> titleParts = [];
+
+                                if (selectedCategoryForReport != null) {
+                                  titleParts.add('$selectedCategoryForReport Materials');
+                                }
+
+                                if (startDateForReport != null || endDateForReport != null) {
+                                  String dateRange = '';
+                                  if (startDateForReport != null) {
+                                    dateRange += DateFormat('MMM dd').format(startDateForReport!);
+                                  }
+                                  if (endDateForReport != null) {
+                                    if (dateRange.isNotEmpty) dateRange += ' - ';
+                                    dateRange += DateFormat('MMM dd, yyyy').format(endDateForReport!);
+                                  }
+                                  titleParts.add(dateRange);
+                                }
+
+                                if (selectedSiteForReport != null) {
+                                  titleParts.add(selectedSiteForReport!);
+                                }
+
+                                if (selectedMaterialForReport != null) {
+                                  final material = widget.materials.firstWhere(
+                                    (m) => m.id == selectedMaterialForReport,
+                                    orElse: () => MaterialItem(
+                                      id: '',
+                                      name: 'Unknown Material',
+                                      category: '',
+                                      quantity: 0,
+                                      unit: '',
+                                      supplier: '',
+                                      cost: 0,
+                                      status: '',
+                                      lastUpdated: DateTime.now(),
+                                      siteId: '',
+                                    ),
+                                  );
+                                  titleParts.add(material.name);
+                                }
+
+                                if (titleParts.isNotEmpty) {
+                                  reportTitle = '${titleParts.join(' - ')} Usage Report';
+                                }
+
+                                final siteName = selectedSiteForReport ?? (filteredUsages.isNotEmpty ? filteredUsages.first.site : 'All Sites');
+
+                                final path = await ReportService.generateMaterialUsagePDF(usageData, siteName, customTitle: reportTitle);
+                                await ReportService.openFile(path);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('PDF report saved successfully'),
+                                    backgroundColor: Colors.green,
+                                  ),
+                                );
+                              } catch (e) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Error generating PDF: $e')),
+                                );
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF6f88e2),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: const Text(
+                              'Download PDF',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _deleteUsage(MaterialUsage usage) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Material Usage'),
+        content: const Text('Are you sure you want to delete this usage record?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              widget.onUsageDeleted(usage);
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Usage deleted successfully'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: backgroundColor,
+      appBar: AppBar(
+        elevation: 0,
+        toolbarHeight: 80,
+        backgroundColor: Colors.transparent,
+        title: const Text(
+          'Material Usage',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        iconTheme: const IconThemeData(color: Colors.white),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.add_card_outlined),
+            onPressed: widget.onShowUsageBottomSheet,
+            tooltip: 'Mark Usage',
+          ),
+          IconButton(
+            icon: const Icon(Icons.download),
+            onPressed: () => _showPdfFilterAndDownload(context),
+            tooltip: 'Download PDF Report',
+          ),
+        ],
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            borderRadius: const BorderRadius.vertical(
+              bottom: Radius.circular(25),
+            ),
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [primaryColor, primaryDark, const Color(0xFF2a43a0)],
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: primaryColor.withOpacity(0.3),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+        ),
+      ),
+      body: ValueListenableBuilder<List<MaterialUsage>>(
+        valueListenable: widget.materialUsagesNotifier,
+        builder: (context, usages, child) {
+          return usages.isEmpty
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(32),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(24),
+                          decoration: BoxDecoration(
+                            color: primaryColor.withOpacity(0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.inventory_2_outlined,
+                            size: 64,
+                            color: primaryColor,
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        const Text(
+                          'No material usage yet',
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        const Text(
+                          'Mark usage to track material consumption',
+                          style: TextStyle(fontSize: 16, color: textSecondary),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: usages.length,
+                  itemBuilder: (context, index) {
+                    final usage = usages[index];
+                    return Card(
+                      elevation: 2,
+                      margin: const EdgeInsets.only(bottom: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: ListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        leading: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: primaryColor.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Icon(
+                            Icons.inventory,
+                            color: primaryColor,
+                          ),
+                        ),
+                        title: Text(
+                          'Material Usage',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('${usage.quantityUsed} used from ${getMaterialName(usage.materialId)}'),
+                            const SizedBox(height: 4),
+                            Text('Site: ${usage.site}'),
+                            const SizedBox(height: 4),
+                            Text('Purpose: ${usage.purpose}'),
+                            const SizedBox(height: 4),
+                            Text(DateFormat('yyyy-MM-dd').format(usage.date)),
+                          ],
+                        ),
+                        trailing: IconButton(
+                          icon: const Icon(Icons.delete, color: Colors.red),
+                          onPressed: () => _deleteUsage(usage),
+                        ),
+                      ),
+                    );
+                  },
+                );
+        },
       ),
     );
   }

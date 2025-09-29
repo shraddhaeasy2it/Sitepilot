@@ -1,5 +1,6 @@
-import 'package:ecoteam_app/models/dashboard/dashboard_model.dart';
-import 'package:ecoteam_app/models/dashboard/site_model.dart';
+import 'package:ecoteam_app/models/dashboard_model.dart';
+import 'package:ecoteam_app/models/site_model.dart';
+
 
 class ApiService {
   // Static list to maintain companies across the app

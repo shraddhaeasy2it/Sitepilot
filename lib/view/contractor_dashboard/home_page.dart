@@ -39,7 +39,7 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
           name: site.name,
           imageUrl: 'assets/building.jpg',
           imageBytes: _siteImages[site.id],
-          status: 'Status',
+          status: 'Active',
           progress: 0.25,
           onProgressTap: () =>
               _showProgressUpdateBottomSheet(_siteDataMap[site.id]!),
@@ -1761,12 +1761,17 @@ class SiteCard extends StatelessWidget {
                   if (!isGridView)
                     Row(
                       children: [
+                        Text("Status:", style: TextStyle(fontSize: 14.sp)),
+                        SizedBox(width: 5.w),
+
                         GestureDetector(
                           onTap: onStatusTap,
                           child: Container(
+                            height: 32.h,
+                            width: 62.w,
                             padding: EdgeInsets.symmetric(
-                              horizontal: 6.w,
-                              vertical: 2.h,
+                              horizontal: 4.w,
+                              vertical: 4.h,
                             ),
                             decoration: BoxDecoration(
                               color: _getStatusColor(
@@ -1780,19 +1785,15 @@ class SiteCard extends StatelessWidget {
                                 width: 1.w,
                               ),
                             ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                SizedBox(width: 3.w),
-                                Text(
-                                  site.status,
-                                  style: TextStyle(
-                                    fontSize: 13.sp,
-                                    fontWeight: FontWeight.w600,
-                                    color: _getStatusColor(site.status),
-                                  ),
+                            child: Center(
+                              child: Text(
+                                site.status,
+                                style: TextStyle(
+                                  fontSize: 14.sp,
+                                  fontWeight: FontWeight.w600,
+                                  color: _getStatusColor(site.status),
                                 ),
-                              ],
+                              ),
                             ),
                           ),
                         ),
@@ -1802,53 +1803,53 @@ class SiteCard extends StatelessWidget {
                     Expanded(
                       child: Row(
                         children: [
-                         GestureDetector(
-                          onTap: site.onProgressTap,
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              TweenAnimationBuilder<double>(
-                                tween: Tween<double>(
-                                  begin: 0,
-                                  end: site.progress,
+                          GestureDetector(
+                            onTap: site.onProgressTap,
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                TweenAnimationBuilder<double>(
+                                  tween: Tween<double>(
+                                    begin: 0,
+                                    end: site.progress,
+                                  ),
+                                  duration: const Duration(
+                                    seconds: 1,
+                                  ), // adjust speed
+                                  curve: Curves.easeOut,
+                                  builder: (context, value, child) {
+                                    return Stack(
+                                      alignment: Alignment.center,
+                                      children: [
+                                        SizedBox(
+                                          width: 35.w,
+                                          height: 35.h,
+                                          child: CircularProgressIndicator(
+                                            value: value, // animated progress
+                                            backgroundColor:
+                                                Colors.grey.shade300,
+                                            valueColor:
+                                                const AlwaysStoppedAnimation<
+                                                  Color
+                                                >(Color(0xFF4a63c0)),
+                                            strokeWidth: 3.w,
+                                          ),
+                                        ),
+                                        Text(
+                                          '${(value * 100).round()}%', // animated percentage
+                                          style: TextStyle(
+                                            fontSize: 11.sp,
+                                            fontWeight: FontWeight.bold,
+                                            color: const Color(0xFF4a63c0),
+                                          ),
+                                        ),
+                                      ],
+                                    );
+                                  },
                                 ),
-                                duration: const Duration(
-                                  seconds: 1,
-                                ), // adjust speed
-                                curve: Curves.easeOut,
-                                builder: (context, value, child) {
-                                  return Stack(
-                                    alignment: Alignment.center,
-                                    children: [
-                                      SizedBox(
-                                        width: 35.w,
-                                        height: 35.h,
-                                        child: CircularProgressIndicator(
-                                          value: value, // animated progress
-                                          backgroundColor: Colors.grey.shade300,
-                                          valueColor:
-                                              const AlwaysStoppedAnimation<
-                                                Color
-                                              >(Color(0xFF4a63c0)),
-                                          strokeWidth: 3.w,
-                                        ),
-                                      ),
-                                      Text(
-                                        '${(value * 100).round()}%', // animated percentage
-                                        style: TextStyle(
-                                          fontSize: 11.sp,
-                                          fontWeight: FontWeight.bold,
-                                          color: const Color(0xFF4a63c0),
-                                        ),
-                                      ),
-                                    ],
-                                  );
-                                },
-                              ),
-                              
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
                           SizedBox(width: 4.w),
                           Expanded(
                             child: Row(
@@ -1865,6 +1866,7 @@ class SiteCard extends StatelessWidget {
                                   constraints: const BoxConstraints(),
                                   visualDensity: VisualDensity.compact,
                                 ),
+                                SizedBox(width: 10.w),
                                 IconButton(
                                   onPressed: onDelete,
                                   icon: Icon(
@@ -1887,15 +1889,15 @@ class SiteCard extends StatelessWidget {
                       children: [
                         Icon(
                           Icons.calendar_today,
-                          color: Color.fromARGB(255, 114, 114, 138),
-                          size: 18.sp,
+                          color: Color.fromARGB(255, 125, 125, 150),
+                          size: 15.sp,
                         ),
                         SizedBox(width: 4.w),
                         Text(
-                          '${site.startDate}     ${site.endDate}',
+                          '${site.startDate}    ${site.endDate}',
                           style: TextStyle(
                             fontSize: 12.sp,
-                            color: Color.fromARGB(255, 116, 119, 148),
+                            color: Color.fromARGB(255, 128, 131, 161),
                           ),
                         ),
                       ],
@@ -1905,30 +1907,39 @@ class SiteCard extends StatelessWidget {
               SizedBox(height: 8.h),
               if (isGridView) ...[
                 // Status container
-                GestureDetector(
-                  onTap: onStatusTap,
-                  child: Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 6.w,
-                      vertical: 2.h,
-                    ),
-                    decoration: BoxDecoration(
-                      color: _getStatusColor(site.status).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(4.r),
-                      border: Border.all(
-                        color: _getStatusColor(site.status).withOpacity(0.1),
-                        width: 1.w,
+                Row(
+                  children: [
+                    Text("Status:", style: TextStyle(fontSize: 11.sp)),
+                    SizedBox(width: 5),
+                    GestureDetector(
+                      onTap: onStatusTap,
+                      child: Container(
+                        height: 25,
+                        width: 50,
+                        padding: EdgeInsets.symmetric(horizontal: 4.w),
+                        decoration: BoxDecoration(
+                          color: _getStatusColor(site.status).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(4.r),
+                          border: Border.all(
+                            color: _getStatusColor(
+                              site.status,
+                            ).withOpacity(0.1),
+                            width: 1.w,
+                          ),
+                        ),
+                        child: Center(
+                          child: Text(
+                            site.status,
+                            style: TextStyle(
+                              fontSize: 13.sp,
+                              fontWeight: FontWeight.w600,
+                              color: _getStatusColor(site.status),
+                            ),
+                          ),
+                        ),
                       ),
                     ),
-                    child: Text(
-                      site.status,
-                      style: TextStyle(
-                        fontSize: 11.sp,
-                        fontWeight: FontWeight.w600,
-                        color: _getStatusColor(site.status),
-                      ),
-                    ),
-                  ),
+                  ],
                 ),
                 SizedBox(height: 9.h),
                 // Dates

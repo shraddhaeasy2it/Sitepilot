@@ -20,6 +20,14 @@ import 'package:intl/intl.dart';
 import 'package:lottie/lottie.dart';
 import 'package:provider/provider.dart';
 
+// Activity Update Model
+class ActivityUpdate {
+  final int quantityCompleted;
+  final DateTime date;
+
+  ActivityUpdate({required this.quantityCompleted, required this.date});
+}
+
 // Activity Model
 class Activity {
   final String id;
@@ -31,6 +39,7 @@ class Activity {
   String priority;
   String status;
   DateTime createdAt;
+  List<ActivityUpdate> updates;
 
   int get balanceQuantity => quantity - completedQuantity;
 
@@ -44,7 +53,8 @@ class Activity {
     required this.priority,
     required this.status,
     required this.createdAt,
-  });
+    List<ActivityUpdate>? updates,
+  }) : updates = updates ?? [];
 
   Activity copyWith({
     String? id,
@@ -56,6 +66,7 @@ class Activity {
     String? priority,
     String? status,
     DateTime? createdAt,
+    List<ActivityUpdate>? updates,
   }) {
     return Activity(
       id: id ?? this.id,
@@ -67,6 +78,7 @@ class Activity {
       priority: priority ?? this.priority,
       status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,
+      updates: updates ?? this.updates,
     );
   }
 }
@@ -1705,10 +1717,14 @@ class DashboardContent extends StatelessWidget {
         } else if (activityDate == yesterday) {
           return 'Yesterday';
         } else {
-          return isSmall ? '${date.day}/${date.month}' : '${date.day}/${date.month}/${date.year}';
+          return isSmall
+              ? '${date.day}/${date.month}'
+              : '${date.day}/${date.month}/${date.year}';
         }
       } else if (difference.inDays > 0) {
-        return isSmall ? '${difference.inDays}d ago' : '${difference.inDays} day${difference.inDays > 1 ? 's' : ''} ago';
+        return isSmall
+            ? '${difference.inDays}d ago'
+            : '${difference.inDays} day${difference.inDays > 1 ? 's' : ''} ago';
       } else if (difference.inHours > 0) {
         return '${difference.inHours}h ago';
       } else if (difference.inMinutes > 0) {
@@ -1746,7 +1762,11 @@ class DashboardContent extends StatelessWidget {
               return false;
             } else if (direction == DismissDirection.endToStart) {
               // Swipe left -> delete
-              _showDeleteConfirmationDialog(context, activity, activityProvider);
+              _showDeleteConfirmationDialog(
+                context,
+                activity,
+                activityProvider,
+              );
               return false;
             }
             return false;
@@ -1770,299 +1790,340 @@ class DashboardContent extends StatelessWidget {
                 border: Border.all(color: Colors.grey.shade50, width: 1),
               ),
               child: Padding(
-              padding: EdgeInsets.all(Responsive.isSmall(context) ? 12.h : 20.h),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                // Header Row with Title and Time
-                Row(
+                padding: EdgeInsets.all(
+                  Responsive.isSmall(context) ? 12.h : 20.h,
+                ),
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Priority indicator
-                    Container(
-                      width: 3.w,
-                      height: Responsive.isSmall(context) ? 30.h : 40.h,
-                      decoration: BoxDecoration(
-                        color: activity.priority == 'urgent'
-                            ? const Color(0xFFEF4444)
-                            : activity.priority == 'high'
-                            ? const Color(0xFFF59E0B)
-                            : activity.priority == 'medium'
-                            ? const Color(0xFF3B82F6)
-                            : const Color(0xFF8B5CF6),
-                        borderRadius: BorderRadius.circular(2.r),
-                      ),
-                    ),
-                    SizedBox(width: Responsive.isSmall(context) ? 12.w : 16.w),
-                    // Priority Icon
-                    Container(
-                      padding: EdgeInsets.all(Responsive.isSmall(context) ? 6.w : 7.w),
-                      decoration: BoxDecoration(
-                        color: getColorForActivity().withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(10.r),
-                      ),
-                      child: Icon(
-                        getIconForActivity(),
-                        color: getColorForActivity(),
-                        size: Responsive.isSmall(context) ? 14.sp : 16.sp,
-                      ),
-                    ),
-                    SizedBox(width: Responsive.isSmall(context) ? 8.w : 12.w),
-                    // Title and Scope in Expanded Column
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            activity.title,
-                            style: TextStyle(
-                              fontWeight: FontWeight.w700,
-                              fontSize: Responsive.isSmall(context) ? 12.sp : 14.sp,
-                              color: const Color(0xFF1F2937),
-                              letterSpacing: -0.5,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          SizedBox(height: Responsive.isSmall(context) ? 4.h : 8.h),
-                          Text(
-                            activity.scope,
-                            style: TextStyle(
-                              color: const Color(0xFF6B7280),
-                              fontSize: Responsive.isSmall(context) ? 10.sp : 12.sp,
-                              fontWeight: FontWeight.w400,
-                              height: 1.4,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ),
-                    ),
-                    // Time badge
-                    ConstrainedBox(
-                      constraints: BoxConstraints(
-                        maxWidth: Responsive.isSmall(context) ? 60.w : 80.w,
-                      ),
-                      child: Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: Responsive.isSmall(context) ? 6.w : 10.w,
-                          vertical: Responsive.isSmall(context) ? 2.h : 4.h,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF8FAFC),
-                          borderRadius: BorderRadius.circular(20.r),
-                          border: Border.all(
-                            color: Colors.grey.shade200,
-                            width: 1,
-                          ),
-                        ),
-                        child: Text(
-                          getTimeAgo(context),
-                          style: TextStyle(
-                            color: const Color(0xFF64748B),
-                            fontSize: Responsive.isSmall(context) ? 8.sp : 10.sp,
-                            fontWeight: FontWeight.w600,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-
-                SizedBox(height: Responsive.isSmall(context) ? 6.h : 10.h),
-
-                // Progress and Mark Complete in Row
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    // Circular Progress and Progress Info
+                    // Header Row with Title and Time
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Circular Progress
-                        GestureDetector(
-                          onTap: () => _showQuickQuantityEditDialog(context, activity, activityProvider),
+                        // Priority indicator
+                        Container(
+                          width: 3.w,
+                          height: Responsive.isSmall(context) ? 30.h : 40.h,
+                          decoration: BoxDecoration(
+                            color: activity.priority == 'urgent'
+                                ? const Color(0xFFEF4444)
+                                : activity.priority == 'high'
+                                ? const Color(0xFFF59E0B)
+                                : activity.priority == 'medium'
+                                ? const Color(0xFF3B82F6)
+                                : const Color(0xFF8B5CF6),
+                            borderRadius: BorderRadius.circular(2.r),
+                          ),
+                        ),
+                        SizedBox(
+                          width: Responsive.isSmall(context) ? 12.w : 16.w,
+                        ),
+                        // Priority Icon
+                        Container(
+                          padding: EdgeInsets.all(
+                            Responsive.isSmall(context) ? 6.w : 7.w,
+                          ),
+                          decoration: BoxDecoration(
+                            color: getColorForActivity().withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(10.r),
+                          ),
+                          child: Icon(
+                            getIconForActivity(),
+                            color: getColorForActivity(),
+                            size: Responsive.isSmall(context) ? 16.sp : 18.sp,
+                          ),
+                        ),
+                        SizedBox(
+                          width: Responsive.isSmall(context) ? 8.w : 12.w,
+                        ),
+                        // Title and Scope in Expanded Column
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                activity.title,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: Responsive.isSmall(context)
+                                      ? 14.sp
+                                      : 16.sp,
+                                  color: const Color(0xFF1F2937),
+                                  letterSpacing: -0.5,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              SizedBox(
+                                height: Responsive.isSmall(context) ? 4.h : 8.h,
+                              ),
+                              Text(
+                                activity.scope,
+                                style: TextStyle(
+                                  color: const Color(0xFF6B7280),
+                                  fontSize: Responsive.isSmall(context)
+                                      ? 12.sp
+                                      : 14.sp,
+                                  fontWeight: FontWeight.w400,
+                                  height: 1.4,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                        // Time badge
+                        ConstrainedBox(
+                          constraints: BoxConstraints(
+                            maxWidth: Responsive.isSmall(context) ? 60.w : 80.w,
+                          ),
                           child: Container(
-                            width: Responsive.isSmall(context) ? 40.0 : 50.0,
-                            height: Responsive.isSmall(context) ? 40.0 : 50.0,
+                            padding: EdgeInsets.symmetric(
+                              horizontal: Responsive.isSmall(context)
+                                  ? 6.w
+                                  : 10.w,
+                              vertical: Responsive.isSmall(context) ? 2.h : 4.h,
+                            ),
                             decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              gradient: LinearGradient(
-                                colors: [
-                                  getColorForActivity().withOpacity(0.15),
-                                  getColorForActivity().withOpacity(0.08),
-                                ],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
+                              color: const Color(0xFFF8FAFC),
+                              borderRadius: BorderRadius.circular(20.r),
+                              border: Border.all(
+                                color: Colors.grey.shade200,
+                                width: 1,
                               ),
                             ),
-                            child: Stack(
-                              alignment: Alignment.center,
-                              children: [
-                                SizedBox(
-                                  width: Responsive.isSmall(context) ? 32.0 : 40.0,
-                                  height: Responsive.isSmall(context) ? 32.0 : 40.0,
-                                  child: CircularProgressIndicator(
-                                    value: progressPercentage,
-                                    backgroundColor: Colors.grey.shade100,
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                      getColorForActivity(),
-                                    ),
-                                    strokeWidth: 2.w,
-                                  ),
-                                ),
-                                Text(
-                                  '${(progressPercentage * 100).round()}%',
-                                  style: TextStyle(
-                                    fontSize: Responsive.isSmall(context) ? 8.sp : 10.sp,
-                                    fontWeight: FontWeight.w800,
-                                    color: getColorForActivity(),
-                                    letterSpacing: -0.3,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-
-                        SizedBox(width: Responsive.isSmall(context) ? 8.w : 12.w),
-
-                        // Progress Info
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '${activity.completedQuantity}/${activity.quantity} ${activity.unit}',
+                            child: Text(
+                              getTimeAgo(context),
                               style: TextStyle(
-                                fontSize: Responsive.isSmall(context) ? 10.sp : 11.sp,
-                                fontWeight: FontWeight.w500,
                                 color: const Color(0xFF64748B),
+                                fontSize: Responsive.isSmall(context)
+                                    ? 9.sp
+                                    : 11.sp,
+                                fontWeight: FontWeight.w600,
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
-                          ],
+                          ),
                         ),
                       ],
                     ),
 
-                    // Status Button
-                    if (!completed)
-                      InkWell(
-                        onTap: () => activityProvider.markComplete(activity.id),
-                        borderRadius: BorderRadius.circular(25.r),
-                        child: Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: Responsive.isSmall(context) ? 8.w : 12.w,
-                            vertical: Responsive.isSmall(context) ? 6.h : 8.h,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.green.shade50,
-                            borderRadius: BorderRadius.circular(20.r),
-                            border: Border.all(
-                              color: Colors.green.shade200,
-                              width: 1,
+                    SizedBox(height: Responsive.isSmall(context) ? 6.h : 10.h),
+
+                    // Progress and Mark Complete in Row
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        // Circular Progress and Progress Info
+                        Row(
+                          children: [
+                            // Circular Progress
+                            GestureDetector(
+                              onTap: () => _showQuickQuantityEditDialog(
+                                context,
+                                activity,
+                                activityProvider,
+                              ),
+                              child: Container(
+                                width: Responsive.isSmall(context)
+                                    ? 40.0
+                                    : 50.0,
+                                height: Responsive.isSmall(context)
+                                    ? 40.0
+                                    : 50.0,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      getColorForActivity().withOpacity(0.15),
+                                      getColorForActivity().withOpacity(0.08),
+                                    ],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
+                                ),
+                                child: Stack(
+                                  alignment: Alignment.center,
+                                  children: [
+                                    SizedBox(
+                                      width: Responsive.isSmall(context)
+                                          ? 32.0
+                                          : 40.0,
+                                      height: Responsive.isSmall(context)
+                                          ? 32.0
+                                          : 40.0,
+                                      child: CircularProgressIndicator(
+                                        value: progressPercentage,
+                                        backgroundColor: Colors.grey.shade100,
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                              getColorForActivity(),
+                                            ),
+                                        strokeWidth: 2.w,
+                                      ),
+                                    ),
+                                    Text(
+                                      '${(progressPercentage * 100).round()}%',
+                                      style: TextStyle(
+                                        fontSize: Responsive.isSmall(context)
+                                            ? 11.sp
+                                            : 13.sp,
+                                        fontWeight: FontWeight.w800,
+                                        color: getColorForActivity(),
+                                        letterSpacing: -0.3,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+
+                            SizedBox(
+                              width: Responsive.isSmall(context) ? 6.w : 8.w,
+                            ),
+
+                            // Progress Info
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '${activity.completedQuantity}/${activity.quantity} ${activity.unit}',
+                                  style: TextStyle(
+                                    fontSize: Responsive.isSmall(context)
+                                        ? 11.sp
+                                        : 12.sp,
+                                    fontWeight: FontWeight.w500,
+                                    color: const Color(0xFF64748B),
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+
+                        // Status Button
+                        if (!completed)
+                          InkWell(
+                            onTap: () =>
+                                activityProvider.markComplete(activity.id),
+                            borderRadius: BorderRadius.circular(25.r),
+                            child: Container(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: Responsive.isSmall(context)
+                                    ? 8.w
+                                    : 12.w,
+                                vertical: Responsive.isSmall(context)
+                                    ? 6.h
+                                    : 8.h,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.green.shade50,
+                                borderRadius: BorderRadius.circular(20.r),
+                                border: Border.all(
+                                  color: Colors.green.shade200,
+                                  width: 1,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.check_circle_outline,
+                                    color: Colors.green.shade600,
+                                    size: Responsive.isSmall(context)
+                                        ? 14.sp
+                                        : 16.sp,
+                                  ),
+                                  SizedBox(width: 6.w),
+                                  Text(
+                                    Responsive.isSmall(context)
+                                        ? 'Complete'
+                                        : 'Mark Complete',
+                                    style: TextStyle(
+                                      fontSize: Responsive.isSmall(context)
+                                          ? 10.sp
+                                          : 11.sp,
+                                      color: Colors.green.shade700,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          )
+                        else
+                          Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: Responsive.isSmall(context)
+                                  ? 8.w
+                                  : 12.w,
+                              vertical: Responsive.isSmall(context) ? 6.h : 8.h,
+                            ),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  Colors.orange.shade50,
+                                  Colors.orange.shade100,
+                                ],
+                                begin: Alignment.centerLeft,
+                                end: Alignment.centerRight,
+                              ),
+                              borderRadius: BorderRadius.circular(20.r),
+                              border: Border.all(
+                                color: Colors.orange.shade200,
+                                width: 1,
+                              ),
+                            ),
+                            child: InkWell(
+                              onTap: () =>
+                                  activityProvider.markPending(activity.id),
+                              borderRadius: BorderRadius.circular(20.r),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.refresh,
+                                    color: Colors.orange.shade600,
+                                    size: Responsive.isSmall(context)
+                                        ? 14.sp
+                                        : 16.sp,
+                                  ),
+                                  SizedBox(
+                                    width: Responsive.isSmall(context)
+                                        ? 4.w
+                                        : 6.w,
+                                  ),
+                                  Text(
+                                    Responsive.isSmall(context)
+                                        ? 'Reopen'
+                                        : 'Reopen Task',
+                                    style: TextStyle(
+                                      fontSize: Responsive.isSmall(context)
+                                          ? 10.sp
+                                          : 11.sp,
+                                      color: Colors.orange.shade700,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.check_circle_outline,
-                                color: Colors.green.shade600,
-                                size: Responsive.isSmall(context) ? 14.sp : 16.sp,
-                              ),
-                              SizedBox(width: 6.w),
-                              Text(
-                                Responsive.isSmall(context) ? 'Complete' : 'Mark Complete',
-                                style: TextStyle(
-                                  fontSize: Responsive.isSmall(context) ? 10.sp : 11.sp,
-                                  color: Colors.green.shade700,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      )
-                    else
-                      Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: Responsive.isSmall(context) ? 8.w : 12.w,
-                          vertical: Responsive.isSmall(context) ? 6.h : 8.h,
-                        ),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              Colors.orange.shade50,
-                              Colors.orange.shade100,
-                            ],
-                            begin: Alignment.centerLeft,
-                            end: Alignment.centerRight,
-                          ),
-                          borderRadius: BorderRadius.circular(20.r),
-                          border: Border.all(
-                            color: Colors.orange.shade200,
-                            width: 1,
-                          ),
-                        ),
-                        child: InkWell(
-                          onTap: () =>
-                              activityProvider.markPending(activity.id),
-                          borderRadius: BorderRadius.circular(20.r),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.refresh,
-                                color: Colors.orange.shade600,
-                                size: Responsive.isSmall(context) ? 14.sp : 16.sp,
-                              ),
-                              SizedBox(width: Responsive.isSmall(context) ? 4.w : 6.w),
-                              Text(
-                                Responsive.isSmall(context) ? 'Reopen' : 'Reopen Task',
-                                style: TextStyle(
-                                  fontSize: Responsive.isSmall(context) ? 10.sp : 11.sp,
-                                  color: Colors.orange.shade700,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
+                      ],
+                    ),
                   ],
                 ),
-
-              ],
+              ),
             ),
           ),
-        ),
-      ),
-    );
+        );
       },
     );
   }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
   void _showDeleteConfirmationDialog(
     BuildContext context,
@@ -2072,9 +2133,7 @@ class DashboardContent extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Row(
           children: [
             Icon(Icons.delete_forever, color: Colors.red, size: 28),
@@ -2095,9 +2154,7 @@ class DashboardContent extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.grey[600],
-            ),
+            style: TextButton.styleFrom(foregroundColor: Colors.grey[600]),
             child: Text('Cancel'),
           ),
           ElevatedButton(
@@ -2106,7 +2163,9 @@ class DashboardContent extends StatelessWidget {
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('Activity "${activity.title}" deleted successfully'),
+                  content: Text(
+                    'Activity "${activity.title}" deleted successfully',
+                  ),
                   backgroundColor: Colors.red,
                   behavior: SnackBarBehavior.floating,
                   shape: RoundedRectangleBorder(
@@ -2129,29 +2188,44 @@ class DashboardContent extends StatelessWidget {
     );
   }
 
-  void _showActivityDetailsBottomSheet(BuildContext context, Activity activity) {
+  void _showActivityDetailsBottomSheet(
+    BuildContext context,
+    Activity activity,
+  ) {
     final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
     final isSmallScreen = screenHeight < 600 || screenWidth < 400;
-    final progressPercentage = activity.quantity > 0 ? (activity.completedQuantity / activity.quantity) : 0.0;
+    final progressPercentage = activity.quantity > 0
+        ? (activity.completedQuantity / activity.quantity)
+        : 0.0;
 
     IconData getIconForActivity() {
       switch (activity.priority) {
-        case 'urgent': return Icons.assignment_late;
-        case 'high': return Icons.update;
-        case 'medium': return Icons.local_shipping;
-        case 'low': return Icons.people;
-        default: return Icons.task;
+        case 'urgent':
+          return Icons.assignment_late;
+        case 'high':
+          return Icons.update;
+        case 'medium':
+          return Icons.local_shipping;
+        case 'low':
+          return Icons.people;
+        default:
+          return Icons.task;
       }
     }
 
     Color getColorForActivity() {
       switch (activity.priority) {
-        case 'urgent': return const Color(0xFFEF4444);
-        case 'high': return const Color(0xFF10B981);
-        case 'medium': return const Color(0xFFF59E0B);
-        case 'low': return const Color(0xFF8B5CF6);
-        default: return const Color(0xFF6B7280);
+        case 'urgent':
+          return const Color(0xFFEF4444);
+        case 'high':
+          return const Color(0xFF10B981);
+        case 'medium':
+          return const Color(0xFFF59E0B);
+        case 'low':
+          return const Color(0xFF8B5CF6);
+        default:
+          return const Color(0xFF6B7280);
       }
     }
 
@@ -2161,7 +2235,7 @@ class DashboardContent extends StatelessWidget {
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
         constraints: BoxConstraints(
-          maxHeight: screenHeight * (isSmallScreen ? 0.75 : 0.65),
+          maxHeight: screenHeight * (isSmallScreen ? 0.85 : 0.75),
         ),
         child: DraggableScrollableSheet(
           initialChildSize: isSmallScreen ? 0.85 : 0.65,
@@ -2185,7 +2259,10 @@ class DashboardContent extends StatelessWidget {
                   children: [
                     // Header with gradient
                     Container(
-                      padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 20.h),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 24.w,
+                        vertical: 20.h,
+                      ),
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [
@@ -2195,7 +2272,9 @@ class DashboardContent extends StatelessWidget {
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
-                        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(32),
+                        ),
                       ),
                       child: Column(
                         children: [
@@ -2217,10 +2296,14 @@ class DashboardContent extends StatelessWidget {
                               Container(
                                 padding: EdgeInsets.all(16.w),
                                 decoration: BoxDecoration(
-                                  color: getColorForActivity().withOpacity(0.15),
+                                  color: getColorForActivity().withOpacity(
+                                    0.15,
+                                  ),
                                   borderRadius: BorderRadius.circular(16.r),
                                   border: Border.all(
-                                    color: getColorForActivity().withOpacity(0.2),
+                                    color: getColorForActivity().withOpacity(
+                                      0.2,
+                                    ),
                                     width: 1,
                                   ),
                                 ),
@@ -2247,12 +2330,17 @@ class DashboardContent extends StatelessWidget {
                                     ),
                                     SizedBox(height: 4.h),
                                     Container(
-                                      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: 8.w,
+                                        vertical: 4.h,
+                                      ),
                                       decoration: BoxDecoration(
                                         color: activity.status == 'completed'
                                             ? Colors.green.shade100
                                             : Colors.orange.shade100,
-                                        borderRadius: BorderRadius.circular(12.r),
+                                        borderRadius: BorderRadius.circular(
+                                          12.r,
+                                        ),
                                       ),
                                       child: Text(
                                         activity.status.toUpperCase(),
@@ -2278,7 +2366,10 @@ class DashboardContent extends StatelessWidget {
                     Expanded(
                       child: SingleChildScrollView(
                         controller: scrollController,
-                        padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 20.h),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 24.w,
+                          vertical: 20.h,
+                        ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -2322,8 +2413,12 @@ class DashboardContent extends StatelessWidget {
                                           shape: BoxShape.circle,
                                           gradient: LinearGradient(
                                             colors: [
-                                              getColorForActivity().withOpacity(0.15),
-                                              getColorForActivity().withOpacity(0.08),
+                                              getColorForActivity().withOpacity(
+                                                0.15,
+                                              ),
+                                              getColorForActivity().withOpacity(
+                                                0.08,
+                                              ),
                                             ],
                                             begin: Alignment.topLeft,
                                             end: Alignment.bottomRight,
@@ -2337,10 +2432,12 @@ class DashboardContent extends StatelessWidget {
                                               height: 50.h,
                                               child: CircularProgressIndicator(
                                                 value: progressPercentage,
-                                                backgroundColor: Colors.grey.shade200,
-                                                valueColor: AlwaysStoppedAnimation<Color>(
-                                                  getColorForActivity(),
-                                                ),
+                                                backgroundColor:
+                                                    Colors.grey.shade200,
+                                                valueColor:
+                                                    AlwaysStoppedAnimation<
+                                                      Color
+                                                    >(getColorForActivity()),
                                                 strokeWidth: 3.w,
                                               ),
                                             ),
@@ -2358,7 +2455,8 @@ class DashboardContent extends StatelessWidget {
                                       SizedBox(width: 16.w),
                                       Expanded(
                                         child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
                                           children: [
                                             Text(
                                               '${activity.completedQuantity}/${activity.quantity} ${activity.unit}',
@@ -2384,8 +2482,6 @@ class DashboardContent extends StatelessWidget {
                                 ],
                               ),
                             ),
-
-                           
 
                             SizedBox(height: 20.h),
 
@@ -2425,7 +2521,7 @@ class DashboardContent extends StatelessWidget {
                                       ),
                                     ],
                                   ),
-                                  SizedBox(height: 12.h),
+                                  SizedBox(height: 8.h),
                                   Text(
                                     activity.scope,
                                     style: TextStyle(
@@ -2434,56 +2530,160 @@ class DashboardContent extends StatelessWidget {
                                       height: 1.5,
                                     ),
                                   ),
+                                  SizedBox(height: 20),
+
+                                  Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Icon(
+                                            Icons.access_time,
+                                            color: const Color(0xFF6B7280),
+                                            size: 20.sp,
+                                          ),
+                                          SizedBox(width: 4.w), // Added spacing
+                                          Text(
+                                            'Created',
+                                            style: TextStyle(
+                                              fontSize: 12.sp,
+                                              color: const Color(0xFF6B7280),
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      SizedBox(height: 4.h), // Added spacing
+                                      Row(
+                                        children: [
+                                          Text(
+                                            DateFormat(
+                                              'MMM dd, yyyy • hh:mm a',
+                                            ).format(activity.createdAt),
+                                            style: TextStyle(
+                                              fontSize: 14.sp,
+                                              color: const Color(0xFF1F2937),
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
                                 ],
                               ),
                             ),
 
-                            SizedBox(height: 20.h),
+                            if (activity.updates.isNotEmpty) ...[
+                              SizedBox(height: 20.h),
 
-                            // Timeline
-                            Container(
-                              padding: EdgeInsets.all(20.w),
-                              decoration: BoxDecoration(
-                                color: Colors.grey.shade50,
-                                borderRadius: BorderRadius.circular(16.r),
-                                border: Border.all(color: Colors.grey.shade100),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.access_time,
-                                    color: const Color(0xFF6B7280),
-                                    size: 20.sp,
+                              // Update History
+                              Container(
+                                padding: EdgeInsets.all(20.w),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(16.r),
+                                  border: Border.all(
+                                    color: Colors.grey.shade200,
                                   ),
-                                  SizedBox(width: 12.w),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.grey.shade100,
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
                                       children: [
-                                        Text(
-                                          'Created',
-                                          style: TextStyle(
-                                            fontSize: 12.sp,
-                                            color: const Color(0xFF6B7280),
-                                            fontWeight: FontWeight.w500,
-                                          ),
+                                        Icon(
+                                          Icons.history,
+                                          color: const Color(0xFF6B7280),
+                                          size: 20.sp,
                                         ),
+                                        SizedBox(width: 8.w),
                                         Text(
-                                          DateFormat('MMM dd, yyyy • hh:mm a').format(activity.createdAt),
+                                          'Update History',
                                           style: TextStyle(
-                                            fontSize: 14.sp,
-                                            color: const Color(0xFF1F2937),
+                                            fontSize: 16.sp,
                                             fontWeight: FontWeight.w600,
+                                            color: const Color(0xFF1F2937),
                                           ),
                                         ),
                                       ],
                                     ),
-                                  ),
-                                ],
+                                    SizedBox(height: 16.h),
+                                    ListView.separated(
+                                      shrinkWrap: true,
+                                      physics:
+                                          const NeverScrollableScrollPhysics(),
+                                      itemCount: activity.updates.length,
+                                      separatorBuilder: (context, index) =>
+                                          Divider(
+                                            height: 16.h,
+                                            color: Colors.grey.shade200,
+                                          ),
+                                      itemBuilder: (context, index) {
+                                        final update = activity.updates[index];
+                                        return Row(
+                                          children: [
+                                            Container(
+                                              padding: EdgeInsets.all(8.w),
+                                              decoration: BoxDecoration(
+                                                color: getColorForActivity()
+                                                    .withOpacity(0.1),
+                                                borderRadius:
+                                                    BorderRadius.circular(8.r),
+                                              ),
+                                              child: Icon(
+                                                Icons.check_circle,
+                                                color: getColorForActivity(),
+                                                size: 16.sp,
+                                              ),
+                                            ),
+                                            SizedBox(width: 12.w),
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    '${update.quantityCompleted} ${activity.unit} completed',
+                                                    style: TextStyle(
+                                                      fontSize: 14.sp,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                      color: const Color(
+                                                        0xFF1F2937,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  Text(
+                                                    DateFormat(
+                                                      'MMM dd, yyyy • hh:mm a',
+                                                    ).format(update.date),
+                                                    style: TextStyle(
+                                                      fontSize: 12.sp,
+                                                      color: const Color(
+                                                        0xFF6B7280,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ],
+                                        );
+                                      },
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-
-                            SizedBox(height: 32.h),
+                            ],
                           ],
                         ),
                       ),
@@ -2979,7 +3179,11 @@ class DashboardContent extends StatelessWidget {
     );
   }
 
-  void _showQuickQuantityEditDialog(BuildContext context, Activity activity, ActivityProvider activityProvider) {
+  void _showQuickQuantityEditDialog(
+    BuildContext context,
+    Activity activity,
+    ActivityProvider activityProvider,
+  ) {
     final remainingQuantity = activity.balanceQuantity;
     final TextEditingController quantityController = TextEditingController(
       text: remainingQuantity.toString(),
@@ -2988,9 +3192,7 @@ class DashboardContent extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           'Mark Progress',
           style: TextStyle(
@@ -3004,10 +3206,7 @@ class DashboardContent extends StatelessWidget {
           children: [
             Text(
               '${activity.title}\nRemaining: ${remainingQuantity} ${activity.unit}',
-              style: TextStyle(
-                fontSize: 14.sp,
-                color: const Color(0xFF6B7280),
-              ),
+              style: TextStyle(fontSize: 14.sp, color: const Color(0xFF6B7280)),
               textAlign: TextAlign.center,
             ),
             SizedBox(height: 16.h),
@@ -3026,8 +3225,11 @@ class DashboardContent extends StatelessWidget {
             SizedBox(height: 8.h),
             StatefulBuilder(
               builder: (context, setState) {
-                final enteredQuantity = int.tryParse(quantityController.text) ?? 0;
-                final isValid = enteredQuantity >= 0 && enteredQuantity <= remainingQuantity;
+                final enteredQuantity =
+                    int.tryParse(quantityController.text) ?? 0;
+                final isValid =
+                    enteredQuantity >= 0 &&
+                    enteredQuantity <= remainingQuantity;
 
                 return Column(
                   children: [
@@ -3035,7 +3237,9 @@ class DashboardContent extends StatelessWidget {
                       'New Remaining: ${remainingQuantity - enteredQuantity} ${activity.unit}',
                       style: TextStyle(
                         fontSize: 12.sp,
-                        color: (remainingQuantity - enteredQuantity) >= 0 ? Colors.green : Colors.red,
+                        color: (remainingQuantity - enteredQuantity) >= 0
+                            ? Colors.green
+                            : Colors.red,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -3044,10 +3248,7 @@ class DashboardContent extends StatelessWidget {
                         enteredQuantity > remainingQuantity
                             ? 'Cannot exceed remaining quantity'
                             : 'Must be non-negative',
-                        style: TextStyle(
-                          fontSize: 12.sp,
-                          color: Colors.red,
-                        ),
+                        style: TextStyle(fontSize: 12.sp, color: Colors.red),
                       ),
                   ],
                 );
@@ -3058,40 +3259,32 @@ class DashboardContent extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(
-              'Cancel',
-              style: TextStyle(color: Colors.grey[600]),
-            ),
+            child: Text('Cancel', style: TextStyle(color: Colors.grey[600])),
           ),
           ElevatedButton(
             onPressed: () {
-              final quantityToComplete = int.tryParse(quantityController.text) ?? 0;
-              if (quantityToComplete >= 0 && quantityToComplete <= remainingQuantity) {
+              final quantityToComplete =
+                  int.tryParse(quantityController.text) ?? 0;
+              if (quantityToComplete >= 0 &&
+                  quantityToComplete <= remainingQuantity) {
                 // Update the current activity with the completed quantity
                 final updatedActivity = activity.copyWith(
-                  completedQuantity: activity.completedQuantity + quantityToComplete,
-                  status: (activity.completedQuantity + quantityToComplete) >= activity.quantity ? 'completed' : 'pending',
+                  completedQuantity:
+                      activity.completedQuantity + quantityToComplete,
+                  status:
+                      (activity.completedQuantity + quantityToComplete) >=
+                          activity.quantity
+                      ? 'completed'
+                      : 'pending',
+                  updates: [
+                    ...activity.updates,
+                    ActivityUpdate(
+                      quantityCompleted: quantityToComplete,
+                      date: DateTime.now(),
+                    ),
+                  ],
                 );
                 activityProvider.updateActivity(activity.id, updatedActivity);
-
-                // Calculate remaining quantity after completing the entered amount
-                final newRemainingQuantity = remainingQuantity - quantityToComplete;
-
-                // Create a new activity with the remaining quantity as the new total (if there's remaining work)
-                if (newRemainingQuantity > 0) {
-                  final newActivity = Activity(
-                    id: DateTime.now().millisecondsSinceEpoch.toString(),
-                    title: activity.title,
-                    scope: activity.scope,
-                    quantity: newRemainingQuantity,
-                    unit: activity.unit,
-                    completedQuantity: 0, // Start fresh with 0 completed
-                    priority: activity.priority,
-                    status: 'pending',
-                    createdAt: DateTime.now(),
-                  );
-                  activityProvider.addActivity(newActivity);
-                }
 
                 Navigator.pop(context);
               }
@@ -3102,10 +3295,7 @@ class DashboardContent extends StatelessWidget {
                 borderRadius: BorderRadius.circular(8),
               ),
             ),
-            child: const Text(
-              'Update',
-              style: TextStyle(color: Colors.white),
-            ),
+            child: const Text('Update', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),

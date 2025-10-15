@@ -32,7 +32,7 @@ class SupplierCategory {
       siteId: json['site_id'],
       createdBy: json['created_by'] ?? 0,
       workspaceId: json['workspace_id'] ?? 0,
-      isActive: json['is_active'] ?? 0,
+      isActive: json['is_active'] is bool ? (json['is_active'] ? 1 : 0) : (json['is_active'] ?? 0),
       status: json['status'] ?? '0',
       createdAt: json['created_at'] ?? '',
       updatedAt: json['updated_at'] ?? '',
@@ -40,24 +40,15 @@ class SupplierCategory {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = {
+    return {
       'name': name,
       'description': description,
-      'site_id': siteId?.toString(),
-      'created_by': createdBy.toString(),
-      'workspace_id': workspaceId.toString(),
-      'is_active': isActive.toString(),
+      'site_id': siteId,
+      'created_by': createdBy,
+      'workspace_id': workspaceId,
+      'is_active': isActive,
       'status': status,
-      'created_at': createdAt,
-      'updated_at': updatedAt,
     };
-
-    // Only include id if it's not 0 (for updates)
-    if (id != 0) {
-      data['id'] = id.toString();
-    }
-
-    return data;
   }
 
   SupplierCategory copyWith({
@@ -97,11 +88,19 @@ class SupplierCategoryResponse {
   });
 
   factory SupplierCategoryResponse.fromJson(Map<String, dynamic> json) {
+    List<dynamic> dataList = [];
+    
+    if (json['data'] != null) {
+      if (json['data'] is List) {
+        dataList = json['data'];
+      } else if (json['data'] is Map && json['data']['data'] != null) {
+        dataList = json['data']['data'];
+      }
+    }
+
     return SupplierCategoryResponse(
-      status: json['Status'] ?? 0,
-      data: (json['data'] as List? ?? [])
-          .map((item) => SupplierCategory.fromJson(item))
-          .toList(),
+      status: json['status'] ?? 0,
+      data: dataList.map((item) => SupplierCategory.fromJson(item)).toList(),
     );
   }
 }

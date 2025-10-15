@@ -1627,6 +1627,10 @@ class _MaterialScreenState extends State<MaterialScreen> {
         elevation: 0,
         toolbarHeight: 80.h,
         backgroundColor: Colors.transparent,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
+        ),
         title: RichText(
           text: TextSpan(
             children: [

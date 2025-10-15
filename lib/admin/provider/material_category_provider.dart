@@ -91,7 +91,7 @@ class MaterialCategoryProvider with ChangeNotifier {
       final Map<String, dynamic> categoryData = {
         'name': name,
         'is_active': 1,
-        'site_id': null,
+        'site_id': 1,
         'created_by': 1,
         'workspace_id': 1,
         'status': '0',
@@ -112,9 +112,17 @@ class MaterialCategoryProvider with ChangeNotifier {
       print('Add Category Response Body: ${response.body}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        // Refresh the list after successful addition
-        await fetchCategories();
-        _error = '';
+        // Parse the response to get the new category and add it to the top
+        final Map<String, dynamic> responseData = json.decode(response.body);
+        if (responseData.containsKey('data') && responseData['data'] is Map) {
+          final newCategory = MaterialCategory.fromJson(responseData['data']);
+          _categories.insert(0, newCategory); // Add to the top
+          _filterCategories();
+          _error = '';
+        } else {
+          // Fallback: refresh the list
+          await fetchCategories();
+        }
       } else {
         _error = 'Failed to add category: ${response.statusCode} - ${response.body}';
         throw Exception(_error);

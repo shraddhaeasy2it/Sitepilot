@@ -631,6 +631,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                 ],
               ),
+
               centerTitle: false,
             )
           : null,
@@ -639,6 +640,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       bottomNavigationBar: CustomBottomNavBar(
         currentIndex: _currentIndex,
         onTap: _handleNavigation,
+        
       ),
     );
   }
@@ -889,12 +891,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         title: 'All machinery',
                         onTap: () {
                           Navigator.pop(context);
-                          // Navigator.push(
-                          //   context,
-                          //   MaterialPageRoute(
-                          //     builder: (context) => const AdminMachineryScreen(),
-                          //   ),
-                          // );
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const AdminMachineryScreen(),
+                            ),
+                          );
                         },
                       ),
                       _buildNestedSubDrawerItem(

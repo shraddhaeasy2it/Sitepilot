@@ -1,11 +1,8 @@
 // screens/supplier_categories_screen.dart
-import 'dart:convert';
 import 'package:ecoteam_app/admin/models/supplier_categary_model.dart';
 import 'package:ecoteam_app/admin/services/supplier_category_ser.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:http/http.dart' as http;
-
 
 class SupplierCategoriesScreen extends StatefulWidget {
   const SupplierCategoriesScreen({super.key});
@@ -66,6 +63,7 @@ class _SupplierCategoriesScreenState extends State<SupplierCategoriesScreen> {
       SnackBar(
         content: Text(message),
         backgroundColor: Colors.red,
+        duration: const Duration(seconds: 3),
       ),
     );
   }
@@ -75,6 +73,7 @@ class _SupplierCategoriesScreenState extends State<SupplierCategoriesScreen> {
       SnackBar(
         content: Text(message),
         backgroundColor: Colors.green,
+        duration: const Duration(seconds: 2),
       ),
     );
   }
@@ -86,12 +85,26 @@ class _SupplierCategoriesScreenState extends State<SupplierCategoriesScreen> {
       backgroundColor: Colors.transparent,
       builder: (context) => AddEditCategoryBottomSheet(
         category: category,
-        onSaved: () {
-          _loadCategories();
+        onSaved: (newCategory) {
+          // Add the new category to the list immediately
+          if (category == null) {
+            setState(() {
+              _categories.insert(0, newCategory);
+              _filteredCategories = _categories;
+            });
+            _showSuccessSnackBar('Category added successfully');
+          } else {
+            // For edit, update the existing category
+            setState(() {
+              final index = _categories.indexWhere((c) => c.id == category.id);
+              if (index != -1) {
+                _categories[index] = newCategory;
+                _filteredCategories = _categories;
+              }
+            });
+            _showSuccessSnackBar('Category updated successfully');
+          }
           Navigator.pop(context);
-          _showSuccessSnackBar(
-            category == null ? 'Category added successfully' : 'Category updated successfully',
-          );
         },
         onError: _showErrorSnackBar,
       ),
@@ -101,7 +114,11 @@ class _SupplierCategoriesScreenState extends State<SupplierCategoriesScreen> {
   Future<void> _deleteCategory(int id) async {
     try {
       await _service.deleteSupplierCategory(id);
-      _loadCategories();
+      // Remove from local list immediately
+      setState(() {
+        _categories.removeWhere((category) => category.id == id);
+        _filteredCategories = _categories;
+      });
       _showSuccessSnackBar('Category deleted successfully');
     } catch (e) {
       _showErrorSnackBar('Failed to delete category: $e');
@@ -138,40 +155,49 @@ class _SupplierCategoriesScreenState extends State<SupplierCategoriesScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Supplier Categories',style: TextStyle(color:Colors.white),),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back,color: Colors.white,),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text('Supplier Categories', style: TextStyle(color: Colors.white)),
         actions: [
           IconButton(
-            icon: const Icon(Icons.add),
+            icon: const Icon(Icons.refresh, color: Colors.white),
+            onPressed: _loadCategories,
+            tooltip: 'Refresh',
+          ),
+          IconButton(
+            icon: const Icon(Icons.add, color: Colors.white),
             onPressed: () => _showAddEditBottomSheet(),
           ),
         ],
         iconTheme: const IconThemeData(color: Colors.white),
-              toolbarHeight: 80.h,
-              elevation: 0,
-              backgroundColor: Colors.transparent,
-              flexibleSpace: Container(
-                decoration: const BoxDecoration(
-                  borderRadius: BorderRadius.vertical(
-                    bottom: Radius.circular(25),
-                  ),
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Color(0xFF4a63c0),
-                      Color(0xFF3a53b0),
-                      Color(0xFF2a43a0),
-                    ],
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black12,
-                      blurRadius: 10,
-                      offset: Offset(0, 4),
-                    ),
-                  ],
-                ),
+        toolbarHeight: 80.h,
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            borderRadius: BorderRadius.vertical(
+              bottom: Radius.circular(25),
+            ),
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Color(0xFF4a63c0),
+                Color(0xFF3a53b0),
+                Color(0xFF2a43a0),
+              ],
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black12,
+                blurRadius: 10,
+                offset: Offset(0, 4),
               ),
+            ],
+          ),
+        ),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -179,7 +205,7 @@ class _SupplierCategoriesScreenState extends State<SupplierCategoriesScreen> {
               children: [
                 // Search Bar
                 Padding(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: EdgeInsets.all(16.w),
                   child: TextField(
                     decoration: InputDecoration(
                       hintText: 'Search categories...',
@@ -193,29 +219,30 @@ class _SupplierCategoriesScreenState extends State<SupplierCategoriesScreen> {
                 ),
                 // Total Count
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  padding: EdgeInsets.symmetric(horizontal: 16.w),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
                         'Total Categories: ${_filteredCategories.length}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontWeight: FontWeight.bold,
                           color: Colors.grey,
+                          fontSize: 14.sp,
                         ),
                       ),
                       if (_searchQuery.isNotEmpty)
                         Text(
                           'Search results: ${_filteredCategories.length}',
-                          style: const TextStyle(
-                            fontSize: 12,
+                          style: TextStyle(
+                            fontSize: 12.sp,
                             color: Colors.blue,
                           ),
                         ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: 8.h),
                 // Categories List
                 Expanded(
                   child: _filteredCategories.isEmpty
@@ -228,7 +255,7 @@ class _SupplierCategoriesScreenState extends State<SupplierCategoriesScreen> {
                           ),
                         )
                       : ListView.builder(
-                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                          padding: EdgeInsets.symmetric(horizontal: 16.w),
                           itemCount: _filteredCategories.length,
                           itemBuilder: (context, index) {
                             final category = _filteredCategories[index];
@@ -260,10 +287,10 @@ class _CategoryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      margin: const EdgeInsets.only(bottom: 12.0),
+      margin: EdgeInsets.only(bottom: 12.h),
       elevation: 2,
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: EdgeInsets.all(16.w),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -273,8 +300,8 @@ class _CategoryCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     category.name,
-                    style: const TextStyle(
-                      fontSize: 18,
+                    style: TextStyle(
+                      fontSize: 18.sp,
                       fontWeight: FontWeight.bold,
                     ),
                     overflow: TextOverflow.ellipsis,
@@ -283,33 +310,34 @@ class _CategoryCard extends StatelessWidget {
                 Row(
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.edit, color: Colors.blue),
+                      icon: Icon(Icons.edit, color: Colors.blue, size: 20.sp),
                       onPressed: onEdit,
                     ),
                     IconButton(
-                      icon: const Icon(Icons.delete, color: Colors.red),
+                      icon: Icon(Icons.delete, color: Colors.red, size: 20.sp),
                       onPressed: onDelete,
                     ),
                   ],
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8.h),
             Text(
-              category.description ?? 'No description',
+              category.description?.isNotEmpty == true ? category.description! : 'No description',
               style: TextStyle(
-                color: category.description == null ? Colors.grey : Colors.black87,
-                fontStyle: category.description == null ? FontStyle.italic : FontStyle.normal,
+                color: category.description?.isNotEmpty == true ? Colors.black87 : Colors.grey,
+                fontStyle: category.description?.isNotEmpty == true ? FontStyle.normal : FontStyle.italic,
+                fontSize: 14.sp,
               ),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8.h),
             Row(
               children: [
                 _StatusChip(isActive: category.isActive == 1),
-                const SizedBox(width: 8),
+                SizedBox(width: 8.w),
                 Text(
                   'ID: ${category.id}',
-                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  style: TextStyle(fontSize: 12.sp, color: Colors.grey),
                 ),
               ],
             ),
@@ -332,7 +360,7 @@ class _StatusChip extends StatelessWidget {
         isActive ? 'Active' : 'Inactive',
         style: TextStyle(
           color: isActive ? Colors.white : Colors.black87,
-          fontSize: 12,
+          fontSize: 12.sp,
         ),
       ),
       backgroundColor: isActive ? Colors.green : Colors.grey[300],
@@ -344,7 +372,7 @@ class _StatusChip extends StatelessWidget {
 
 class AddEditCategoryBottomSheet extends StatefulWidget {
   final SupplierCategory? category;
-  final VoidCallback onSaved;
+  final Function(SupplierCategory) onSaved;
   final Function(String) onError;
 
   const AddEditCategoryBottomSheet({
@@ -364,6 +392,7 @@ class _AddEditCategoryBottomSheetState extends State<AddEditCategoryBottomSheet>
   final _descriptionController = TextEditingController();
   final _service = SupplierCategoryService();
   bool _isLoading = false;
+  bool _isActive = true;
 
   @override
   void initState() {
@@ -371,6 +400,7 @@ class _AddEditCategoryBottomSheetState extends State<AddEditCategoryBottomSheet>
     if (widget.category != null) {
       _nameController.text = widget.category!.name;
       _descriptionController.text = widget.category?.description ?? '';
+      _isActive = widget.category?.isActive == 1;
     }
   }
 
@@ -389,55 +419,30 @@ class _AddEditCategoryBottomSheetState extends State<AddEditCategoryBottomSheet>
     });
 
     try {
+      final newCategory = SupplierCategory(
+        id: widget.category?.id ?? 0,
+        name: _nameController.text.trim(),
+        description: _descriptionController.text.trim().isEmpty ? null : _descriptionController.text.trim(),
+        siteId: widget.category?.siteId ?? 1,
+        createdBy: widget.category?.createdBy ?? 1,
+        workspaceId: widget.category?.workspaceId ?? 1,
+        isActive: _isActive ? 1 : 0, // Convert bool to int
+        status: widget.category?.status ?? '1',
+        createdAt: widget.category?.createdAt ?? DateTime.now().toIso8601String(),
+        updatedAt: DateTime.now().toIso8601String(),
+      );
+
+      SupplierCategory savedCategory;
+      
       if (widget.category == null) {
-        // For creating new category, send minimal data
-        final Map<String, dynamic> categoryData = {
-          'name': _nameController.text.trim(),
-          'is_active': 1,
-          'site_id': null,
-          'created_by': 1,
-          'workspace_id': 1,
-          'status': '1',
-        };
-
-        final response = await http.post(
-          Uri.parse('${SupplierCategoryService.baseUrl}supplier-categories'),
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: json.encode(categoryData),
-        );
-
-        if (response.statusCode == 200 || response.statusCode == 201) {
-          widget.onSaved();
-        } else {
-          throw Exception('Failed to create category: ${response.statusCode} - ${response.body}');
-        }
+        savedCategory = await _service.createSupplierCategory(newCategory);
       } else {
-        // For updating existing category
-        final Map<String, dynamic> categoryData = {
-          'name': _nameController.text.trim(),
-          'is_active': widget.category!.isActive,
-          'site_id': widget.category!.siteId,
-          'created_by': widget.category!.createdBy,
-          'workspace_id': widget.category!.workspaceId,
-          'status': widget.category!.status,
-        };
-
-        final response = await http.put(
-          Uri.parse('${SupplierCategoryService.baseUrl}supplier-categories/${widget.category!.id}'),
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: json.encode(categoryData),
-        );
-
-        if (response.statusCode == 200) {
-          widget.onSaved();
-        } else {
-          throw Exception('Failed to update category: ${response.statusCode} - ${response.body}');
-        }
+        savedCategory = await _service.updateSupplierCategory(newCategory);
       }
+
+      // Call the callback with the saved category
+      widget.onSaved(savedCategory);
+      
     } catch (e) {
       widget.onError('Failed to save category: $e');
     } finally {
@@ -454,12 +459,12 @@ class _AddEditCategoryBottomSheetState extends State<AddEditCategoryBottomSheet>
     final isEdit = widget.category != null;
 
     return Container(
-      padding: const EdgeInsets.all(16.0),
-      decoration: const BoxDecoration(
+      padding: EdgeInsets.all(16.w),
+      decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(16.0),
-          topRight: Radius.circular(16.0),
+          topLeft: Radius.circular(16.r),
+          topRight: Radius.circular(16.r),
         ),
       ),
       child: Padding(
@@ -472,32 +477,33 @@ class _AddEditCategoryBottomSheetState extends State<AddEditCategoryBottomSheet>
           children: [
             Center(
               child: Container(
-                width: 40,
-                height: 4,
+                width: 40.w,
+                height: 4.h,
                 decoration: BoxDecoration(
                   color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(2),
+                  borderRadius: BorderRadius.circular(2.r),
                 ),
               ),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16.h),
             Text(
               isEdit ? 'Edit Category' : 'Add New Category',
-              style: const TextStyle(
-                fontSize: 20,
+              style: TextStyle(
+                fontSize: 20.sp,
                 fontWeight: FontWeight.bold,
               ),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16.h),
             Form(
               key: _formKey,
               child: Column(
                 children: [
                   TextFormField(
                     controller: _nameController,
-                    decoration: const InputDecoration(
-                      labelText: 'Category Name',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: 'Category Name *',
+                      border: const OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
                     ),
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
@@ -506,43 +512,75 @@ class _AddEditCategoryBottomSheetState extends State<AddEditCategoryBottomSheet>
                       return null;
                     },
                   ),
-                  const SizedBox(height: 16),
+                  SizedBox(height: 16.h),
                   TextFormField(
                     controller: _descriptionController,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'Description (Optional)',
-                      border: OutlineInputBorder(),
+                      border: const OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
                     ),
                     maxLines: 3,
+                  ),
+                  SizedBox(height: 16.h),
+                  SwitchListTile(
+                    title: Text(
+                      'Status',
+                      style: TextStyle(fontSize: 16.sp),
+                    ),
+                    subtitle: Text(
+                      _isActive ? 'Active' : 'Inactive',
+                      style: TextStyle(
+                        fontSize: 14.sp,
+                        color: _isActive ? Colors.green : Colors.grey,
+                      ),
+                    ),
+                    value: _isActive,
+                    onChanged: (value) {
+                      setState(() {
+                        _isActive = value;
+                      });
+                    },
+                    contentPadding: EdgeInsets.zero,
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 24),
+            SizedBox(height: 24.h),
             Row(
               children: [
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('Cancel'),
+                    onPressed: _isLoading ? null : () => Navigator.pop(context),
+                    child: Text('Cancel', style: TextStyle(fontSize: 14.sp)),
                   ),
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: 12.w),
                 Expanded(
                   child: ElevatedButton(
                     onPressed: _isLoading ? null : _saveCategory,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF2a43a0),
+                      foregroundColor: Colors.white,
+                    ),
                     child: _isLoading
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
+                        ? SizedBox(
+                            height: 20.h,
+                            width: 20.w,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
                           )
-                        : Text(isEdit ? 'Update' : 'Save'),
+                        : Text(
+                            isEdit ? 'Update' : 'Save',
+                            style: TextStyle(fontSize: 14.sp),
+                          ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16.h),
           ],
         ),
       ),

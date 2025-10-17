@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'package:ecoteam_app/admin/Screens/AdminDashboard_screen.dart';
 import 'package:ecoteam_app/contractor/models/site_model.dart';
 import 'package:ecoteam_app/contractor/services/company_site_provider.dart';
 import 'package:ecoteam_app/contractor/view/contractor_dashboard/chat_screen.dart';
@@ -380,7 +381,7 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                 actions: [
                   IconButton(
                     icon: const FaIcon(FontAwesomeIcons.bell, size: 20),
-
+                    tooltip: 'Notifications',
                     onPressed: () {
                       Navigator.push(
                         context,
@@ -394,12 +395,14 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                   ),
                   const SizedBox(width: 2),
                   IconButton(
+                    tooltip: 'Chat',
                     onPressed: _navigateToChatScreen,
                     icon: const FaIcon(FontAwesomeIcons.commentDots, size: 20),
                     color: Colors.white,
                   ),
                   const SizedBox(width: 5),
                   GestureDetector(
+                    
                     onTap: () {
                       Navigator.push(
                         context,
@@ -424,6 +427,27 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
       ),
       body: Column(
         children: [
+          Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 15.h,),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      ElevatedButton.icon(
+                        onPressed: _showAddCompanyBottomSheet,
+                        
+                        label: Text('Add Company'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Color(0xFF4a63c0),
+                          foregroundColor: Colors.white,
+                          padding: EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(15),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
           Padding(
             padding: EdgeInsets.all(20.h),
             child: Row(
@@ -493,7 +517,14 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
               ],
             ),
           ),
-          Expanded(child: _isGridView ? _buildGridView() : _buildListView()),
+          Expanded(
+            child: Column(
+              children: [
+                
+                Expanded(child: _isGridView ? _buildGridView() : _buildListView()),
+              ],
+            ),
+          ),
         ],
       ),
       floatingActionButton: _buildFloatingActionButton(),
@@ -501,22 +532,25 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
   }
 
   Widget _buildFloatingActionButton() {
-    return Container(
-      width: 48,
-      height: 48,
-      decoration: BoxDecoration(
-        color: const Color(0xFF4a63c0),
+    return Tooltip(
+  message: 'Add New Site',
+  child: Container(
+    width: 48,
+    height: 48,
+    decoration: BoxDecoration(
+      color: const Color(0xFF4a63c0),
+      borderRadius: BorderRadius.circular(24),
+    ),
+    child: Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: _showAddSiteBottomSheet,
         borderRadius: BorderRadius.circular(24),
+        child: const Icon(Icons.add, color: Colors.white, size: 20),
       ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: _showAddSiteBottomSheet,
-          borderRadius: BorderRadius.circular(24),
-          child: const Icon(Icons.add, color: Colors.white, size: 20),
-        ),
-      ),
-    );
+    ),
+  ),
+);
   }
 
   Widget _buildListView() {
@@ -747,13 +781,26 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Select Company',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF4a63c0),
-                      ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Select Company',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF4a63c0),
+                          ),
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.add, color: Color(0xFF4a63c0)),
+                          onPressed: () {
+                            Navigator.pop(context);
+                            _showAddCompanyBottomSheet();
+                          },
+                        ),
+                        
+                      ],
                     ),
                     const SizedBox(height: 16),
                     Container(
@@ -778,59 +825,282 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
     );
   }
 
-  Widget _buildCompanyOption(String company) {
-    final isSelected = currentCompany == company;
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          currentCompany = company;
-          _companyProvider.selectCompany(company);
-        });
-        Navigator.pop(context);
-      },
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? Color(0xFF4a63c0).withOpacity(0.1)
-              : Colors.grey.shade50,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected ? Color(0xFF4a63c0) : Colors.grey.shade200,
-            width: isSelected ? 2 : 1,
-          ),
+ Widget _buildCompanyOption(String company) {
+  final isSelected = currentCompany == company;
+  return GestureDetector(
+    onTap: () {
+      setState(() {
+        currentCompany = company;
+        _companyProvider.selectCompany(company);
+      });
+      Navigator.pop(context);
+    },
+    child: Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isSelected
+            ? Color(0xFF4a63c0).withOpacity(0.1)
+            : Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isSelected ? Color(0xFF4a63c0) : Colors.grey.shade200,
+          width: isSelected ? 2 : 1,
         ),
-        child: Row(
-          children: [
-            Icon(
-              Icons.business,
-              color: isSelected ? Color(0xFF4a63c0) : Colors.grey.shade600,
-              size: 17,
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.business,
+            color: isSelected ? Color(0xFF4a63c0) : Colors.grey.shade600,
+            size: 17,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              company,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                color: isSelected ? Color(0xFF4a63c0) : Colors.grey.shade800,
+              ),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                company,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                  color: isSelected ? Color(0xFF4a63c0) : Colors.grey.shade800,
+          ),
+          if (isSelected)
+            const Icon(
+              Icons.check_circle,
+              color: Color(0xFF4a63c0),
+              size: 20,
+            ),
+          // Edit and Delete buttons for all companies
+          IconButton(
+            icon: Icon(Icons.edit, size: 18, color: Colors.blue.shade600),
+            onPressed: () {
+              Navigator.pop(context); // Close the bottom sheet first
+              _showEditCompanyBottomSheet(company);
+            },
+            padding: EdgeInsets.zero,
+            constraints: BoxConstraints(),
+          ),
+          IconButton(
+            icon: Icon(Icons.delete, size: 18, color: Colors.red.shade600),
+            onPressed: () {
+              Navigator.pop(context); // Close the bottom sheet first
+              _showDeleteCompanyDialog(company);
+            },
+            padding: EdgeInsets.zero,
+            constraints: BoxConstraints(),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+void _showEditCompanyBottomSheet(String currentCompanyName) {
+  final TextEditingController companyController = TextEditingController(text: currentCompanyName);
+  final screenHeight = MediaQuery.of(context).size.height;
+  
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (context) => Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: Container(
+        height: screenHeight * 0.35,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Center(
+              child: Container(
+                width: 60,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(3),
                 ),
               ),
             ),
-            if (isSelected)
-              const Icon(
-                Icons.check_circle,
-                color: Color(0xFF4a63c0),
-                size: 20,
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Edit Company',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF2A2A2A),
+                  ),
+                ),
+                IconButton(
+                  icon: Icon(Icons.close, color: Colors.grey.shade600),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            _buildModernInputField(
+              controller: companyController,
+              label: 'Company Name',
+              icon: Icons.business,
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton(
+                onPressed: () async {
+                  if (companyController.text.isNotEmpty && companyController.text != currentCompanyName) {
+                    bool success = await _companyProvider.updateCompany(currentCompanyName, companyController.text);
+                    if (success) {
+                      // Update current company if it was the one being edited
+                      if (currentCompany == currentCompanyName) {
+                        setState(() {
+                          currentCompany = companyController.text;
+                        });
+                      }
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Company updated to "${companyController.text}" successfully!',
+                          ),
+                          behavior: SnackBarBehavior.floating,
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: const Text(
+                            'Company already exists or update failed!',
+                          ),
+                          behavior: SnackBarBehavior.floating,
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Color(0xFF4a63c0),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 2,
+                ),
+                child: const Text(
+                  'Update Company',
+                  style: TextStyle(fontSize: 16, color: Colors.white),
+                ),
               ),
+            ),
+            const SizedBox(height: 16),
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
+void _showDeleteCompanyDialog(String companyName) {
+  showDialog(
+    context: context,
+    builder: (context) => Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.warning, size: 48, color: Colors.orange.shade600),
+            const SizedBox(height: 16),
+            Text(
+              'Delete Company?',
+              style: TextStyle(
+                fontSize: 20.sp,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF4a63c0),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Are you sure you want to delete "$companyName"?\n\nThis action cannot be undone.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.grey.shade600),
+            ),
+            SizedBox(height: 24.h),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancel'),
+                ),
+                const SizedBox(width: 8),
+                ElevatedButton(
+                  onPressed: () async {
+                    bool success = await _companyProvider.deleteCompany(companyName);
+                    if (success) {
+                      // Update current company if it was the one being deleted
+                      if (currentCompany == companyName) {
+                        setState(() {
+                          currentCompany = _companyProvider.companies.isNotEmpty 
+                              ? _companyProvider.companies.first 
+                              : null;
+                          if (currentCompany != null) {
+                            _companyProvider.selectCompany(currentCompany!);
+                          }
+                        });
+                      }
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Company "$companyName" deleted successfully!',
+                          ),
+                          behavior: SnackBarBehavior.floating,
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    } else {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: const Text(
+                            'Failed to delete company!',
+                          ),
+                          behavior: SnackBarBehavior.floating,
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color.fromARGB(255, 214, 69, 66),
+                  ),
+                  child: const Text(
+                    'Delete',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
   void _showAddSiteBottomSheet() {
     final TextEditingController nameController = TextEditingController();
     final TextEditingController addressController = TextEditingController();
@@ -1419,6 +1689,115 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                   ),
                 ],
               ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showAddCompanyBottomSheet() {
+    final TextEditingController companyController = TextEditingController();
+    final screenHeight = MediaQuery.of(context).size.height;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: Container(
+          height: screenHeight * 0.4,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Center(
+                child: Container(
+                  width: 60,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Add New Company',
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF2A2A2A),
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.close, color: Colors.grey.shade600),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              _buildModernInputField(
+                controller: companyController,
+                label: 'Company Name',
+                icon: Icons.business,
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  onPressed: () async {
+                    if (companyController.text.isNotEmpty) {
+                      bool success = await _companyProvider.addCompany(companyController.text);
+                      if (success) {
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Company "${companyController.text}" added successfully!',
+                            ),
+                            behavior: SnackBarBehavior.floating,
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: const Text(
+                              'Company already exists!',
+                            ),
+                            behavior: SnackBarBehavior.floating,
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xFF4a63c0),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 2,
+                  ),
+                  child: const Text(
+                    'Add Company',
+                    style: TextStyle(fontSize: 16, color: Colors.white),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
             ],
           ),
         ),

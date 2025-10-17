@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:ecoteam_app/admin/models/machinery_model.dart';
+import 'package:ecoteam_app/admin/models/Allmachinery_model.dart';
 import 'package:http/http.dart' as http;
 
 
@@ -17,7 +17,7 @@ class MachineryService {
     }
   }
 
-  Future<Machinery> createMachinery(Machinery machinery) async {
+  Future<AllMachinery> createMachinery(AllMachinery machinery) async {
     final response = await http.post(
       Uri.parse(baseUrl),
       headers: {'Content-Type': 'application/json'},
@@ -26,13 +26,13 @@ class MachineryService {
 
     if (response.statusCode == 200 || response.statusCode == 201) {
       final Map<String, dynamic> data = json.decode(response.body);
-      return Machinery.fromJson(data['data'] ?? data);
+      return AllMachinery.fromJson(data['data'] ?? data);
     } else {
       throw Exception('Failed to create machinery');
     }
   }
 
-  Future<Machinery> updateMachinery(Machinery machinery) async {
+  Future<AllMachinery> updateMachinery(AllMachinery machinery) async {
     final response = await http.put(
       Uri.parse('$baseUrl/${machinery.id}'),
       headers: {'Content-Type': 'application/json'},
@@ -41,7 +41,7 @@ class MachineryService {
 
     if (response.statusCode == 200) {
       final Map<String, dynamic> data = json.decode(response.body);
-      return Machinery.fromJson(data['data'] ?? data);
+      return AllMachinery.fromJson(data['data'] ?? data);
     } else {
       throw Exception('Failed to update machinery');
     }

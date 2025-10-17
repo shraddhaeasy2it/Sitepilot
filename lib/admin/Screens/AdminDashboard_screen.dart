@@ -1,13 +1,9 @@
-import 'package:ecoteam_app/admin/Screens/HRM_dashboard.dart';
-import 'package:ecoteam_app/admin/Screens/all_material_page.dart'
-    hide AdminColors;
 import 'package:ecoteam_app/admin/Screens/Allmachinery_screen.dart';
-import 'package:ecoteam_app/admin/Screens/consumptionLog_screen.dart';
-import 'package:ecoteam_app/admin/Screens/machineryCategory_screen.dart';
 import 'package:ecoteam_app/admin/Screens/Project-site_screen.dart';
-import 'package:ecoteam_app/admin/Screens/purchase_invoice_screen.dart';
-import 'package:ecoteam_app/admin/Screens/role_management_page.dart'
-    hide AdminColors;
+import 'package:ecoteam_app/admin/Screens/all_material_page.dart';
+
+import 'package:ecoteam_app/admin/Screens/machineryCategory_screen.dart';
+import 'package:ecoteam_app/admin/Screens/role_management_page.dart';
 import 'package:ecoteam_app/admin/Screens/admin_user_management_page.dart';
 import 'package:ecoteam_app/admin/Screens/material_category_screen.dart';
 import 'package:ecoteam_app/admin/Screens/supplier_categary_screen.dart';
@@ -28,7 +24,6 @@ import 'package:ecoteam_app/contractor/view/contractor_dashboard/more/more_scree
 import 'package:ecoteam_app/contractor/view/contractor_dashboard/more/supplier.dart';
 import 'package:ecoteam_app/contractor/view/contractor_dashboard/more/tools_screen.dart';
 import 'package:ecoteam_app/contractor/view/contractor_dashboard/worker_screen.dart';
-import 'package:ecoteam_app/contractor/widgets/bottom_navbar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
@@ -183,16 +178,16 @@ class ActivityProvider with ChangeNotifier {
   }
 }
 
-class DashboardScreen extends StatefulWidget {
+class AdmindashboardScreen extends StatefulWidget {
   final Site? selectedSite;
   final String? companyName;
-  const DashboardScreen({super.key, this.selectedSite, this.companyName});
+  const AdmindashboardScreen({super.key, this.selectedSite, this.companyName});
 
   @override
-  State<DashboardScreen> createState() => _DashboardScreenState();
+  State<AdmindashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _DashboardScreenState extends State<DashboardScreen> {
+class _DashboardScreenState extends State<AdmindashboardScreen> {
   int _currentIndex = 0;
   String? _selectedSiteId;
   List<Site> _sites = [];
@@ -651,28 +646,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
           : null,
       drawer: _currentIndex == 0 ? _buildNavigationDrawer() : null,
       body: IndexedStack(index: _currentIndex, children: _screens),
-      bottomNavigationBar: CustomBottomNavBar(
-        currentIndex: _currentIndex,
-        onTap: _handleNavigation,
-      ),
+      
     );
   }
 
-  void _handleNavigation(int index) {
-    if (index == _currentIndex) {
-      _scrollToTop();
-      return;
-    }
-    setState(() => _currentIndex = index);
-  }
-
-  void _scrollToTop() {
-    if (_currentIndex == 0) {
-      // Implement scroll to top for dashboard if needed
-    }
-  }
-
-    Widget _buildNavigationDrawer() {
+  Widget _buildNavigationDrawer() {
   return Drawer(
     child: Container(
       color: Colors.white,
@@ -963,20 +941,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                   if (_isDailyTransactionExpanded) ...[
                     _buildNestedSubDrawerItem(
-                      icon: Icons.receipt,
+                      icon: Icons.list,
                       title: 'Purchase Invoice',
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>  PurchaseInvoicesPage(),
-                          ),
-                        );
-                        },
-                    ),
-                    _buildNestedSubDrawerItem(
-                      icon: Icons.person,
-                      title: 'Manpower',
                       onTap: () {
                         Navigator.pop(context);
                         _showSnackBar('Purchase Invoice coming soon');
@@ -996,19 +962,37 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   if (_isDailyConsumptionExpanded) ...[
                     _buildNestedSubDrawerItem(
                       icon: Icons.list,
-                      title: 'Consumption Log',
+                      title: 'machinery Rental',
                       onTap: () {
-                        // Navigator.push(
-                        //   context,
-                        //   MaterialPageRoute(
-                        //     builder: (context) => const ConsumptionLogPage(),
-                        //   ),
-                        // );
+                        Navigator.pop(context);
+                        _showSnackBar('Machinery Rental coming soon');
                       },
                     ),
-                    
+                    _buildNestedSubDrawerItem(
+                      icon: Icons.list,
+                      title: 'machinery Fuel',
+                      onTap: () {
+                        Navigator.pop(context);
+                        _showSnackBar('Machinery Fuel coming soon');
+                      },
+                    ),
+                    _buildNestedSubDrawerItem(
+                      icon: Icons.list,
+                      title: 'manpower',
+                      onTap: () {
+                        Navigator.pop(context);
+                        _showSnackBar('Manpower coming soon');
+                      },
+                    ),
                   ],
-                  
+                  _buildSubDrawerItem(
+                    icon: Icons.swap_horiz,
+                    title: 'Material Transfer',
+                    onTap: () {
+                      Navigator.pop(context);
+                      _showSnackBar('Material Transfer coming soon');
+                    },
+                  ),
                 ],
 
                 // Project/Sites Section
@@ -1190,7 +1174,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     ),
   );
 }
-
   Widget _buildDrawerItem({
     required IconData icon,
     required String title,
@@ -1207,7 +1190,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
       ),
       onTap: onTap,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8.r),
+      ),
     );
   }
 
@@ -1222,17 +1207,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
       title: Text(
         title,
         style: TextStyle(
-          fontSize: 14.sp,
+          fontSize: 16.sp,
           fontWeight: FontWeight.w500,
-          color: const Color.fromARGB(255, 20, 27, 36),
+          color: AdminColors.textPrimary,
         ),
       ),
       trailing: Icon(
         isExpanded ? Icons.expand_less : Icons.expand_more,
-        color: const Color.fromARGB(255, 37, 60, 143),
+        color: AdminColors.primary,
       ),
       onTap: onTap,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8.r),
+      ),
     );
   }
 
@@ -1244,11 +1231,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Container(
       margin: EdgeInsets.only(left: 16.w),
       child: ListTile(
-        leading: Icon(
-          icon,
-          color: AdminColors.primary.withOpacity(0.7),
-          size: 20.sp,
-        ),
+        leading: Icon(icon, color: AdminColors.primary.withOpacity(0.7), size: 20.sp),
         title: Text(
           title,
           style: TextStyle(
@@ -1258,7 +1241,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         ),
         onTap: onTap,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8.r),
+        ),
         contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
       ),
     );
@@ -1273,11 +1258,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Container(
       margin: EdgeInsets.only(left: 16.w),
       child: ListTile(
-        leading: Icon(
-          icon,
-          color: AdminColors.primary.withOpacity(0.7),
-          size: 20.sp,
-        ),
+        leading: Icon(icon, color: AdminColors.primary.withOpacity(0.7), size: 20.sp),
         title: Text(
           title,
           style: TextStyle(
@@ -1292,7 +1273,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
           size: 18.sp,
         ),
         onTap: onTap,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8.r),
+        ),
         contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
       ),
     );
@@ -1306,11 +1289,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Container(
       margin: EdgeInsets.only(left: 32.w),
       child: ListTile(
-        leading: Icon(
-          icon,
-          color: AdminColors.primary.withOpacity(0.6),
-          size: 18.sp,
-        ),
+        leading: Icon(icon, color: AdminColors.primary.withOpacity(0.6), size: 18.sp),
         title: Text(
           title,
           style: TextStyle(
@@ -1320,7 +1299,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         ),
         onTap: onTap,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6.r)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(6.r),
+        ),
         contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 2.h),
         dense: true,
       ),
@@ -1333,7 +1314,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
         content: Text(message),
         duration: const Duration(seconds: 2),
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8.r),
+        ),
       ),
     );
   }
@@ -1816,23 +1799,13 @@ class DashboardContent extends StatelessWidget {
               children: [
                 _buildSummaryGrid(dashboardData!),
                 const SizedBox(height: 24),
-                _buildRecentActivities(),
-                const SizedBox(height: 24),
+                
                 _buildBirthdayReminders(),
                 const SizedBox(height: 120), // Space for FABs
               ],
             ),
           ),
-          Positioned(
-            bottom: 10,
-            right: 16,
-            child: FloatingActionButton(
-              onPressed: () => _showAddActivityBottomSheet(context),
-              backgroundColor: const Color(0xFF4a63c0),
-              child: const Icon(Icons.add, color: Colors.white),
-              tooltip: 'Add Activity',
-            ),
-          ),
+          
         ],
       ),
     );
@@ -1840,13 +1813,7 @@ class DashboardContent extends StatelessWidget {
 
   Widget _buildSummaryGrid(DashboardData data) {
     final summaryItems = [
-      {
-        'icon': Icons.groups_outlined,
-        'title': 'Workers',
-        'value': data.totalWorkers.toString(),
-        'subtitle': 'Active today',
-        'color': const Color(0xFF10B981),
-      },
+      
       {
         'icon': Icons.fact_check_outlined,
         'title': 'Machinary',
@@ -1856,7 +1823,7 @@ class DashboardContent extends StatelessWidget {
       },
       {
         'icon': Icons.badge_outlined,
-        'title': 'Attendance',
+        'title': 'Projects/Sites',
         'value': data.totalPicking.toString(),
         'subtitle': 'This month',
         'color': const Color.fromARGB(255, 238, 105, 43),
@@ -1868,19 +1835,27 @@ class DashboardContent extends StatelessWidget {
         'subtitle': 'Total Items',
         'color': const Color.fromARGB(255, 55, 140, 189),
       },
-      {
-        'icon': Icons.people_alt_outlined,
-        'title': 'Supplier',
-        'value': data.totalPicking.toString(),
-        'subtitle': 'Status',
-        'color': const Color.fromARGB(255, 184, 55, 162),
-      },
+      
       {
         'icon': Icons.build_outlined,
-        'title': 'Assets',
+        'title': 'All Users',
         'value': data.totalInspection.toString(),
         'subtitle': 'Total Items',
         'color': const Color(0xFF00ACC1),
+      },
+      {
+        'icon': Icons.account_balance_wallet_outlined,
+        'title': 'Supplier',
+        'value': data.totalPicking.toString(),
+        'subtitle': 'This month',
+        'color': const Color(0xFF8B5CF6),
+      },
+      {
+        'icon': Icons.handyman_outlined,
+        'title': 'Assets/Tools',
+        'value': data.totalInspection.toString(),
+        'subtitle': 'Total Items',
+        'color': const Color(0xFF10B981),
       },
     ];
     return GridView.builder(

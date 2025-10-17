@@ -1,6 +1,7 @@
 import 'dart:convert';
+import 'package:ecoteam_app/admin/models/Allsupplier_model.dart';
 import 'package:http/http.dart' as http;
-import '../models/supplier_model.dart';
+
 
 class SupplierApiService {
   static const String baseUrl = 'http://sitepilot.easy2it.in/api';
@@ -56,6 +57,31 @@ class SupplierApiService {
         }
       } else {
         throw Exception('Failed to load supplier. Status code: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Network error: $e');
+    }
+  }
+
+  // GET - Get all supplier categories
+  static Future<List<SupplierCategory>> getSupplierCategories() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/supplier-categories'),
+        headers: headers,
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> responseData = json.decode(response.body);
+        
+        if (responseData['status'] == 1) {
+          final List<dynamic> categoriesData = responseData['data'];
+          return categoriesData.map((json) => SupplierCategory.fromJson(json)).toList();
+        } else {
+          throw Exception('API returned error: ${responseData['message']}');
+        }
+      } else {
+        throw Exception('Failed to load supplier categories. Status code: ${response.statusCode}');
       }
     } catch (e) {
       throw Exception('Network error: $e');

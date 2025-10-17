@@ -127,17 +127,17 @@ class CompanySiteProvider extends ChangeNotifier {
     // Find which company the site belongs to
     String? companyId;
     int siteIndex = -1;
-    
+
     for (var entry in _companySites.entries) {
       final index = entry.value.indexWhere((s) => s.id == updatedSite.id);
-      
+
       if (index != -1) {
         companyId = entry.key;
         siteIndex = index;
         break;
       }
     }
-    
+
     if (companyId != null && siteIndex != -1) {
       bool success = await ApiService().updateSite(updatedSite);
       if (success) {
@@ -145,5 +145,47 @@ class CompanySiteProvider extends ChangeNotifier {
         notifyListeners();
       }
     }
+  }
+
+  // Add a new company
+  Future<bool> addCompany(String companyName) async {
+    bool success = await ApiService().addCompany(companyName);
+    if (success) {
+      _companySites[companyName] = [];
+      notifyListeners();
+    }
+    return success;
+  }
+
+  // Update an existing company
+  Future<bool> updateCompany(String oldCompanyName, String newCompanyName) async {
+    bool success = await ApiService().updateCompany(oldCompanyName, newCompanyName);
+    if (success) {
+      // Update the company sites map
+      if (_companySites.containsKey(oldCompanyName)) {
+        _companySites[newCompanyName] = _companySites[oldCompanyName]!;
+        _companySites.remove(oldCompanyName);
+      }
+      // Update selected company if it was the one being updated
+      if (_selectedCompanyId == oldCompanyName) {
+        _selectedCompanyId = newCompanyName;
+      }
+      notifyListeners();
+    }
+    return success;
+  }
+
+  // Delete a company
+  Future<bool> deleteCompany(String companyName) async {
+    bool success = await ApiService().deleteCompany(companyName);
+    if (success) {
+      _companySites.remove(companyName);
+      // If the deleted company was selected, clear selection
+      if (_selectedCompanyId == companyName) {
+        _selectedCompanyId = null;
+      }
+      notifyListeners();
+    }
+    return success;
   }
 }

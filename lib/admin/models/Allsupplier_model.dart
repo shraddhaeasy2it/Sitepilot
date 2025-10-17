@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 class Supplier {
   int? id;
   String name;
@@ -127,34 +129,91 @@ class Supplier {
 
   // Helper getters for UI compatibility
   String get category {
-    // Map category_id to actual category names
-    switch (categoryId) {
-      case 1:
-        return 'Material';
-      case 2:
-        return 'Equipment';
-      case 3:
-        return 'Service';
-      case 4:
-        return 'Other';
-      default:
-        return 'Other';
-    }
+    // This will be handled by the API now
+    return 'Loading...';
+  }
+}
+
+class SupplierCategory {
+  int id;
+  String name;
+  String description;
+  int? siteId;
+  int createdBy;
+  int workspaceId;
+  int isActive;
+  String status;
+  String? createdAt;
+  String? updatedAt;
+
+  SupplierCategory({
+    required this.id,
+    required this.name,
+    required this.description,
+    this.siteId,
+    required this.createdBy,
+    required this.workspaceId,
+    required this.isActive,
+    required this.status,
+    this.createdAt,
+    this.updatedAt,
+  });
+
+  factory SupplierCategory.fromJson(Map<String, dynamic> json) {
+    return SupplierCategory(
+      id: json['id'],
+      name: json['name'] ?? '',
+      description: json['description'] ?? '',
+      siteId: json['site_id'],
+      createdBy: json['created_by'] ?? 0,
+      workspaceId: json['workspace_id'] ?? 0,
+      isActive: json['is_active'] ?? 1,
+      status: json['status']?.toString() ?? '0',
+      createdAt: json['created_at'],
+      updatedAt: json['updated_at'],
+    );
   }
 
-  // Helper method to get category ID from name
-  static int getCategoryId(String categoryName) {
-    switch (categoryName) {
-      case 'Material':
-        return 1;
-      case 'Equipment':
-        return 2;
-      case 'Service':
-        return 3;
-      case 'Other':
-        return 4;
-      default:
-        return 4;
-    }
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'description': description,
+      'site_id': siteId,
+      'created_by': createdBy,
+      'workspace_id': workspaceId,
+      'is_active': isActive,
+      'status': status,
+      'created_at': createdAt,
+      'updated_at': updatedAt,
+    };
+  }
+}
+
+class SupplierType {
+  int id;
+  String name;
+  String description;
+
+  SupplierType({
+    required this.id,
+    required this.name,
+    required this.description,
+  });
+
+  factory SupplierType.fromJson(Map<String, dynamic> json) {
+    return SupplierType(
+      id: json['id'],
+      name: json['name'] ?? '',
+      description: json['description'] ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'description': description,
+    };
   }
 }

@@ -1,4 +1,4 @@
-class Machinery {
+class AllMachinery {
   final int? id;
   final String name;
   final int categoryId;
@@ -20,7 +20,7 @@ class Machinery {
   final String? createdAt;
   final String? updatedAt;
 
-  Machinery({
+  AllMachinery({
     this.id,
     required this.name,
     required this.categoryId,
@@ -43,8 +43,8 @@ class Machinery {
     this.updatedAt,
   });
 
-  factory Machinery.fromJson(Map<String, dynamic> json) {
-    return Machinery(
+  factory AllMachinery.fromJson(Map<String, dynamic> json) {
+    return AllMachinery(
       id: json['id'],
       name: json['name'] ?? '',
       categoryId: json['category_id'] ?? 0,
@@ -91,7 +91,7 @@ class Machinery {
     };
   }
 
-  Machinery copyWith({
+  AllMachinery copyWith({
     int? id,
     String? name,
     int? categoryId,
@@ -113,7 +113,7 @@ class Machinery {
     String? createdAt,
     String? updatedAt,
   }) {
-    return Machinery(
+    return AllMachinery(
       id: id ?? this.id,
       name: name ?? this.name,
       categoryId: categoryId ?? this.categoryId,
@@ -140,7 +140,7 @@ class Machinery {
 
 class MachineryResponse {
   final int status;
-  final List<Machinery> data;
+  final List<AllMachinery> data;
 
   MachineryResponse({
     required this.status,
@@ -151,7 +151,7 @@ class MachineryResponse {
     return MachineryResponse(
       status: json['status'] ?? 0,
       data: (json['data'] as List<dynamic>?)
-          ?.map((item) => Machinery.fromJson(item))
+          ?.map((item) => AllMachinery.fromJson(item))
           .toList() ?? [],
     );
   }

@@ -1,7 +1,8 @@
+import 'package:ecoteam_app/admin/models/Allsupplier_model.dart';
+import 'package:ecoteam_app/admin/services/Allsupplier_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import '../models/supplier_model.dart';
-import '../services/supplier_api_service.dart';
+
 
 class AllSupplierPage extends StatefulWidget {
   const AllSupplierPage({Key? key}) : super(key: key);
@@ -17,48 +18,67 @@ class _AllSupplierPageState extends State<AllSupplierPage> {
   bool _isLoading = true;
   String _errorMessage = '';
 
-  final List<String> _categories = ['Material', 'Equipment', 'Service', 'Other'];
-  final List<String> _types = ['individual', 'company', 'partnership', 'LLP'];
+  // Dynamic lists for categories and types
+  List<SupplierCategory> _categories = [];
+  List<SupplierType> _types = [
+    SupplierType(id: 1, name: 'individual', description: 'Individual'),
+    SupplierType(id: 2, name: 'company', description: 'Company'),
+    SupplierType(id: 3, name: 'partnership', description: 'Partnership'),
+    SupplierType(id: 4, name: 'LLP', description: 'Limited Liability Partnership'),
+  ];
 
   @override
   void initState() {
     super.initState();
-    _loadSuppliers();
+    _loadData();
     _searchController.addListener(_filterSuppliers);
   }
 
-  Future<void> _loadSuppliers() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = '';
-    });
+  Future<void> _loadData() async {
+  setState(() {
+    _isLoading = true;
+    _errorMessage = '';
+  });
 
-    try {
-      final suppliers = await SupplierApiService.getSuppliers();
-      setState(() {
-        _allSuppliers = suppliers;
-        _filteredSuppliers = suppliers;
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _errorMessage = e.toString();
-        _isLoading = false;
-      });
-      _showSnackBar('Failed to load suppliers: $e');
-    }
+  try {
+    final suppliers = await SupplierApiService.getSuppliers();
+    final categories = await SupplierApiService.getSupplierCategories();
+
+    setState(() {
+      _allSuppliers = suppliers;
+      _filteredSuppliers = suppliers;
+      _categories = categories;
+      _isLoading = false;
+    });
+  } catch (e) {
+    setState(() {
+      _errorMessage = e.toString();
+      _isLoading = false;
+    });
+    _showSnackBar('Failed to load data: $e');
   }
+}
 
   void _filterSuppliers() {
     final query = _searchController.text.toLowerCase();
     setState(() {
       _filteredSuppliers = _allSuppliers.where((supplier) {
+        final categoryName = _getCategoryName(supplier.categoryId);
         return supplier.name.toLowerCase().contains(query) ||
-               supplier.category.toLowerCase().contains(query) ||
+               categoryName.toLowerCase().contains(query) ||
                supplier.contactPerson.toLowerCase().contains(query) ||
                supplier.phone.toLowerCase().contains(query);
       }).toList();
     });
+  }
+
+  String _getCategoryName(int categoryId) {
+    try {
+      final category = _categories.firstWhere((cat) => cat.id == categoryId);
+      return category.name;
+    } catch (e) {
+      return 'Unknown';
+    }
   }
 
   void _showAddEditSupplierBottomSheet({Supplier? supplier}) {
@@ -81,8 +101,9 @@ class _AllSupplierPageState extends State<AllSupplierPage> {
     final ifscController = TextEditingController(text: supplier?.ifscCode ?? '');
     final paymentTermsController = TextEditingController(text: supplier?.paymentTerms ?? '');
 
-    String selectedCategory = supplier?.category ?? _categories.first;
-    String selectedType = supplier?.type ?? _types.first;
+    // Initialize selected values
+    int? selectedCategoryId = supplier?.categoryId;
+    String selectedType = supplier?.type ?? _types.first.name;
 
     final formKey = GlobalKey<FormState>();
     bool isSubmitting = false;
@@ -103,13 +124,15 @@ class _AllSupplierPageState extends State<AllSupplierPage> {
                 right: 16,
                 top: 16,
               ),
-              child: SingleChildScrollView(
-                child: Form(
-                  key: formKey,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  return SingleChildScrollView(
+                    child: Form(
+                      key: formKey,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
                       // Handle bar
                       Center(
                         child: Container(
@@ -153,74 +176,87 @@ class _AllSupplierPageState extends State<AllSupplierPage> {
 
                       // Category and Type Row
                       Row(
-                        children: [
-                          Expanded(
-                            child: DropdownButtonFormField<String>(
-                              value: selectedCategory,
-                              decoration: const InputDecoration(
-                                labelText: 'Category *',
-                                border: OutlineInputBorder(),
-                                prefixIcon: Icon(Icons.category, size: 18),
-                                contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                              ),
-                              style: const TextStyle(fontSize: 14),
-                              items: _categories.map((category) {
-                                return DropdownMenuItem(
-                                  value: category,
-                                  child: Text(category, style: const TextStyle(fontSize: 14)),
-                                );
-                              }).toList(),
-                              onChanged: (value) {
-                                setModalState(() {
-                                  selectedCategory = value!;
-                                });
-                              },
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Please select a category';
-                                }
-                                return null;
-                              },
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: DropdownButtonFormField<String>(
-                              value: selectedType,
-                              decoration: const InputDecoration(
-                                labelText: 'Type *',
-                                border: OutlineInputBorder(),
-                                prefixIcon: Icon(Icons.business_center, size: 18),
-                                contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                              ),
-                              style: const TextStyle(fontSize: 14),
-                              items: _types.map((type) {
-                                return DropdownMenuItem(
-                                  value: type,
-                                  child: Text(type[0].toUpperCase() + type.substring(1), style: const TextStyle(fontSize: 14)),
-                                );
-                              }).toList(),
-                              onChanged: (value) {
-                                setModalState(() {
-                                  selectedType = value!;
-                                });
-                              },
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Please select a type';
-                                }
-                                return null;
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
+  children: [
+    Expanded(
+      child: DropdownButtonFormField<int>(
+        value: selectedCategoryId,
+        decoration: const InputDecoration(
+          labelText: 'Category *',
+          border: OutlineInputBorder(),
+          prefixIcon: Icon(Icons.category, size: 18),
+          contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          isDense: true,
+        ),
+        style: const TextStyle(fontSize: 14),
+        isExpanded: true, // Important for Row layout
+        items: _categories.map((category) {
+          return DropdownMenuItem<int>(
+            value: category.id,
+            child: Text(
+              category.name, 
+              style: const TextStyle(fontSize: 14),
+              overflow: TextOverflow.ellipsis,
+            ),
+          );
+        }).toList(),
+        onChanged: (value) {
+          setModalState(() {
+            selectedCategoryId = value!;
+          });
+        },
+        validator: (value) {
+          if (value == null) {
+            return 'Please select a category';
+          }
+          return null;
+        },
+      ),
+    ),
+    const SizedBox(width: 8),
+    Expanded(
+      child: DropdownButtonFormField<String>(
+        value: selectedType,
+        decoration: const InputDecoration(
+          labelText: 'Type *',
+          border: OutlineInputBorder(),
+          prefixIcon: Icon(Icons.business_center, size: 18),
+          contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          isDense: true,
+        ),
+        style: const TextStyle(fontSize: 14),
+        isExpanded: true, // Important for Row layout
+        items: _types.map((type) {
+          return DropdownMenuItem<String>(
+            value: type.name,
+            child: Text(
+              type.name[0].toUpperCase() + type.name.substring(1), 
+              style: const TextStyle(fontSize: 14),
+              overflow: TextOverflow.ellipsis,
+            ),
+          );
+        }).toList(),
+        onChanged: (value) {
+          setModalState(() {
+            selectedType = value!;
+          });
+        },
+        validator: (value) {
+          if (value == null || value.isEmpty) {
+            return 'Please select a type';
+          }
+          return null;
+        },
+      ),
+    ),
+  ],
+),
                       const SizedBox(height: 8),
 
                       // Contact Person and Phone Row
                       Row(
                         children: [
-                          Expanded(
+                          Container(
+                            width: (constraints.maxWidth - 8) / 2,
                             child: TextFormField(
                               controller: contactPersonController,
                               decoration: const InputDecoration(
@@ -239,7 +275,8 @@ class _AllSupplierPageState extends State<AllSupplierPage> {
                             ),
                           ),
                           const SizedBox(width: 8),
-                          Expanded(
+                          Container(
+                            width: (constraints.maxWidth - 8) / 2,
                             child: TextFormField(
                               controller: phoneController,
                               decoration: const InputDecoration(
@@ -302,10 +339,11 @@ class _AllSupplierPageState extends State<AllSupplierPage> {
                       ),
                       const SizedBox(height: 8),
 
-                      // City, State, Pincode Row
+                      // City, State Row
                       Row(
                         children: [
-                          Expanded(
+                          Container(
+                            width: (constraints.maxWidth - 8) / 2,
                             child: TextFormField(
                               controller: cityController,
                               decoration: const InputDecoration(
@@ -318,7 +356,8 @@ class _AllSupplierPageState extends State<AllSupplierPage> {
                             ),
                           ),
                           const SizedBox(width: 8),
-                          Expanded(
+                          Container(
+                            width: (constraints.maxWidth - 8) / 2,
                             child: TextFormField(
                               controller: stateController,
                               decoration: const InputDecoration(
@@ -337,7 +376,8 @@ class _AllSupplierPageState extends State<AllSupplierPage> {
                       // Pincode and Country Row
                       Row(
                         children: [
-                          Expanded(
+                          Container(
+                            width: (constraints.maxWidth - 8) / 2,
                             child: TextFormField(
                               controller: pincodeController,
                               decoration: const InputDecoration(
@@ -351,7 +391,8 @@ class _AllSupplierPageState extends State<AllSupplierPage> {
                             ),
                           ),
                           const SizedBox(width: 8),
-                          Expanded(
+                          Container(
+                            width: (constraints.maxWidth - 8) / 2,
                             child: TextFormField(
                               controller: countryController,
                               decoration: const InputDecoration(
@@ -370,7 +411,8 @@ class _AllSupplierPageState extends State<AllSupplierPage> {
                       // GST and PAN Row
                       Row(
                         children: [
-                          Expanded(
+                          Container(
+                            width: (constraints.maxWidth - 8) / 2,
                             child: TextFormField(
                               controller: gstController,
                               decoration: const InputDecoration(
@@ -383,7 +425,8 @@ class _AllSupplierPageState extends State<AllSupplierPage> {
                             ),
                           ),
                           const SizedBox(width: 8),
-                          Expanded(
+                          Container(
+                            width: (constraints.maxWidth - 8) / 2,
                             child: TextFormField(
                               controller: panController,
                               decoration: const InputDecoration(
@@ -426,7 +469,8 @@ class _AllSupplierPageState extends State<AllSupplierPage> {
                       // Bank Name and Account Number Row
                       Row(
                         children: [
-                          Expanded(
+                          Container(
+                            width: (constraints.maxWidth - 8) / 2,
                             child: TextFormField(
                               controller: bankNameController,
                               decoration: const InputDecoration(
@@ -439,7 +483,8 @@ class _AllSupplierPageState extends State<AllSupplierPage> {
                             ),
                           ),
                           const SizedBox(width: 8),
-                          Expanded(
+                          Container(
+                            width: (constraints.maxWidth - 8) / 2,
                             child: TextFormField(
                               controller: accountNumberController,
                               decoration: const InputDecoration(
@@ -503,7 +548,7 @@ class _AllSupplierPageState extends State<AllSupplierPage> {
                               onPressed: isSubmitting
                                   ? null
                                   : () async {
-                                      if (formKey.currentState!.validate()) {
+                                      if (formKey.currentState!.validate() && selectedCategoryId != null) {
                                         setModalState(() {
                                           isSubmitting = true;
                                         });
@@ -512,7 +557,7 @@ class _AllSupplierPageState extends State<AllSupplierPage> {
                                           final supplierData = Supplier(
                                             id: supplier?.id,
                                             name: nameController.text.trim(),
-                                            categoryId: Supplier.getCategoryId(selectedCategory),
+                                            categoryId: selectedCategoryId!,
                                             type: selectedType,
                                             contactPerson: contactPersonController.text.trim(),
                                             phone: phoneController.text.trim(),
@@ -544,7 +589,7 @@ class _AllSupplierPageState extends State<AllSupplierPage> {
                                             await SupplierApiService.addSupplier(supplierData);
                                           }
 
-                                          await _loadSuppliers();
+                                          await _loadData();
                                           Navigator.pop(context);
                                           _showSnackBar(
                                             isEditing
@@ -583,9 +628,11 @@ class _AllSupplierPageState extends State<AllSupplierPage> {
                         ],
                       ),
                       const SizedBox(height: 12),
-                    ],
-                  ),
-                ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
               ),
             );
           },
@@ -617,7 +664,7 @@ class _AllSupplierPageState extends State<AllSupplierPage> {
     if (confirmed == true) {
       try {
         await SupplierApiService.deleteSupplier(supplier.id!);
-        await _loadSuppliers();
+        await _loadData();
         _showSnackBar('Supplier deleted successfully');
       } catch (e) {
         _showSnackBar('Failed to delete supplier: $e');
@@ -672,7 +719,7 @@ class _AllSupplierPageState extends State<AllSupplierPage> {
                   children: [
                     Expanded(child: _buildDetailRow('Supplier Name', supplier.name, Icons.business)),
                     const SizedBox(width: 16),
-                    Expanded(child: _buildDetailRow('Category', supplier.category, Icons.category)),
+                    Expanded(child: _buildDetailRow('Category', _getCategoryName(supplier.categoryId), Icons.category)),
                   ],
                 ),
                 const SizedBox(height: 16),
@@ -845,7 +892,7 @@ class _AllSupplierPageState extends State<AllSupplierPage> {
                       child: ElevatedButton(
                         onPressed: () {
                           Navigator.pop(context);
-                          // _showAddEditSupplierBottomSheet(supplier: supplier);
+                          _showAddEditSupplierBottomSheet(supplier: supplier);
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF2a43a0),
@@ -920,10 +967,35 @@ class _AllSupplierPageState extends State<AllSupplierPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      
       appBar: AppBar(
         title: const Text('All Suppliers', style: TextStyle(color: Colors.white)),
-        backgroundColor: const Color(0xFF2a43a0),
+        iconTheme: const IconThemeData(color: Colors.white),
+        toolbarHeight: 80.h,
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            borderRadius: BorderRadius.vertical(
+              bottom: Radius.circular(25),
+            ),
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Color(0xFF4a63c0),
+                Color(0xFF3a53b0),
+                Color(0xFF2a43a0),
+              ],
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black12,
+                blurRadius: 10,
+                offset: Offset(0, 4),
+              ),
+            ],
+          ),
+        ),
         leading: IconButton(
           icon: Icon(
             Icons.arrow_back,
@@ -934,7 +1006,6 @@ class _AllSupplierPageState extends State<AllSupplierPage> {
           tooltip: 'Back',
         ),
         actions: [
-          
           IconButton(
             icon: const Icon(Icons.add, color: Colors.white),
             onPressed: () => _showAddEditSupplierBottomSheet(),
@@ -942,7 +1013,7 @@ class _AllSupplierPageState extends State<AllSupplierPage> {
           ),
           IconButton(
             icon: const Icon(Icons.refresh, color: Colors.white),
-            onPressed: _loadSuppliers,
+            onPressed: _loadData,
             tooltip: 'Refresh',
           ),
         ],
@@ -1001,7 +1072,7 @@ class _AllSupplierPageState extends State<AllSupplierPage> {
                       ),
                       SizedBox(height: 16.h),
                       ElevatedButton(
-                        onPressed: _loadSuppliers,
+                        onPressed: _loadData,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF2a43a0),
                           foregroundColor: Colors.white,
@@ -1080,7 +1151,7 @@ class _AllSupplierPageState extends State<AllSupplierPage> {
               // Supplier Cards
               Expanded(
                 child: RefreshIndicator(
-                  onRefresh: _loadSuppliers,
+                  onRefresh: _loadData,
                   child: ListView.builder(
                     itemCount: _filteredSuppliers.length,
                     itemBuilder: (context, index) {
@@ -1133,7 +1204,7 @@ class _AllSupplierPageState extends State<AllSupplierPage> {
                                       ),
                                       SizedBox(height: 2.h),
                                       Text(
-                                        'Category: ${supplier.category}',
+                                        'Category: ${_getCategoryName(supplier.categoryId)}',
                                         style: TextStyle(
                                           fontSize: 12.sp,
                                           color: Colors.grey[500],
@@ -1191,7 +1262,6 @@ class _AllSupplierPageState extends State<AllSupplierPage> {
       ),
     );
   }
-
 
   @override
   void dispose() {

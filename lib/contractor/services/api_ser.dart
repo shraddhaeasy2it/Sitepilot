@@ -101,6 +101,40 @@ class ApiService {
     return false; // Site not found
   }
 
+  Future<bool> updateCompany(String oldCompanyName, String newCompanyName) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    final index = _companies.indexWhere((company) => company == oldCompanyName);
+    if (index != -1) {
+      // Check if new company name already exists
+      if (_companies.any((company) => company.toLowerCase() == newCompanyName.toLowerCase() && company != oldCompanyName)) {
+        return false; // New company name already exists
+      }
+      _companies[index] = newCompanyName;
+      // Update companyId in all sites that belong to this company
+      for (var i = 0; i < _sites.length; i++) {
+        if (_sites[i].companyId == oldCompanyName) {
+          _sites[i] = Site(
+            id: _sites[i].id,
+            name: _sites[i].name,
+            address: _sites[i].address,
+            companyId: newCompanyName,
+          );
+        }
+      }
+      return true;
+    }
+    return false; // Company not found
+  }
+
+  Future<bool> deleteCompany(String companyName) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    final initialLength = _companies.length;
+    _companies.removeWhere((company) => company == companyName);
+    // Also remove all sites that belong to this company
+    _sites.removeWhere((site) => site.companyId == companyName);
+    return _companies.length < initialLength; // Return true if company was actually deleted
+  }
+
   Future<List<Map<String, dynamic>>> fetchWorkersForSite(String siteId) async {
     await Future.delayed(const Duration(milliseconds: 500));
     return [

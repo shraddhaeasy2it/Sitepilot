@@ -1,20 +1,23 @@
-import 'package:ecoteam_app/admin/models/machinery_model.dart';
-import 'package:ecoteam_app/admin/services/machinery_services.dart';
+import 'package:ecoteam_app/admin/models/Allmachinery_model.dart';
+import 'package:ecoteam_app/admin/models/MachineryCategory_model.dart';
+import 'package:ecoteam_app/admin/services/Allmachinery_services.dart';
+import 'package:ecoteam_app/admin/services/machineryCategory_services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-
-class AdminMachineryScreen extends StatefulWidget {
-  const AdminMachineryScreen({Key? key}) : super(key: key);
+class AdminAllMachineryScreen extends StatefulWidget {
+  const AdminAllMachineryScreen({Key? key}) : super(key: key);
 
   @override
-  State<AdminMachineryScreen> createState() => _MachineryScreenState();
+  State<AdminAllMachineryScreen> createState() => _MachineryScreenState();
 }
 
-class _MachineryScreenState extends State<AdminMachineryScreen> {
+class _MachineryScreenState extends State<AdminAllMachineryScreen> {
   final MachineryService _machineryService = MachineryService();
-  List<Machinery> _machineries = [];
-  List<Machinery> _filteredMachineries = [];
+  final MachineryCategoryService _categoryService = MachineryCategoryService();
+  List<AllMachinery> _machineries = [];
+  List<AllMachinery> _filteredMachineries = [];
+  List<MachineryCategory> _categories = [];
   bool _isLoading = true;
   String _searchQuery = '';
 
@@ -22,6 +25,7 @@ class _MachineryScreenState extends State<AdminMachineryScreen> {
   void initState() {
     super.initState();
     _loadMachineries();
+    _loadCategories();
   }
 
   Future<void> _loadMachineries() async {
@@ -32,8 +36,8 @@ class _MachineryScreenState extends State<AdminMachineryScreen> {
     try {
       final response = await _machineryService.getMachineries();
       setState(() {
-        _machineries = response.data;
-        _filteredMachineries = response.data;
+        _machineries = response.data.reversed.toList();
+        _filteredMachineries = response.data.reversed.toList();
         _isLoading = false;
       });
     } catch (e) {
@@ -41,6 +45,17 @@ class _MachineryScreenState extends State<AdminMachineryScreen> {
         _isLoading = false;
       });
       _showErrorSnackBar('Failed to load machineries: $e');
+    }
+  }
+
+  Future<void> _loadCategories() async {
+    try {
+      final categories = await _categoryService.getCategories();
+      setState(() {
+        _categories = categories;
+      });
+    } catch (e) {
+      _showErrorSnackBar('Failed to load categories: $e');
     }
   }
 
@@ -74,13 +89,14 @@ class _MachineryScreenState extends State<AdminMachineryScreen> {
           top: 16,
         ),
         child: MachineryFormSheet(
+          categories: _categories,
           onSave: _addMachinery,
         ),
       ),
     );
   }
 
-  void _showEditMachinerySheet(Machinery machinery) {
+  void _showEditMachinerySheet(AllMachinery machinery) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -96,13 +112,14 @@ class _MachineryScreenState extends State<AdminMachineryScreen> {
         ),
         child: MachineryFormSheet(
           machinery: machinery,
+          categories: _categories,
           onSave: _updateMachinery,
         ),
       ),
     );
   }
 
-  void _showMachineryDetailsBottomSheet(Machinery machinery) {
+  void _showMachineryDetailsBottomSheet(AllMachinery machinery) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -261,7 +278,7 @@ class _MachineryScreenState extends State<AdminMachineryScreen> {
     );
   }
 
-  Future<void> _addMachinery(Machinery machinery) async {
+  Future<void> _addMachinery(AllMachinery machinery) async {
     try {
       await _machineryService.createMachinery(machinery);
       _loadMachineries();
@@ -271,7 +288,7 @@ class _MachineryScreenState extends State<AdminMachineryScreen> {
     }
   }
 
-  Future<void> _updateMachinery(Machinery machinery) async {
+  Future<void> _updateMachinery(AllMachinery machinery) async {
     try {
       await _machineryService.updateMachinery(machinery);
       _loadMachineries();
@@ -330,13 +347,19 @@ class _MachineryScreenState extends State<AdminMachineryScreen> {
   }
 
   String _getCategoryName(int categoryId) {
-    final categories = {
-      1: 'Category 1',
-      2: 'Category 2',
-      3: 'Category 3',
-      4: 'Category 4',
-    };
-    return categories[categoryId] ?? 'Unknown Category';
+    final category = _categories.firstWhere(
+      (category) => category.id == categoryId,
+      orElse: () => MachineryCategory(
+        id: 0,
+        name: 'Unknown Category',
+        description: '',
+        createdBy: 0,
+        workspaceId: 0,
+        isActive: 1,
+        status: '0',
+      ),
+    );
+    return category.name;
   }
 
   Color _getStatusColor(String status) {
@@ -357,7 +380,33 @@ class _MachineryScreenState extends State<AdminMachineryScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Machinery Management', style: TextStyle(color: Colors.white)),
-        backgroundColor: const Color(0xFF2a43a0),
+        iconTheme: const IconThemeData(color: Colors.white),
+        toolbarHeight: 80.h,
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            borderRadius: BorderRadius.vertical(
+              bottom: Radius.circular(25),
+            ),
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Color(0xFF4a63c0),
+                Color(0xFF3a53b0),
+                Color(0xFF2a43a0),
+              ],
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black12,
+                blurRadius: 10,
+                offset: Offset(0, 4),
+              ),
+            ],
+          ),
+        ),
         leading: IconButton(
           icon: Icon(
             Icons.arrow_back,
@@ -516,14 +565,15 @@ class _MachineryScreenState extends State<AdminMachineryScreen> {
   }
 }
 
-
 class MachineryFormSheet extends StatefulWidget {
-  final Machinery? machinery;
-  final Function(Machinery) onSave;
+  final AllMachinery? machinery;
+  final List<MachineryCategory> categories;
+  final Function(AllMachinery) onSave;
 
   const MachineryFormSheet({
     Key? key,
     this.machinery,
+    required this.categories,
     required this.onSave,
   }) : super(key: key);
 
@@ -543,17 +593,10 @@ class _MachineryFormSheetState extends State<MachineryFormSheet> {
   late TextEditingController _remarksController;
   late TextEditingController _vehicleNumberController;
 
-  String _selectedCategory = '4';
+  String _selectedCategory = '';
   String _selectedOperationalStatus = 'active';
   DateTime? _selectedPurchaseDate;
   DateTime? _selectedMaintenanceDate;
-
-  final List<Map<String, String>> categories = [
-    {'value': '1', 'label': 'Category 1'},
-    {'value': '2', 'label': 'Category 2'},
-    {'value': '3', 'label': 'Category 3'},
-    {'value': '4', 'label': 'Category 4'},
-  ];
 
   final List<Map<String, String>> operationalStatuses = [
     {'value': 'active', 'label': 'Active'},
@@ -590,6 +633,11 @@ class _MachineryFormSheetState extends State<MachineryFormSheet> {
       if (machinery.maintenanceSchedule.isNotEmpty) {
         _selectedMaintenanceDate = DateTime.tryParse(machinery.maintenanceSchedule);
       }
+    } else {
+      // Set default category if available
+      if (widget.categories.isNotEmpty) {
+        _selectedCategory = widget.categories.first.id.toString();
+      }
     }
   }
 
@@ -625,7 +673,14 @@ class _MachineryFormSheetState extends State<MachineryFormSheet> {
 
   void _saveMachinery() {
     if (_formKey.currentState!.validate()) {
-      final machinery = Machinery(
+      if (_selectedCategory.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please select a category')),
+        );
+        return;
+      }
+
+      final machinery = AllMachinery(
         id: widget.machinery?.id,
         name: _nameController.text,
         categoryId: int.parse(_selectedCategory),
@@ -698,8 +753,10 @@ class _MachineryFormSheetState extends State<MachineryFormSheet> {
                     },
                   ),
                   const SizedBox(height: 12),
+                  
+                  // Category Dropdown
                   DropdownButtonFormField<String>(
-                    value: _selectedCategory,
+                    value: _selectedCategory.isNotEmpty ? _selectedCategory : null,
                     decoration: const InputDecoration(
                       labelText: 'Category',
                       border: OutlineInputBorder(),
@@ -707,10 +764,10 @@ class _MachineryFormSheetState extends State<MachineryFormSheet> {
                       contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                     ),
                     style: const TextStyle(fontSize: 14),
-                    items: categories.map((category) {
+                    items: widget.categories.map((category) {
                       return DropdownMenuItem<String>(
-                        value: category['value'],
-                        child: Text(category['label']!),
+                        value: category.id.toString(),
+                        child: Text(category.name),
                       );
                     }).toList(),
                     onChanged: (value) {
@@ -718,8 +775,15 @@ class _MachineryFormSheetState extends State<MachineryFormSheet> {
                         _selectedCategory = value!;
                       });
                     },
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please select a category';
+                      }
+                      return null;
+                    },
                   ),
                   const SizedBox(height: 12),
+                  
                   TextFormField(
                     controller: _vehicleNumberController,
                     decoration: const InputDecoration(

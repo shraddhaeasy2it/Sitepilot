@@ -1842,7 +1842,7 @@ class _ManpowerCountScreenState extends State<ManpowerCountScreen> {
     final site = widget.sites.firstWhere(
       (site) => site.id == widget.selectedSiteId,
       orElse: () =>
-          Site(id: '', name: 'Unknown Site', address: '', companyId: ''),
+          Site(id: '', name: 'Unknown Site', companyId: ''),
     );
     return site.name;
   }

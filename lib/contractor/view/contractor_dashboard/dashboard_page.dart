@@ -5,6 +5,7 @@ import 'package:ecoteam_app/admin/Screens/Allmachinery_screen.dart';
 import 'package:ecoteam_app/admin/Screens/consumptionLog_screen.dart';
 import 'package:ecoteam_app/admin/Screens/machineryCategory_screen.dart';
 import 'package:ecoteam_app/admin/Screens/Project-site_screen.dart';
+import 'package:ecoteam_app/admin/Screens/manpower_screen.dart';
 import 'package:ecoteam_app/admin/Screens/purchase_invoice_screen.dart';
 import 'package:ecoteam_app/admin/Screens/role_management_page.dart'
     hide AdminColors;
@@ -423,7 +424,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             !site.name.toLowerCase().contains(
                               _searchQuery!.toLowerCase(),
                             ) &&
-                            !site.address.toLowerCase().contains(
+                            !(site.description ?? '').toLowerCase().contains(
                               _searchQuery!.toLowerCase(),
                             )) {
                           return const SizedBox.shrink();
@@ -433,7 +434,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             site.name,
                             style: const TextStyle(fontWeight: FontWeight.w600),
                           ),
-                          subtitle: Text(site.address),
+                          subtitle: Text(site.description ?? 'No description'),
                           onTap: () {
                             _onSiteChanged(site.id);
                             Navigator.pop(context);
@@ -624,7 +625,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                             orElse: () => Site(
                                               id: '',
                                               name: 'Unknown Site',
-                                              address: '',
+                                              companyId: '',
                                             ),
                                           )
                                           .name),
@@ -744,8 +745,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     icon: Icons.people_alt,
                     title: 'HRM Dashboard',
                     onTap: () {
-                      Navigator.pop(context);
-                      _showSnackBar('HRM Dashboard coming soon');
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const HRMDashboard(),
+                        ),
+                      );
                     },
                   ),
                 ],
@@ -886,6 +891,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         );
                       },
                     ),
+                     _buildNestedSubDrawerItem(
+                      icon: Icons.category,
+                      title: 'Manpower Type',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ManpowerTypesScreen(),
+                          ),
+                        );
+                      },
+                    ),
                   ],
 
                   // Assets Sub-section
@@ -998,12 +1015,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       icon: Icons.list,
                       title: 'Consumption Log',
                       onTap: () {
-                        // Navigator.push(
-                        //   context,
-                        //   MaterialPageRoute(
-                        //     builder: (context) => const ConsumptionLogPage(),
-                        //   ),
-                        // );
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const ConsumptionLogPage(),
+                          ),
+                        );
                       },
                     ),
                     
@@ -1375,7 +1392,8 @@ class _SitesManagementModalState extends State<SitesManagementModal> {
       final newSite = Site(
         id: 'site$nextId',
         name: _siteNameController.text.trim(),
-        address: _siteAddressController.text.trim(),
+        companyId: '',
+        description: _siteAddressController.text.trim(),
       );
       final success = await ApiService().addSite(newSite);
       if (success) {
@@ -1747,7 +1765,7 @@ class _SitesManagementModalState extends State<SitesManagementModal> {
                               ),
                             ),
                             subtitle: Text(
-                              site.address,
+                              site.description ?? 'No description',
                               style: const TextStyle(
                                 color: Color(0xFF6B7280),
                                 fontSize: 14,

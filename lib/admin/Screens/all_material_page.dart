@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:ecoteam_app/contractor/services/api_service_login.dart';
 
 // Material Model based on API response
 class MaterialItem {
@@ -683,7 +684,7 @@ class _AdminAllMaterialPageState extends State<AdminAllMaterialPage> {
     return 'MAT$timestamp';
   }
 
-  void _showAddMaterialBottomSheet() {
+  void _showAddMaterialBottomSheet() async {
     final TextEditingController nameController = TextEditingController();
     final TextEditingController skuController = TextEditingController();
     final TextEditingController descriptionController = TextEditingController();
@@ -937,6 +938,7 @@ class _AdminAllMaterialPageState extends State<AdminAllMaterialPage> {
                         }
 
                         try {
+                          final userId = await ApiService.getCurrentUserId();
                           final newMaterial = MaterialItem(
                             id: 0,
                             name: name,
@@ -948,7 +950,7 @@ class _AdminAllMaterialPageState extends State<AdminAllMaterialPage> {
                             reorderLevel: reorder,
                             status: status,
                             siteId: 1,
-                            createdBy: 1,
+                            createdBy: userId,
                             workspaceId: 1,
                             createdAt: DateTime.now().toIso8601String(),
                             updatedAt: DateTime.now().toIso8601String(),
@@ -964,7 +966,7 @@ class _AdminAllMaterialPageState extends State<AdminAllMaterialPage> {
                               id: selectedCategoryId!,
                               name: 'Unknown',
                               isActive: 1,
-                              createdBy: 1,
+                              createdBy: userId,
                               workspaceId: 1,
                               status: '0',
                               createdAt: DateTime.now().toIso8601String(),

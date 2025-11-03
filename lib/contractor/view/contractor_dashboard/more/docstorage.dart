@@ -464,7 +464,7 @@ class _DocumentStorageScreenState extends State<DocumentStorageScreen>
     final site = _sites.firstWhere(
       (site) => site.id == _selectedSiteId,
       orElse: () =>
-          Site(id: '', name: 'Unknown Site', address: '', companyId: ''),
+          Site(id: '', name: 'Unknown Site', companyId: ''),
     );
     return site.name;
   }

@@ -97,7 +97,7 @@ class SiteProvider with ChangeNotifier {
       try {
         final site = _companySiteProvider!.allSites.firstWhere(
           (site) => site.name == siteName,
-          orElse: () => Site(id: '', name: '', address: '', companyId: ''),
+          orElse: () => Site(id: '', name: '', companyId: ''),
         );
         return site.id.isNotEmpty ? site.id : null;
       } catch (e) {

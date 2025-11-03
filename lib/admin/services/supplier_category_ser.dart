@@ -2,6 +2,7 @@
 import 'dart:convert';
 import 'package:ecoteam_app/admin/models/supplier_categary_model.dart';
 import 'package:http/http.dart' as http;
+import 'package:ecoteam_app/contractor/services/api_service_login.dart';
 
 class SupplierCategoryService {
   static const String baseUrl = 'http://sitepilot.easy2it.in/api';
@@ -45,7 +46,7 @@ class SupplierCategoryService {
         'description': category.description ?? '',
         'is_active': category.isActive, // This should be int (1 or 0)
         'site_id': category.siteId ?? 1, // Provide default value
-        'created_by': category.createdBy,
+        'created_by': await ApiService.getCurrentUserId(),
         'workspace_id': category.workspaceId,
         'status': category.status,
       };
@@ -106,7 +107,7 @@ class SupplierCategoryService {
         'description': category.description ?? '',
         'is_active': category.isActive,
         'site_id': category.siteId,
-        'created_by': category.createdBy,
+        'created_by': await ApiService.getCurrentUserId(),
         'workspace_id': category.workspaceId,
         'status': category.status,
       };

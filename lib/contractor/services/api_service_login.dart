@@ -59,7 +59,18 @@ class ApiService {
     }
     if (data['user'] != null) {
       await prefs.setString('user_data', jsonEncode(data['user']));
+      // Extract and save user ID for created_by fields
+      final user = data['user'];
+      if (user['id'] != null) {
+        await prefs.setInt('user_id', user['id'] is int ? user['id'] : int.tryParse(user['id'].toString()) ?? 0);
+      }
     }
+  }
+
+  // Utility method to get current user ID
+  static Future<int> getCurrentUserId() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt('user_id') ?? 0;
   }
 
   // Get all items

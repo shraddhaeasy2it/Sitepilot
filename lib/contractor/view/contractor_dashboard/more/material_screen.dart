@@ -109,7 +109,7 @@ class _MaterialScreenState extends State<MaterialScreen> {
     final site = widget.sites.firstWhere(
       (site) => site.id == widget.selectedSiteId,
       orElse: () =>
-          Site(id: '', name: 'Unknown Site', address: '', companyId: ''),
+          Site(id: '', name: 'Unknown Site', companyId: ''),
     );
     return site.name;
   }
@@ -871,7 +871,7 @@ class _MaterialScreenState extends State<MaterialScreen> {
         .firstWhere(
           (site) => site.id == siteId,
           orElse: () =>
-              Site(id: '', name: 'Unknown Site', address: '', companyId: ''),
+              Site(id: '', name: 'Unknown Site', companyId: ''),
         )
         .name;
   }

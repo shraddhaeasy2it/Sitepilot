@@ -334,7 +334,7 @@ class _TaskPageState extends State<TaskPage> {
   Widget _buildTaskItem(Task task) {
   final site = widget.sites.firstWhere(
     (s) => s.id == task.siteId,
-    orElse: () => Site(id: '', name: 'Unknown Site', address: '', companyId: ''),
+    orElse: () => Site(id: '', name: 'Unknown Site', companyId: ''),
   );
 
   return Card(

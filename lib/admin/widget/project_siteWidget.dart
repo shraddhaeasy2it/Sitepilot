@@ -1,6 +1,7 @@
-import 'package:ecoteam_app/admin/models/project_site_model.dart';
+// project_site_widget.dart
 import 'package:flutter/material.dart';
-
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:ecoteam_app/admin/models/project_site_model.dart';
 
 class ProjectCard extends StatelessWidget {
   final Project project;
@@ -28,10 +29,14 @@ class ProjectCard extends StatelessWidget {
   Widget _buildGridCard() {
     return Card(
       elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12.r),
+      ),
       child: InkWell(
         onTap: onTap,
+        borderRadius: BorderRadius.circular(12.r),
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: EdgeInsets.all(16.h),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -39,67 +44,74 @@ class ProjectCard extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
                     decoration: BoxDecoration(
-                      color: project.status == ProjectStatus.ongoing 
-                          ? Colors.green.withOpacity(0.2)
-                          : Colors.blue.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(4),
+                      color: project.statusColor.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(4.r),
                     ),
                     child: Text(
                       project.statusText,
                       style: TextStyle(
-                        color: project.status == ProjectStatus.ongoing 
-                            ? Colors.green
-                            : Colors.blue,
+                        color: project.statusColor,
                         fontWeight: FontWeight.bold,
-                        fontSize: 12,
+                        fontSize: 10.sp,
                       ),
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.more_vert, size: 20),
+                    icon: Icon(Icons.more_vert, size: 18.sp),
                     onPressed: onMoreVert,
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: 8.h),
               Text(
                 project.name,
-                style: const TextStyle(
+                style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  fontSize: 16,
+                  fontSize: 14.sp,
                 ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: 4.h),
               Text(
-                project.dueDate,
-                style: const TextStyle(
-                  fontSize: 12,
+                project.companyName,
+                style: TextStyle(
+                  fontSize: 11.sp,
+                  color: Colors.grey.shade600,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              SizedBox(height: 8.h),
+              Text(
+                '${project.startDate.day.toString().padLeft(2, '0')}/${project.startDate.month.toString().padLeft(2, '0')}/${project.startDate.year} - ${project.endDate.day.toString().padLeft(2, '0')}/${project.endDate.month.toString().padLeft(2, '0')}/${project.endDate.year}',
+                style: TextStyle(
+                  fontSize: 10.sp,
                   color: Colors.grey,
                 ),
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: 8.h),
               Row(
                 children: [
-                  const Icon(Icons.people_outline, size: 16),
-                  const SizedBox(width: 4),
+                  Icon(Icons.people_outline, size: 14.sp),
+                  SizedBox(width: 4.w),
                   Text(
                     '${project.members.length} Members',
-                    style: const TextStyle(fontSize: 12),
+                    style: TextStyle(fontSize: 10.sp),
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: 8.h),
               Text(
-                'INR ${_formatBudget(project.budget)}',
-                style: const TextStyle(
+                '₹ ${_formatBudget(project.budget)}',
+                style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  color: Colors.blue,
+                  color: const Color(0xFF4a63c0),
+                  fontSize: 12.sp,
                 ),
               ),
             ],
@@ -112,10 +124,14 @@ class ProjectCard extends StatelessWidget {
   Widget _buildListCard() {
     return Card(
       elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12.r),
+      ),
       child: InkWell(
         onTap: onTap,
+        borderRadius: BorderRadius.circular(12.r),
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: EdgeInsets.all(16.h),
           child: Row(
             children: [
               Expanded(
@@ -125,69 +141,85 @@ class ProjectCard extends StatelessWidget {
                     Row(
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
                           decoration: BoxDecoration(
-                            color: project.status == ProjectStatus.ongoing 
-                                ? Colors.green.withOpacity(0.2)
-                                : Colors.blue.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(4),
+                            color: project.statusColor.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(4.r),
                           ),
                           child: Text(
                             project.statusText,
                             style: TextStyle(
-                              color: project.status == ProjectStatus.ongoing 
-                                  ? Colors.green
-                                  : Colors.blue,
+                              color: project.statusColor,
                               fontWeight: FontWeight.bold,
-                              fontSize: 12,
+                              fontSize: 10.sp,
                             ),
                           ),
                         ),
-                        const Spacer(),
-                        IconButton(
-                          icon: const Icon(Icons.more_vert, size: 20),
-                          onPressed: onMoreVert,
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
+                        SizedBox(width: 8.w),
+                        Expanded(
+                          child: Text(
+                            project.companyName,
+                            style: TextStyle(
+                              fontSize: 11.sp,
+                              color: Colors.grey.shade600,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
+                    SizedBox(height: 8.h),
                     Text(
                       project.name,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.bold,
-                        fontSize: 16,
+                        fontSize: 16.sp,
                       ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 4),
+                    SizedBox(height: 4.h),
                     Text(
-                      project.dueDate,
-                      style: const TextStyle(
-                        fontSize: 12,
+                      '${project.startDate.day.toString().padLeft(2, '0')}/${project.startDate.month.toString().padLeft(2, '0')}/${project.startDate.year} - ${project.endDate.day.toString().padLeft(2, '0')}/${project.endDate.month.toString().padLeft(2, '0')}/${project.endDate.year}',
+                      style: TextStyle(
+                        fontSize: 11.sp,
                         color: Colors.grey,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    SizedBox(height: 4.h),
                     Row(
                       children: [
-                        const Icon(Icons.people_outline, size: 16),
-                        const SizedBox(width: 4),
+                        Icon(Icons.people_outline, size: 14.sp),
+                        SizedBox(width: 4.w),
                         Text(
                           '${project.members.length} Members',
-                          style: const TextStyle(fontSize: 12),
+                          style: TextStyle(fontSize: 11.sp),
                         ),
                       ],
                     ),
                   ],
                 ),
               ),
-              Text(
-                'INR ${_formatBudget(project.budget)}',
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.blue,
-                ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  IconButton(
+                    icon: Icon(Icons.more_vert, size: 18.sp),
+                    onPressed: onMoreVert,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                  SizedBox(height: 8.h),
+                  Text(
+                    '₹ ${_formatBudget(project.budget)}',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF4a63c0),
+                      fontSize: 14.sp,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -214,90 +246,136 @@ class ProjectDetailsBottomSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Center(
-            child: Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(2),
+    return SingleChildScrollView(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: Container(
+        padding: EdgeInsets.all(24.h),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 60.w,
+                height: 4.h,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2.r),
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                project.name,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: project.status == ProjectStatus.ongoing 
-                      ? Colors.green.withOpacity(0.2)
-                      : Colors.blue.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  project.statusText,
-                  style: TextStyle(
-                    color: project.status == ProjectStatus.ongoing 
-                        ? Colors.green
-                        : Colors.blue,
-                    fontWeight: FontWeight.bold,
+            SizedBox(height: 24.h),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    project.name,
+                    style: TextStyle(
+                      fontSize: 22.sp,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+                  decoration: BoxDecoration(
+                    color: project.statusColor.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(8.r),
+                  ),
+                  child: Text(
+                    project.statusText,
+                    style: TextStyle(
+                      color: project.statusColor,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12.sp,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 8.h),
+            Text(
+              project.companyName,
+              style: TextStyle(
+                fontSize: 16.sp,
+                color: Colors.grey.shade600,
               ),
-            ],
-          ),
-          const SizedBox(height: 16),
+            ),
+            SizedBox(height: 24.h),
+            _buildDetailRow('Budget', '₹ ${_formatBudget(project.budget)}'),
+            _buildDetailRow('Start Date', _formatDate(project.startDate)),
+            _buildDetailRow('End Date', _formatDate(project.endDate)),
+            SizedBox(height: 16.h),
+            Text(
+              'Description:',
+              style: TextStyle(
+                fontSize: 16.sp,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            SizedBox(height: 8.h),
+            Text(
+              project.description,
+              style: TextStyle(fontSize: 14.sp),
+            ),
+            SizedBox(height: 16.h),
+            Text(
+              'Members:',
+              style: TextStyle(
+                fontSize: 16.sp,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            SizedBox(height: 8.h),
+            Wrap(
+              spacing: 8.w,
+              children: project.members.map((member) => Chip(
+                label: Text(member),
+                backgroundColor: const Color(0xFF4a63c0).withOpacity(0.1),
+              )).toList(),
+            ),
+            SizedBox(height: 24.h),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value) {
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 8.h),
+      child: Row(
+        children: [
           Text(
-            'Budget: INR ${_formatBudget(project.budget)}',
-            style: const TextStyle(fontSize: 16),
+            '$label: ',
+            style: TextStyle(
+              fontSize: 14.sp,
+              fontWeight: FontWeight.w500,
+            ),
           ),
-          const SizedBox(height: 12),
           Text(
-            'Start Date: ${project.startDate.month.toString().padLeft(2, '0')}/${project.startDate.day.toString().padLeft(2, '0')}/${project.startDate.year}',
-            style: const TextStyle(fontSize: 16),
+            value,
+            style: TextStyle(
+              fontSize: 14.sp,
+              color: Colors.grey.shade700,
+            ),
           ),
-          const SizedBox(height: 12),
-          Text(
-            'End Date: ${project.endDate.month.toString().padLeft(2, '0')}/${project.endDate.day.toString().padLeft(2, '0')}/${project.endDate.year}',
-            style: const TextStyle(fontSize: 16),
-          ),
-          const SizedBox(height: 12),
-          const Text(
-            'Description:',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
-          Text(project.description),
-          const SizedBox(height: 12),
-          const Text(
-            'Members:',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
-          Wrap(
-            spacing: 8,
-            children: project.members.map((member) => Chip(
-              label: Text(member),
-              backgroundColor: Colors.blue.withOpacity(0.1),
-            )).toList(),
-          ),
-          const SizedBox(height: 20),
         ],
       ),
     );
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
   }
 
   String _formatBudget(double budget) {
@@ -326,16 +404,14 @@ class ProjectOptionsPopup extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16.0),
+      padding: EdgeInsets.all(16.h),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _buildOptionItem(Icons.person_add, 'Invite Users', () {}),
-          _buildOptionItem(Icons.share, 'Share to Clients', () {}),
           _buildOptionItem(Icons.edit, 'Edit', onEdit),
           _buildOptionItem(Icons.content_copy, 'Duplicate', () {}),
           _buildOptionItem(Icons.delete, 'Delete', onDelete, isDelete: true),
-          const SizedBox(height: 20),
+          SizedBox(height: 16.h),
         ],
       ),
     );
@@ -343,489 +419,10 @@ class ProjectOptionsPopup extends StatelessWidget {
 
   Widget _buildOptionItem(IconData icon, String text, VoidCallback onTap, {bool isDelete = false}) {
     return ListTile(
-      leading: Icon(icon, color: isDelete ? Colors.red : null),
-      title: Text(text, style: TextStyle(color: isDelete ? Colors.red : null)),
+      leading: Icon(icon, color: isDelete ? Colors.red : const Color(0xFF4a63c0)),
+      title: Text(text, style: TextStyle(color: isDelete ? Colors.red : Colors.black87)),
       onTap: onTap,
+      contentPadding: EdgeInsets.zero,
     );
-  }
-}
-
-class CreateProjectBottomSheet extends StatefulWidget {
-  final Function(Project) onProjectCreated;
-
-  const CreateProjectBottomSheet({super.key, required this.onProjectCreated});
-
-  @override
-  State<CreateProjectBottomSheet> createState() => _CreateProjectBottomSheetState();
-}
-
-class _CreateProjectBottomSheetState extends State<CreateProjectBottomSheet> {
-  final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  final _descriptionController = TextEditingController();
-  final _budgetController = TextEditingController();
-  DateTime? _startDate;
-  DateTime? _endDate;
-  ProjectStatus _status = ProjectStatus.ongoing;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Form(
-        key: _formKey,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Create Project / Site',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _nameController,
-              decoration: const InputDecoration(
-                labelText: 'Name*',
-                border: OutlineInputBorder(),
-              ),
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Please enter project name';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-            DropdownButtonFormField<ProjectStatus>(
-              value: _status,
-              decoration: const InputDecoration(
-                labelText: 'Status',
-                border: OutlineInputBorder(),
-              ),
-              items: const [
-                DropdownMenuItem(
-                  value: ProjectStatus.ongoing,
-                  child: Text('Ongoing'),
-                ),
-                DropdownMenuItem(
-                  value: ProjectStatus.completed,
-                  child: Text('Completed'),
-                ),
-              ],
-              onChanged: (value) {
-                setState(() {
-                  _status = value!;
-                });
-              },
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _budgetController,
-              decoration: const InputDecoration(
-                labelText: 'Budget (INR)*',
-                border: OutlineInputBorder(),
-                prefixText: 'INR ',
-              ),
-              keyboardType: TextInputType.number,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Please enter budget';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: InkWell(
-                    onTap: () => _selectStartDate(context),
-                    child: InputDecorator(
-                      decoration: const InputDecoration(
-                        labelText: 'Start Date*',
-                        border: OutlineInputBorder(),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            _startDate != null
-                                ? '${_startDate!.month}/${_startDate!.day}/${_startDate!.year}'
-                                : 'mm/dd/yyyy',
-                          ),
-                          const Icon(Icons.calendar_today),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: InkWell(
-                    onTap: () => _selectEndDate(context),
-                    child: InputDecorator(
-                      decoration: const InputDecoration(
-                        labelText: 'End Date*',
-                        border: OutlineInputBorder(),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            _endDate != null
-                                ? '${_endDate!.month}/${_endDate!.day}/${_endDate!.year}'
-                                : 'mm/dd/yyyy',
-                          ),
-                          const Icon(Icons.calendar_today),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _descriptionController,
-              decoration: const InputDecoration(
-                labelText: 'Description*',
-                border: OutlineInputBorder(),
-              ),
-              maxLines: 3,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Please enter description';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 24),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('Cancel'),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: _createProject,
-                    child: const Text('Create'),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _selectStartDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2100),
-    );
-    if (picked != null) {
-      setState(() {
-        _startDate = picked;
-      });
-    }
-  }
-
-  Future<void> _selectEndDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: _startDate ?? DateTime.now(),
-      firstDate: _startDate ?? DateTime.now(),
-      lastDate: DateTime(2100),
-    );
-    if (picked != null) {
-      setState(() {
-        _endDate = picked;
-      });
-    }
-  }
-
-  void _createProject() {
-    if (_formKey.currentState!.validate() && _startDate != null && _endDate != null) {
-      final newProject = Project(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
-        name: _nameController.text,
-        status: _status,
-        budget: double.parse(_budgetController.text),
-        startDate: _startDate!,
-        endDate: _endDate!,
-        description: _descriptionController.text,
-        members: [],
-      );
-      widget.onProjectCreated(newProject);
-    }
-  }
-}
-
-class EditProjectBottomSheet extends StatefulWidget {
-  final Project project;
-  final Function(Project) onProjectUpdated;
-
-  const EditProjectBottomSheet({
-    super.key,
-    required this.project,
-    required this.onProjectUpdated,
-  });
-
-  @override
-  State<EditProjectBottomSheet> createState() => _EditProjectBottomSheetState();
-}
-
-class _EditProjectBottomSheetState extends State<EditProjectBottomSheet> {
-  final _formKey = GlobalKey<FormState>();
-  late TextEditingController _nameController;
-  late TextEditingController _budgetController;
-  late TextEditingController _descriptionController;
-  late DateTime _startDate;
-  late DateTime _endDate;
-  late ProjectStatus _status;
-
-  @override
-  void initState() {
-    super.initState();
-    _nameController = TextEditingController(text: widget.project.name);
-    _budgetController = TextEditingController(text: widget.project.budget.toString());
-    _descriptionController = TextEditingController(text: widget.project.description);
-    _startDate = widget.project.startDate;
-    _endDate = widget.project.endDate;
-    _status = widget.project.status;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Form(
-        key: _formKey,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Edit Project / Site',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _nameController,
-              decoration: const InputDecoration(
-                labelText: 'Name*',
-                border: OutlineInputBorder(),
-              ),
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Please enter project name';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: DropdownButtonFormField<ProjectStatus>(
-                    value: _status,
-                    decoration: const InputDecoration(
-                      labelText: 'Status',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: const [
-                      DropdownMenuItem(
-                        value: ProjectStatus.ongoing,
-                        child: Text('Ongoing'),
-                      ),
-                      DropdownMenuItem(
-                        value: ProjectStatus.completed,
-                        child: Text('Completed'),
-                      ),
-                    ],
-                    onChanged: (value) {
-                      setState(() {
-                        _status = value!;
-                      });
-                    },
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: TextFormField(
-                    controller: _budgetController,
-                    decoration: const InputDecoration(
-                      labelText: 'Budget*',
-                      border: OutlineInputBorder(),
-                      prefixText: 'INR ',
-                    ),
-                    keyboardType: TextInputType.number,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter budget';
-                      }
-                      return null;
-                    },
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: InkWell(
-                    onTap: () => _selectStartDate(context),
-                    child: InputDecorator(
-                      decoration: const InputDecoration(
-                        labelText: 'Start Date*',
-                        border: OutlineInputBorder(),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            '${_startDate.month.toString().padLeft(2, '0')}/${_startDate.day.toString().padLeft(2, '0')}/${_startDate.year}',
-                          ),
-                          const Icon(Icons.calendar_today),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: InkWell(
-                    onTap: () => _selectEndDate(context),
-                    child: InputDecorator(
-                      decoration: const InputDecoration(
-                        labelText: 'End Date*',
-                        border: OutlineInputBorder(),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            '${_endDate.month.toString().padLeft(2, '0')}/${_endDate.day.toString().padLeft(2, '0')}/${_endDate.year}',
-                          ),
-                          const Icon(Icons.calendar_today),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _descriptionController,
-              decoration: const InputDecoration(
-                labelText: 'Description*',
-                border: OutlineInputBorder(),
-              ),
-              maxLines: 3,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Please enter description';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 24),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('Cancel'),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: _updateProject,
-                    child: const Text('Update'),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _selectStartDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: _startDate,
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2100),
-    );
-    if (picked != null) {
-      setState(() {
-        _startDate = picked;
-      });
-    }
-  }
-
-  Future<void> _selectEndDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: _endDate,
-      firstDate: _startDate,
-      lastDate: DateTime(2100),
-    );
-    if (picked != null) {
-      setState(() {
-        _endDate = picked;
-      });
-    }
-  }
-
-  void _updateProject() {
-    if (_formKey.currentState!.validate()) {
-      final updatedProject = widget.project.copyWith(
-        name: _nameController.text,
-        status: _status,
-        budget: double.parse(_budgetController.text),
-        startDate: _startDate,
-        endDate: _endDate,
-        description: _descriptionController.text,
-      );
-      widget.onProjectUpdated(updatedProject);
-    }
   }
 }

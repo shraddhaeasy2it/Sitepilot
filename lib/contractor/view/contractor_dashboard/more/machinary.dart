@@ -62,7 +62,7 @@ class _MachineryScreenState extends State<MachineryScreen>
     }
     final site = widget.sites.firstWhere(
       (site) => site.id == widget.selectedSiteId,
-      orElse: () => Site(id: '', name: '', address: '', companyId: ''),
+      orElse: () => Site(id: '', name: '', companyId: ''),
     );
     return site.name.isNotEmpty ? site.name : null;
   }
@@ -880,7 +880,7 @@ class _MachineryScreenState extends State<MachineryScreen>
     final site = widget.sites.firstWhere(
       (site) => site.id == widget.selectedSiteId,
       orElse: () =>
-          Site(id: '', name: 'Unknown Site', address: '', companyId: ''),
+          Site(id: '', name: 'Unknown Site', companyId: ''),
     );
     return site.name;
   }

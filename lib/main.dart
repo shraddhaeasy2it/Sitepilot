@@ -126,6 +126,7 @@
 //   }
 // }
 
+import 'package:ecoteam_app/admin/provider/project_site_provider.dart';
 import 'package:ecoteam_app/admin/services/admin_role_provider.dart';
 import 'package:ecoteam_app/admin/services/admin_user_provider.dart';
 import 'package:ecoteam_app/admin/provider/unit_provider.dart';
@@ -142,6 +143,7 @@ import 'package:ecoteam_app/contractor/services/company_site_provider.dart';
 import 'package:ecoteam_app/contractor/services/site_provider.dart';
 import 'package:ecoteam_app/contractor/view/contractor_dashboard/dashboard_page.dart';
 import 'package:ecoteam_app/contractor/view/contractor_dashboard/home_page.dart';
+import 'package:ecoteam_app/contractor/view/landing_page/splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
@@ -180,6 +182,7 @@ void main() {
         ChangeNotifierProvider(create: (_) => FuelUsageProvider()),
         ChangeNotifierProvider(create: (_) => CompanySiteProvider()),
         ChangeNotifierProvider(create: (_) => MaterialCategoryProvider()),
+        ChangeNotifierProvider(create: (_) => ProjectSiteProvider()),
       
         ChangeNotifierProvider<SiteProvider>(
           create: (context) {

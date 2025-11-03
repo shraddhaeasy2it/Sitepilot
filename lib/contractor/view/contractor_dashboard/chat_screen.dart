@@ -750,7 +750,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     final site = widget.sites.firstWhere(
       (site) => site.id == widget.selectedSiteId,
       orElse: () =>
-          Site(id: '', name: 'Unknown Site', address: '', companyId: ''),
+          Site(id: '', name: 'Unknown Site', companyId: ''),
     );
     return site.name;
   }
@@ -810,7 +810,8 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                                             orElse: () => Site(
                                               id: '',
                                               name: 'Unknown Site',
-                                              address: '',
+                                              description: '',
+                                              companyId: '',
                                             ),
                                           )
                                           .name),
@@ -1555,11 +1556,12 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                         prefixIcon: Icon(Icons.business, size: 20.sp),
                       ),
                       items: companyProvider.companies.map((company) {
-                        return DropdownMenuItem(
-                          value: company,
-                          child: Text(company),
-                        );
-                      }).toList(),
+  final companyName = company['name'] as String;
+  return DropdownMenuItem(
+    value: companyName,
+    child: Text(companyName),
+  );
+}).toList(),
                       onChanged: (value) {
                         setState(() {
                           selectedInvitedCompany = value;

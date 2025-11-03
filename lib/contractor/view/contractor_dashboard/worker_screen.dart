@@ -219,7 +219,7 @@ class _WorkersScreenState extends State<WorkersScreen>
                                   orElse: () => Site(
                                     id: '',
                                     name: 'Unknown Site',
-                                    address: '',
+                                    companyId: ''
                                   ),
                                 )
                                 .name),

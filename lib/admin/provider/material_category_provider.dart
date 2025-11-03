@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../models/material_category_model.dart';
+import 'package:ecoteam_app/contractor/services/api_service_login.dart';
 
 class MaterialCategoryProvider with ChangeNotifier {
   List<MaterialCategory> _categories = [];
@@ -92,7 +93,7 @@ class MaterialCategoryProvider with ChangeNotifier {
         'name': name,
         'is_active': 1,
         'site_id': 1,
-        'created_by': 1,
+        'created_by': await ApiService.getCurrentUserId(),
         'workspace_id': 1,
         'status': '0',
       };

@@ -26,8 +26,9 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   bool _isGridView = false;
 
-  List<String> get companies => _companyProvider.companies;
-  String? currentCompany;
+  List<Map<String, dynamic>> get companies => _companyProvider.companies;
+  String? currentCompanyId;
+  String? currentCompanyName;
 
   List<SiteData> get sites {
     final providerSites = _companyProvider.sites;
@@ -40,13 +41,13 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
           name: site.name,
           imageUrl: 'assets/building.jpg',
           imageBytes: _siteImages[site.id],
-          status: 'Active',
-          progress: 0.25,
+          status: site.status,
+          progress: site.progress,
           onProgressTap: () =>
               _showProgressUpdateBottomSheet(_siteDataMap[site.id]!),
-          startDate: '2023-05-10',
-          endDate: '2023-11-30',
-          address: site.address,
+          startDate: site.startDate,
+          endDate: site.endDate,
+          address: site.description ?? site.name,
           companyId: site.companyId,
         );
         _siteDataMap[site.id] = newSiteData;
@@ -59,17 +60,55 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
   void initState() {
     super.initState();
     _companyProvider = Provider.of<CompanySiteProvider>(context, listen: false);
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (_companyProvider.companies.isEmpty) {
-        await _companyProvider.loadCompanies();
-      }
+    _initializeData();
+  }
+
+  Future<void> _initializeData() async {
+    try {
+      await _companyProvider.loadCompanies();
+
       if (_companyProvider.companies.isNotEmpty) {
         setState(() {
-          currentCompany = _companyProvider.companies.first;
-          _companyProvider.selectCompany(currentCompany!);
+          currentCompanyId = _companyProvider.selectedCompanyId;
+          currentCompanyName = _companyProvider.selectedCompanyName;
         });
       }
-    });
+    } catch (e) {
+      print('Error initializing data: $e');
+      _showSnackBar('Failed to load data: $e', Colors.red);
+    }
+  }
+
+  // ADD THIS REFRESH METHOD
+  void _refreshData() {
+    try {
+      final provider = Provider.of<CompanySiteProvider>(context, listen: false);
+      provider.refreshCompanies();
+
+      // Show loading state
+      setState(() {});
+
+      _showSnackBar('Refreshing data...', Colors.blue);
+
+      // Optional: Wait a bit and show success message
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted) {
+          _showSnackBar('Data refreshed successfully!', Colors.green);
+        }
+      });
+    } catch (e) {
+      _showSnackBar('Failed to refresh data: $e', Colors.red);
+    }
+  }
+
+  void _showSnackBar(String message, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: color,
+        duration: const Duration(seconds: 3),
+      ),
+    );
   }
 
   void _navigateToDashboard(SiteData selectedSite) {
@@ -80,25 +119,28 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
       final site = Site(
         id: selectedSite.id,
         name: selectedSite.name,
-        address: selectedSite.address,
         companyId: selectedSite.companyId.isEmpty
-            ? currentCompany ?? ''
+            ? currentCompanyId ?? ''
             : selectedSite.companyId,
+        status: selectedSite.status,
+        startDate: selectedSite.startDate,
+        endDate: selectedSite.endDate,
+        budget: 0.0,
+        progress: selectedSite.progress,
       );
       Navigator.push(
         context,
         MaterialPageRoute(
           builder: (context) => DashboardScreen(
             selectedSite: site,
-            companyName: currentCompany ?? 'No Company Selected',
+            companyName: currentCompanyName ?? 'No Company Selected',
           ),
         ),
       );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error navigating to dashboard: ${e.toString()}'),
-        ),
+      _showSnackBar(
+        'Error navigating to dashboard: ${e.toString()}',
+        Colors.red,
       );
       debugPrint('Navigation error: ${e.toString()}');
     }
@@ -115,7 +157,7 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
             debugPrint('Site changed to: $siteId');
           },
           sites: siteList,
-          currentCompany: currentCompany,
+          currentCompany: currentCompanyName,
         ),
       ),
     );
@@ -201,7 +243,6 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                         ),
                       ],
                     ),
-
                     SizedBox(height: 30.h),
                     Slider(
                       value: newProgress,
@@ -212,7 +253,7 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                       inactiveColor: Colors.grey.shade300,
                       onChanged: (value) {
                         setModalState(() {
-                          newProgress = value; // updates UI in bottom sheet
+                          newProgress = value;
                         });
                       },
                     ),
@@ -255,13 +296,9 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                                   );
                                 });
                                 Navigator.pop(context);
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      'Progress updated to ${(newProgress * 100).round()}%',
-                                    ),
-                                    backgroundColor: Colors.green,
-                                  ),
+                                _showSnackBar(
+                                  'Progress updated to ${(newProgress * 100).round()}%',
+                                  Colors.green,
                                 );
                               },
                               style: ElevatedButton.styleFrom(
@@ -306,7 +343,6 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
   @override
   Widget build(BuildContext context) {
     final companyProvider = Provider.of<CompanySiteProvider>(context);
-    final isLoading = companyProvider.companies.isEmpty;
 
     return Scaffold(
       key: _scaffoldKey,
@@ -315,7 +351,6 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
         preferredSize: const Size.fromHeight(80),
         child: AppBar(
           backgroundColor: Colors.transparent,
-
           elevation: 0,
           flexibleSpace: ClipRRect(
             borderRadius: const BorderRadius.vertical(
@@ -348,7 +383,7 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                     children: [
                       Icon(Icons.business, color: Colors.white70, size: 21.w),
                       SizedBox(width: 10.w),
-                      if (isLoading)
+                      if (companyProvider.isLoading)
                         SizedBox(
                           width: 150.w,
                           child: Row(
@@ -379,6 +414,7 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                   ),
                 ),
                 actions: [
+                  // REFRESH BUTTON - FIXED
                   IconButton(
                     icon: const FaIcon(FontAwesomeIcons.bell, size: 20),
                     tooltip: 'Notifications',
@@ -386,23 +422,20 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) =>
-                              const NotificationScreen(), // Removed isSmallMobile parameter
+                          builder: (context) => const NotificationScreen(),
                         ),
                       );
                     },
                     color: Colors.white,
                   ),
-                  const SizedBox(width: 2),
                   IconButton(
                     tooltip: 'Chat',
                     onPressed: _navigateToChatScreen,
                     icon: const FaIcon(FontAwesomeIcons.commentDots, size: 20),
                     color: Colors.white,
                   ),
-                  const SizedBox(width: 5),
+                  SizedBox(width: 4.w),
                   GestureDetector(
-                    
                     onTap: () {
                       Navigator.push(
                         context,
@@ -417,7 +450,7 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                       radius: 18,
                     ),
                   ),
-                  const SizedBox(width: 16),
+                  SizedBox(width: 15.h),
                 ],
                 iconTheme: const IconThemeData(color: Colors.white),
               ),
@@ -425,21 +458,42 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
           ),
         ),
       ),
-      body: Column(
-        children: [
-          Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 15.h,),
+      body: companyProvider.isLoading && companies.isEmpty
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      Color(0xFF4a63c0),
+                    ),
+                  ),
+                  SizedBox(height: 20.h),
+                  Text(
+                    'Loading companies...',
+                    style: TextStyle(fontSize: 16.sp, color: Color(0xFF4a63c0)),
+                  ),
+                ],
+              ),
+            )
+          : Column(
+              children: [
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 13.h),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
                       ElevatedButton.icon(
                         onPressed: _showAddCompanyBottomSheet,
-                        
+                        icon: Icon(Icons.add, size: 20),
                         label: Text('Add Company'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Color(0xFF4a63c0),
                           foregroundColor: Colors.white,
-                          padding: EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 3,
+                          ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(15),
                           ),
@@ -448,149 +502,246 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                     ],
                   ),
                 ),
-          Padding(
-            padding: EdgeInsets.all(20.h),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                Padding(
+                  padding: EdgeInsets.all(17.h),
+                  child: Row(
                     children: [
-                      SizedBox(height: 8.h),
-                      Text(
-                        'Sites Overview',
-                        style: TextStyle(
-                          fontSize: 26.sp,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF2A2A2A),
-                          letterSpacing: -0.5,
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Sites Overview',
+                              style: TextStyle(
+                                fontSize: 26.sp,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF2A2A2A),
+                                letterSpacing: -0.5,
+                              ),
+                            ),
+                            SizedBox(height: 8.h),
+                            Container(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 16.h,
+                                vertical: 8.w,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Color(0xFF4a63c0).withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(20.r),
+                              ),
+                              child: Text(
+                                '${sites.length} active sites',
+                                style: TextStyle(
+                                  fontSize: 14.sp,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF4a63c0),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      SizedBox(height: 8.h),
-                      Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 16.h,
-                          vertical: 8.w,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Color(0xFF4a63c0).withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(20.r),
-                        ),
-                        child: Text(
-                          '${sites.length} active sites',
-                          style: TextStyle(
-                            fontSize: 14.sp,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF4a63c0),
+                      Row(
+                        children: [
+                          IconButton(
+                            onPressed: () {
+                              setState(() {
+                                _isGridView = false;
+                              });
+                            },
+                            icon: Icon(
+                              Icons.list,
+                              color: _isGridView
+                                  ? Colors.grey
+                                  : Color(0xFF4a63c0),
+                              size: 24,
+                            ),
                           ),
-                        ),
+                          SizedBox(width: 8),
+                          IconButton(
+                            onPressed: () {
+                              setState(() {
+                                _isGridView = true;
+                              });
+                            },
+                            icon: Icon(
+                              Icons.grid_view,
+                              color: _isGridView
+                                  ? Color(0xFF4a63c0)
+                                  : Colors.grey,
+                              size: 24,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
                 ),
-                // View toggle buttons
-                Row(
-                  children: [
-                    IconButton(
-                      onPressed: () {
-                        setState(() {
-                          _isGridView = false;
-                        });
-                      },
-                      icon: Icon(
-                        Icons.list,
-                        color: Color(0xFF4a63c0),
-                        size: 24,
-                      ),
-                    ),
-                    SizedBox(width: 8),
-                    IconButton(
-                      onPressed: () {
-                        setState(() {
-                          _isGridView = true;
-                        });
-                      },
-                      icon: Icon(Icons.grid_view, color: Colors.grey, size: 24),
-                    ),
-                  ],
+                Expanded(
+                  child: companies.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.business,
+                                size: 60,
+                                color: Colors.grey.shade400,
+                              ),
+                              SizedBox(height: 16),
+                              Text(
+                                'No companies found',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  color: Colors.grey.shade600,
+                                ),
+                              ),
+                              SizedBox(height: 8),
+                              Text(
+                                'Add your first company to get started',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey.shade500,
+                                ),
+                              ),
+                              SizedBox(height: 20),
+                              ElevatedButton(
+                                onPressed: _showAddCompanyBottomSheet,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Color(0xFF4a63c0),
+                                  foregroundColor: Colors.white,
+                                ),
+                                child: Text('Add Company'),
+                              ),
+                            ],
+                          ),
+                        )
+                      : Column(
+                          children: [
+                            if (companyProvider.isLoading)
+                              LinearProgressIndicator(
+                                backgroundColor: Colors.grey.shade200,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Color(0xFF4a63c0),
+                                ),
+                                minHeight: 2,
+                              ),
+                            Expanded(
+                              child: _isGridView
+                                  ? _buildGridView()
+                                  : _buildListView(),
+                            ),
+                          ],
+                        ),
                 ),
               ],
             ),
-          ),
-          Expanded(
-            child: Column(
-              children: [
-                
-                Expanded(child: _isGridView ? _buildGridView() : _buildListView()),
-              ],
-            ),
-          ),
-        ],
-      ),
-      floatingActionButton: _buildFloatingActionButton(),
+      floatingActionButton: companies.isNotEmpty
+          ? _buildFloatingActionButton()
+          : null,
     );
   }
 
   Widget _buildFloatingActionButton() {
     return Tooltip(
-  message: 'Add New Site',
-  child: Container(
-    width: 48,
-    height: 48,
-    decoration: BoxDecoration(
-      color: const Color(0xFF4a63c0),
-      borderRadius: BorderRadius.circular(24),
-    ),
-    child: Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: _showAddSiteBottomSheet,
-        borderRadius: BorderRadius.circular(24),
-        child: const Icon(Icons.add, color: Colors.white, size: 20),
+      message: 'Add New Site',
+      child: Container(
+        width: 48,
+        height: 48,
+        decoration: BoxDecoration(
+          color: const Color(0xFF4a63c0),
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: _showAddSiteBottomSheet,
+            borderRadius: BorderRadius.circular(24),
+            child: const Icon(Icons.add, color: Colors.white, size: 20),
+          ),
+        ),
       ),
-    ),
-  ),
-);
+    );
   }
 
   Widget _buildListView() {
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      itemCount: sites.length,
-      itemBuilder: (context, index) {
-        return SiteCard(
-          site: sites[index],
-          onTap: () => _navigateToDashboard(sites[index]),
-          onEdit: () => _showEditSiteBottomSheet(sites[index]),
-          onDelete: () => _showDeleteSiteDialog(sites[index]),
-          onStatusTap: () => _showStatusSelectionBottomSheet(sites[index]),
-          isGridView: false,
-        );
-      },
-    );
+    return sites.isEmpty
+        ? Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.construction, size: 60, color: Colors.grey.shade400),
+                SizedBox(height: 16),
+                Text(
+                  'No sites found',
+                  style: TextStyle(fontSize: 18, color: Colors.grey.shade600),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  'Add your first site to get started',
+                  style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
+                ),
+              ],
+            ),
+          )
+        : ListView.builder(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            itemCount: sites.length,
+            itemBuilder: (context, index) {
+              return SiteCard(
+                site: sites[index],
+                onTap: () => _navigateToDashboard(sites[index]),
+                onEdit: () => _showEditSiteBottomSheet(sites[index]),
+                onDelete: () => _showDeleteSiteDialog(sites[index]),
+                onStatusTap: () =>
+                    _showStatusSelectionBottomSheet(sites[index]),
+                isGridView: false,
+              );
+            },
+          );
   }
 
   Widget _buildGridView() {
-    return GridView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        childAspectRatio: 0.85,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-      ),
-      itemCount: sites.length,
-      itemBuilder: (context, index) {
-        return SiteCard(
-          site: sites[index],
-          onTap: () => _navigateToDashboard(sites[index]),
-          onEdit: () => _showEditSiteBottomSheet(sites[index]),
-          onDelete: () => _showDeleteSiteDialog(sites[index]),
-          onStatusTap: () => _showStatusSelectionBottomSheet(sites[index]),
-          isGridView: true,
-        );
-      },
-    );
+    return sites.isEmpty
+        ? Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.construction, size: 60, color: Colors.grey.shade400),
+                SizedBox(height: 16),
+                Text(
+                  'No sites found',
+                  style: TextStyle(fontSize: 18, color: Colors.grey.shade600),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  'Add your first site to get started',
+                  style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
+                ),
+              ],
+            ),
+          )
+        : GridView.builder(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              childAspectRatio: 0.85,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+            ),
+            itemCount: sites.length,
+            itemBuilder: (context, index) {
+              return SiteCard(
+                site: sites[index],
+                onTap: () => _navigateToDashboard(sites[index]),
+                onEdit: () => _showEditSiteBottomSheet(sites[index]),
+                onDelete: () => _showDeleteSiteDialog(sites[index]),
+                onStatusTap: () =>
+                    _showStatusSelectionBottomSheet(sites[index]),
+                isGridView: true,
+              );
+            },
+          );
   }
 
   void _showStatusSelectionBottomSheet(SiteData site) {
@@ -609,19 +760,18 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
               ),
               const SizedBox(height: 16),
               _buildStatusOption(
-                'Active',
+                'Ongoing',
                 Icons.play_arrow,
                 const Color.fromARGB(255, 106, 211, 109),
                 site,
               ),
-              _buildStatusOption('On Hold', Icons.pause, Colors.orange, site),
+              _buildStatusOption('Finished', Icons.pause, Colors.orange, site),
               _buildStatusOption(
-                'Planning',
+                'On Hold',
                 Icons.schedule_outlined,
                 const Color.fromARGB(255, 173, 67, 206),
                 site,
               ),
-              _buildStatusOption('Completed', Icons.check, Colors.blue, site),
             ],
           ),
         );
@@ -639,29 +789,862 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
       leading: Icon(icon, color: color),
       title: Text(status),
       onTap: () {
-        setState(() {
-          _siteDataMap[site.id] = SiteData(
-            id: site.id,
-            name: site.name,
-            imageUrl: site.imageUrl,
-            imageBytes: site.imageBytes,
-            status: status,
-            progress: site.progress,
-            onProgressTap: site.onProgressTap,
-            startDate: site.startDate,
-            endDate: site.endDate,
-            address: site.address,
-            companyId: site.companyId,
-          );
-        });
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Status updated to $status'),
-            backgroundColor: color,
+        final updatedSite = Site(
+          id: site.id,
+          name: site.name,
+          companyId: site.companyId,
+          status: status,
+          startDate: site.startDate,
+          endDate: site.endDate,
+          budget: 0.0,
+          progress: site.progress,
+        );
+
+        _companyProvider
+            .updateSite(updatedSite)
+            .then((_) {
+              setState(() {
+                _siteDataMap[site.id] = SiteData(
+                  id: site.id,
+                  name: site.name,
+                  imageUrl: site.imageUrl,
+                  imageBytes: site.imageBytes,
+                  status: status,
+                  progress: site.progress,
+                  onProgressTap: site.onProgressTap,
+                  startDate: site.startDate,
+                  endDate: site.endDate,
+                  address: site.address,
+                  companyId: site.companyId,
+                );
+              });
+              Navigator.pop(context);
+              _showSnackBar('Status updated to $status', Colors.green);
+            })
+            .catchError((e) {
+              _showSnackBar('Failed to update status: $e', Colors.red);
+            });
+      },
+    );
+  }
+
+  Widget _buildCustomCompanyDropdown() {
+    return GestureDetector(
+      onTap: () => _showCompanySelectionBottomSheet(),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            constraints: BoxConstraints(maxWidth: 150.w, minWidth: 90.w),
+            child: Text(
+              currentCompanyName ?? 'Select Company',
+              style: TextStyle(
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          Icon(Icons.keyboard_arrow_down, color: Colors.white, size: 22.sp),
+        ],
+      ),
+    );
+  }
+
+  void _showCompanySelectionBottomSheet() {
+    final screenHeight = MediaQuery.of(context).size.height;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          constraints: BoxConstraints(maxHeight: screenHeight * 0.6),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                margin: const EdgeInsets.only(top: 8),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Select Company',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF4a63c0),
+                          ),
+                        ),
+                        
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            Consumer<CompanySiteProvider>(
+                              builder: (context, provider, child) {
+                                return IconButton(
+                                  onPressed: provider.isLoading
+                                      ? null
+                                      : _refreshData,
+                                  icon: provider.isLoading
+                                      ? SizedBox(
+                                          width: 20.w,
+                                          height: 20.h,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            valueColor:
+                                                AlwaysStoppedAnimation<Color>(
+                                                  Colors.white,
+                                                ),
+                                          ),
+                                        )
+                                      : Icon(Icons.refresh),
+                                  tooltip: 'Refresh Data',
+                                  color: Color(0xFF4a63c0),
+                                );
+                              },
+                            ),
+                            IconButton(
+                              icon: Icon(Icons.add, color: Color(0xFF4a63c0)),
+                              onPressed: () {
+                                Navigator.pop(context);
+                                _showAddCompanyBottomSheet();
+                              },
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 16),
+                    Container(
+                      constraints: BoxConstraints(
+                        maxHeight: screenHeight * 0.4,
+                      ),
+                      child: SingleChildScrollView(
+                        child: Column(
+                          children: companies
+                              .map((company) => _buildCompanyOption(company))
+                              .toList(),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         );
       },
+    );
+  }
+
+  Widget _buildCompanyOption(Map<String, dynamic> company) {
+    final companyId = company['id'].toString();
+    final companyName = company['name'];
+    final isSelected = currentCompanyId == companyId;
+
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          currentCompanyId = companyId;
+          currentCompanyName = companyName;
+        });
+        _companyProvider.selectCompany(companyId);
+        Navigator.pop(context);
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? Color(0xFF4a63c0).withOpacity(0.1)
+              : Colors.grey.shade50,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? Color(0xFF4a63c0) : Colors.grey.shade200,
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.business,
+              color: isSelected ? Color(0xFF4a63c0) : Colors.grey.shade600,
+              size: 17,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    companyName,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: isSelected
+                          ? FontWeight.w600
+                          : FontWeight.w500,
+                      color: isSelected
+                          ? Color(0xFF4a63c0)
+                          : Colors.grey.shade800,
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    'ID: $companyId',
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                  ),
+                ],
+              ),
+            ),
+            if (isSelected)
+              const Icon(
+                Icons.check_circle,
+                color: Color(0xFF4a63c0),
+                size: 20,
+              ),
+              SizedBox(width: 8),
+            IconButton(
+              icon: Icon(Icons.edit, size: 18, color: Colors.blue.shade600),
+              onPressed: () {
+                Navigator.pop(context);
+                _showEditCompanyBottomSheet(companyId, companyName);
+              },
+              padding: EdgeInsets.zero,
+              constraints: BoxConstraints(),
+            ),
+            SizedBox(width: 8),
+            IconButton(
+              icon: Icon(Icons.delete, size: 18, color: Colors.red.shade600),
+              onPressed: () {
+                Navigator.pop(context);
+                _showDeleteCompanyDialog(companyId, companyName);
+              },
+              padding: EdgeInsets.zero,
+              constraints: BoxConstraints(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showEditCompanyBottomSheet(
+    String companyId,
+    String currentCompanyName,
+  ) {
+    final TextEditingController companyController = TextEditingController(
+      text: currentCompanyName,
+    );
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: Container(
+          height: screenHeight * 0.35,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Center(
+                child: Container(
+                  width: 60,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Edit Company',
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF2A2A2A),
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.close, color: Colors.grey.shade600),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              _buildModernInputField(
+                controller: companyController,
+                label: 'Company Name',
+                icon: Icons.business,
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  onPressed: () async {
+                    if (companyController.text.isNotEmpty &&
+                        companyController.text != currentCompanyName) {
+                      bool success = await _companyProvider.updateCompany(
+                        companyId,
+                        companyController.text,
+                      );
+                      if (success) {
+                        if (currentCompanyId == companyId) {
+                          setState(() {
+                            currentCompanyName = companyController.text;
+                          });
+                        }
+                        Navigator.pop(context);
+                        _showSnackBar(
+                          'Company updated successfully',
+                          Colors.green,
+                        );
+                      } else {
+                        _showSnackBar('Failed to update company', Colors.red);
+                      }
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xFF4a63c0),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 2,
+                  ),
+                  child: const Text(
+                    'Update Company',
+                    style: TextStyle(fontSize: 16, color: Colors.white),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showDeleteCompanyDialog(String companyId, String companyName) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.warning, size: 48, color: Colors.orange.shade600),
+              const SizedBox(height: 16),
+              Text(
+                'Delete Company?',
+                style: TextStyle(
+                  fontSize: 20.sp,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF4a63c0),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Are you sure you want to delete "$companyName"?\n\nThis action cannot be undone.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey.shade600),
+              ),
+              SizedBox(height: 24.h),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Cancel'),
+                  ),
+                  const SizedBox(width: 8),
+                  ElevatedButton(
+                    onPressed: () async {
+                      bool success = await _companyProvider.deleteCompany(
+                        companyId,
+                      );
+                      if (success) {
+                        if (currentCompanyId == companyId) {
+                          setState(() {
+                            currentCompanyId =
+                                _companyProvider.companies.isNotEmpty
+                                ? _companyProvider.companies.first['id']
+                                      .toString()
+                                : null;
+                            currentCompanyName =
+                                _companyProvider.companies.isNotEmpty
+                                ? _companyProvider.companies.first['name']
+                                : null;
+                          });
+                        }
+                        Navigator.pop(context);
+                        _showSnackBar(
+                          'Company deleted successfully',
+                          Colors.green,
+                        );
+                      } else {
+                        _showSnackBar('Failed to delete company', Colors.red);
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color.fromARGB(255, 214, 69, 66),
+                    ),
+                    child: const Text(
+                      'Delete',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showAddSiteBottomSheet() {
+    final TextEditingController nameController = TextEditingController();
+    final TextEditingController addressController = TextEditingController();
+    final TextEditingController startDateController = TextEditingController();
+    final TextEditingController endDateController = TextEditingController();
+    String selectedStatus = 'Planning';
+    Uint8List? imageBytes;
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: Container(
+          height: screenHeight * 0.60,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          padding: const EdgeInsets.all(24),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Center(
+                  child: Container(
+                    width: 60,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(3),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Add New Site',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF2A2A2A),
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.close, color: Colors.grey.shade600),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                _buildModernInputField(
+                  controller: nameController,
+                  label: 'Site Name',
+                  icon: Icons.construction,
+                ),
+                const SizedBox(height: 16),
+                _buildModernInputField(
+                  controller: addressController,
+                  label: 'Description',
+                  icon: Icons.description,
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildModernInputField(
+                        controller: startDateController,
+                        label: 'Start Date',
+                        icon: Icons.calendar_today,
+                        isDateField: true,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _buildModernInputField(
+                        controller: endDateController,
+                        label: 'End Date',
+                        icon: Icons.calendar_today,
+                        isDateField: true,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                _buildModernStatusDropdown(
+                  value: selectedStatus,
+                  onChanged: (value) => selectedStatus = value!,
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      if (nameController.text.isNotEmpty &&
+                          addressController.text.isNotEmpty) {
+                        final newSite = Site(
+                          id: '',
+                          name: nameController.text,
+                          companyId: currentCompanyId ?? '',
+                          status: selectedStatus,
+                          startDate: startDateController.text.isNotEmpty
+                              ? startDateController.text
+                              : '2023-01-01',
+                          endDate: endDateController.text.isNotEmpty
+                              ? endDateController.text
+                              : '2023-12-31',
+                          budget: 5000000.0,
+                          progress: 0.0,
+                          description: addressController.text,
+                        );
+
+                        try {
+                          await _companyProvider.addSite(newSite);
+                          Navigator.pop(context);
+                          _showSnackBar(
+                            'Site added successfully',
+                            Colors.green,
+                          );
+                        } catch (e) {
+                          _showSnackBar('Failed to add site: $e', Colors.red);
+                        }
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Color(0xFF4a63c0),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 2,
+                    ),
+                    child: const Text(
+                      'Add Site',
+                      style: TextStyle(fontSize: 16, color: Colors.white),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showEditSiteBottomSheet(SiteData site) {
+    final TextEditingController nameController = TextEditingController(
+      text: site.name,
+    );
+    final TextEditingController addressController = TextEditingController(
+      text: site.address,
+    );
+    final TextEditingController startDateController = TextEditingController(
+      text: site.startDate,
+    );
+    final TextEditingController endDateController = TextEditingController(
+      text: site.endDate,
+    );
+    String selectedStatus = site.status;
+    Uint8List? imageBytes = _siteImages[site.id] ?? site.imageBytes;
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: Container(
+          height: screenHeight * 0.75,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          padding: EdgeInsets.all(24.h),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Center(
+                  child: Container(
+                    width: 60.w,
+                    height: 5.h,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(3),
+                    ),
+                  ),
+                ),
+                SizedBox(height: 16.h),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Edit Site',
+                      style: TextStyle(
+                        fontSize: 22.sp,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF2A2A2A),
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.close, color: Colors.grey.shade600),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 16.h),
+                Container(
+                  child: Center(
+                    child: Stack(
+                      children: [
+                        GestureDetector(
+                          onTap: () async {
+                            final bytes = await _pickImage();
+                            if (bytes != null) {
+                              setState(() {
+                                imageBytes = bytes;
+                                _siteImages[site.id] = bytes;
+                              });
+                            }
+                          },
+                          child: Container(
+                            width: 120.w,
+                            height: 120.h,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(16),
+                              color: Colors.grey.shade100,
+                              border: Border.all(
+                                color: Colors.grey.shade300,
+                                width: 1,
+                              ),
+                            ),
+                            child: imageBytes != null
+                                ? ClipRRect(
+                                    borderRadius: BorderRadius.circular(16),
+                                    child: Image.memory(
+                                      imageBytes!,
+                                      fit: BoxFit.cover,
+                                    ),
+                                  )
+                                : (site.imageUrl != null
+                                      ? ClipRRect(
+                                          borderRadius: BorderRadius.circular(
+                                            16,
+                                          ),
+                                          child: Image.asset(
+                                            site.imageUrl!,
+                                            fit: BoxFit.cover,
+                                            errorBuilder:
+                                                (context, error, stackTrace) {
+                                                  return Center(
+                                                    child: Icon(
+                                                      Icons.business,
+                                                      size: 40.sp,
+                                                      color: Colors.grey,
+                                                    ),
+                                                  );
+                                                },
+                                          ),
+                                        )
+                                      : Column(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            Icon(
+                                              Icons.add_a_photo,
+                                              size: 30.sp,
+                                              color: Colors.grey.shade400,
+                                            ),
+                                            const SizedBox(height: 8),
+                                            Text(
+                                              'Add Photo',
+                                              style: TextStyle(
+                                                color: Colors.grey.shade600,
+                                                fontSize: 12.sp,
+                                              ),
+                                            ),
+                                          ],
+                                        )),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                SizedBox(height: 20.h),
+                _buildModernInputField(
+                  controller: nameController,
+                  label: 'Site Name',
+                  icon: Icons.construction,
+                ),
+                SizedBox(height: 16.h),
+                _buildModernInputField(
+                  controller: addressController,
+                  label: 'Description',
+                  icon: Icons.description,
+                ),
+                SizedBox(height: 16.h),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildModernInputField(
+                        controller: startDateController,
+                        label: 'Start Date',
+                        icon: Icons.calendar_today,
+                        isDateField: true,
+                      ),
+                    ),
+                    SizedBox(width: 16.w),
+                    Expanded(
+                      child: _buildModernInputField(
+                        controller: endDateController,
+                        label: 'End Date',
+                        icon: Icons.calendar_today,
+                        isDateField: true,
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 16.h),
+                _buildModernStatusDropdown(
+                  value: selectedStatus,
+                  onChanged: (value) => selectedStatus = value!,
+                ),
+                SizedBox(height: 24.h),
+                SizedBox(
+                  width: double.infinity,
+                  height: 50.h,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      if (nameController.text.isNotEmpty &&
+                          addressController.text.isNotEmpty) {
+                        final updatedSite = Site(
+                          id: site.id,
+                          name: nameController.text,
+                          companyId: currentCompanyId ?? '',
+                          status: selectedStatus,
+                          startDate: startDateController.text,
+                          endDate: endDateController.text,
+                          budget: 5000000.0,
+                          progress: site.progress,
+                          description: addressController.text,
+                        );
+
+                        _companyProvider
+                            .updateSite(updatedSite)
+                            .then((_) {
+                              setState(() {
+                                _siteDataMap[site.id] = SiteData(
+                                  id: site.id,
+                                  name: nameController.text,
+                                  imageUrl: site.imageUrl,
+                                  imageBytes: imageBytes,
+                                  status: selectedStatus,
+                                  progress: site.progress,
+                                  onProgressTap: site.onProgressTap,
+                                  startDate: startDateController.text,
+                                  endDate: endDateController.text,
+                                  address: addressController.text,
+                                  companyId: site.companyId,
+                                );
+                              });
+                              Navigator.pop(context);
+                              _showSnackBar(
+                                'Site updated successfully',
+                                Colors.green,
+                              );
+                            })
+                            .catchError((e) {
+                              _showSnackBar(
+                                'Failed to update site: $e',
+                                Colors.red,
+                              );
+                            });
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Color(0xFF4a63c0),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 1,
+                    ),
+                    child: Text(
+                      'Update Site',
+                      style: TextStyle(fontSize: 16.sp, color: Colors.white),
+                    ),
+                  ),
+                ),
+                SizedBox(height: 16.h),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -728,816 +1711,6 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
     }
   }
 
-  Widget _buildCustomCompanyDropdown() {
-    return GestureDetector(
-      onTap: () => _showCompanySelectionBottomSheet(),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            constraints: const BoxConstraints(maxWidth: 200),
-            child: Text(
-              currentCompany ?? 'Select Company',
-              style: TextStyle(
-                fontSize: 16.sp,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-              ),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          Icon(Icons.keyboard_arrow_down, color: Colors.white, size: 22.sp),
-        ],
-      ),
-    );
-  }
-
-  void _showCompanySelectionBottomSheet() {
-    final screenHeight = MediaQuery.of(context).size.height;
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        return Container(
-          constraints: BoxConstraints(maxHeight: screenHeight * 0.6),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                margin: const EdgeInsets.only(top: 8),
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Select Company',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF4a63c0),
-                          ),
-                        ),
-                        IconButton(
-                          icon: Icon(Icons.add, color: Color(0xFF4a63c0)),
-                          onPressed: () {
-                            Navigator.pop(context);
-                            _showAddCompanyBottomSheet();
-                          },
-                        ),
-                        
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Container(
-                      constraints: BoxConstraints(
-                        maxHeight: screenHeight * 0.4,
-                      ),
-                      child: SingleChildScrollView(
-                        child: Column(
-                          children: companies
-                              .map((company) => _buildCompanyOption(company))
-                              .toList(),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
- Widget _buildCompanyOption(String company) {
-  final isSelected = currentCompany == company;
-  return GestureDetector(
-    onTap: () {
-      setState(() {
-        currentCompany = company;
-        _companyProvider.selectCompany(company);
-      });
-      Navigator.pop(context);
-    },
-    child: Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isSelected
-            ? Color(0xFF4a63c0).withOpacity(0.1)
-            : Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isSelected ? Color(0xFF4a63c0) : Colors.grey.shade200,
-          width: isSelected ? 2 : 1,
-        ),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            Icons.business,
-            color: isSelected ? Color(0xFF4a63c0) : Colors.grey.shade600,
-            size: 17,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              company,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                color: isSelected ? Color(0xFF4a63c0) : Colors.grey.shade800,
-              ),
-            ),
-          ),
-          if (isSelected)
-            const Icon(
-              Icons.check_circle,
-              color: Color(0xFF4a63c0),
-              size: 20,
-            ),
-          // Edit and Delete buttons for all companies
-          IconButton(
-            icon: Icon(Icons.edit, size: 18, color: Colors.blue.shade600),
-            onPressed: () {
-              Navigator.pop(context); // Close the bottom sheet first
-              _showEditCompanyBottomSheet(company);
-            },
-            padding: EdgeInsets.zero,
-            constraints: BoxConstraints(),
-          ),
-          IconButton(
-            icon: Icon(Icons.delete, size: 18, color: Colors.red.shade600),
-            onPressed: () {
-              Navigator.pop(context); // Close the bottom sheet first
-              _showDeleteCompanyDialog(company);
-            },
-            padding: EdgeInsets.zero,
-            constraints: BoxConstraints(),
-          ),
-        ],
-      ),
-    ),
-  );
-}
-void _showEditCompanyBottomSheet(String currentCompanyName) {
-  final TextEditingController companyController = TextEditingController(text: currentCompanyName);
-  final screenHeight = MediaQuery.of(context).size.height;
-  
-  showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    builder: (context) => Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-      ),
-      child: Container(
-        height: screenHeight * 0.35,
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Center(
-              child: Container(
-                width: 60,
-                height: 5,
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(3),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Edit Company',
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF2A2A2A),
-                  ),
-                ),
-                IconButton(
-                  icon: Icon(Icons.close, color: Colors.grey.shade600),
-                  onPressed: () => Navigator.pop(context),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            _buildModernInputField(
-              controller: companyController,
-              label: 'Company Name',
-              icon: Icons.business,
-            ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                onPressed: () async {
-                  if (companyController.text.isNotEmpty && companyController.text != currentCompanyName) {
-                    bool success = await _companyProvider.updateCompany(currentCompanyName, companyController.text);
-                    if (success) {
-                      // Update current company if it was the one being edited
-                      if (currentCompany == currentCompanyName) {
-                        setState(() {
-                          currentCompany = companyController.text;
-                        });
-                      }
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            'Company updated to "${companyController.text}" successfully!',
-                          ),
-                          behavior: SnackBarBehavior.floating,
-                          backgroundColor: Colors.green,
-                        ),
-                      );
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: const Text(
-                            'Company already exists or update failed!',
-                          ),
-                          behavior: SnackBarBehavior.floating,
-                          backgroundColor: Colors.red,
-                        ),
-                      );
-                    }
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFF4a63c0),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  elevation: 2,
-                ),
-                child: const Text(
-                  'Update Company',
-                  style: TextStyle(fontSize: 16, color: Colors.white),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-          ],
-        ),
-      ),
-    ),
-  );
-}
-
-void _showDeleteCompanyDialog(String companyName) {
-  showDialog(
-    context: context,
-    builder: (context) => Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.warning, size: 48, color: Colors.orange.shade600),
-            const SizedBox(height: 16),
-            Text(
-              'Delete Company?',
-              style: TextStyle(
-                fontSize: 20.sp,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF4a63c0),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Are you sure you want to delete "$companyName"?\n\nThis action cannot be undone.',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey.shade600),
-            ),
-            SizedBox(height: 24.h),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancel'),
-                ),
-                const SizedBox(width: 8),
-                ElevatedButton(
-                  onPressed: () async {
-                    bool success = await _companyProvider.deleteCompany(companyName);
-                    if (success) {
-                      // Update current company if it was the one being deleted
-                      if (currentCompany == companyName) {
-                        setState(() {
-                          currentCompany = _companyProvider.companies.isNotEmpty 
-                              ? _companyProvider.companies.first 
-                              : null;
-                          if (currentCompany != null) {
-                            _companyProvider.selectCompany(currentCompany!);
-                          }
-                        });
-                      }
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            'Company "$companyName" deleted successfully!',
-                          ),
-                          behavior: SnackBarBehavior.floating,
-                          backgroundColor: Colors.green,
-                        ),
-                      );
-                    } else {
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: const Text(
-                            'Failed to delete company!',
-                          ),
-                          behavior: SnackBarBehavior.floating,
-                          backgroundColor: Colors.red,
-                        ),
-                      );
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color.fromARGB(255, 214, 69, 66),
-                  ),
-                  child: const Text(
-                    'Delete',
-                    style: TextStyle(color: Colors.white),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    ),
-  );
-}
-  void _showAddSiteBottomSheet() {
-    final TextEditingController nameController = TextEditingController();
-    final TextEditingController addressController = TextEditingController();
-    final TextEditingController startDateController = TextEditingController();
-    final TextEditingController endDateController = TextEditingController();
-    String selectedStatus = 'Planning';
-    Uint8List? imageBytes;
-    final screenHeight = MediaQuery.of(context).size.height;
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-        ),
-        child: Container(
-          height: screenHeight * 0.60,
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          padding: const EdgeInsets.all(24),
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Center(
-                  child: Container(
-                    width: 60,
-                    height: 5,
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade300,
-                      borderRadius: BorderRadius.circular(3),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Add New Site',
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF2A2A2A),
-                      ),
-                    ),
-                    IconButton(
-                      icon: Icon(Icons.close, color: Colors.grey.shade600),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                _buildModernInputField(
-                  controller: nameController,
-                  label: 'Site Name',
-                  icon: Icons.construction,
-                ),
-                const SizedBox(height: 16),
-                _buildModernInputField(
-                  controller: addressController,
-                  label: 'Address',
-                  icon: Icons.location_on,
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildModernInputField(
-                        controller: startDateController,
-                        label: 'Start Date',
-                        icon: Icons.calendar_today,
-                        isDateField: true,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: _buildModernInputField(
-                        controller: endDateController,
-                        label: 'End Date',
-                        icon: Icons.calendar_today,
-                        isDateField: true,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                _buildModernStatusDropdown(
-                  value: selectedStatus,
-                  onChanged: (value) => selectedStatus = value!,
-                ),
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton(
-                    onPressed: () async {
-                      if (nameController.text.isNotEmpty &&
-                          addressController.text.isNotEmpty) {
-                        final newSite = Site(
-                          id: '',
-                          name: nameController.text,
-                          address: addressController.text,
-                          companyId: _companyProvider.selectedCompanyId ?? '',
-                        );
-
-                        // Create a temporary SiteData object
-                        final tempSiteData = SiteData(
-                          id: '',
-                          name: nameController.text,
-                          address: addressController.text,
-                          companyId: _companyProvider.selectedCompanyId ?? '',
-                          status: selectedStatus,
-                          progress: 0.0,
-                          onProgressTap: () {}, // Empty callback for now
-                          startDate: startDateController.text.isNotEmpty
-                              ? startDateController.text
-                              : '2023-01-01',
-                          endDate: endDateController.text.isNotEmpty
-                              ? endDateController.text
-                              : '2023-12-31',
-                        );
-
-                        // Add site to provider
-                        await _companyProvider.addSite(newSite);
-
-                        // Create the final SiteData with proper ID and callback
-                        final newSiteData = SiteData(
-                          id: newSite.id,
-                          name: nameController.text,
-                          address: addressController.text,
-                          companyId: _companyProvider.selectedCompanyId ?? '',
-                          status: selectedStatus,
-                          progress: 0.0,
-                          onProgressTap: () =>
-                              _showProgressUpdateBottomSheet(tempSiteData),
-                          startDate: startDateController.text.isNotEmpty
-                              ? startDateController.text
-                              : '2023-01-01',
-                          endDate: endDateController.text.isNotEmpty
-                              ? endDateController.text
-                              : '2023-12-31',
-                        );
-
-                        _siteDataMap[newSite.id] = newSiteData;
-                        if (imageBytes != null) {
-                          _siteImages[newSite.id] = imageBytes;
-                        }
-                        Navigator.pop(context);
-                        setState(() {});
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              'Site "${nameController.text}" added successfully!',
-                            ),
-                            behavior: SnackBarBehavior.floating,
-                            backgroundColor: Colors.green,
-                          ),
-                        );
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Color(0xFF4a63c0),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      elevation: 2,
-                    ),
-                    child: const Text(
-                      'Add Site',
-                      style: TextStyle(fontSize: 16, color: Colors.white),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _showEditSiteBottomSheet(SiteData site) {
-    final TextEditingController nameController = TextEditingController(
-      text: site.name,
-    );
-    final TextEditingController addressController = TextEditingController(
-      text: site.address,
-    );
-    final TextEditingController startDateController = TextEditingController(
-      text: site.startDate,
-    );
-    final TextEditingController endDateController = TextEditingController(
-      text: site.endDate,
-    );
-    String selectedStatus = site.status;
-    Uint8List? imageBytes = _siteImages[site.id] ?? site.imageBytes;
-    final screenHeight = MediaQuery.of(context).size.height;
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-        ),
-        child: Container(
-          height: screenHeight * 0.75,
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          padding: EdgeInsets.all(24.h),
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Center(
-                  child: Container(
-                    width: 60.w,
-                    height: 5.h,
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade300,
-                      borderRadius: BorderRadius.circular(3),
-                    ),
-                  ),
-                ),
-                SizedBox(height: 16.h),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Edit Site',
-                      style: TextStyle(
-                        fontSize: 22.sp,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF2A2A2A),
-                      ),
-                    ),
-                    IconButton(
-                      icon: Icon(Icons.close, color: Colors.grey.shade600),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 16.h),
-                Container(
-                  child: Center(
-                    child: Stack(
-                      children: [
-                        GestureDetector(
-                          onTap: () async {
-                            final bytes = await _pickImage();
-                            if (bytes != null) {
-                              setState(() {
-                                imageBytes = bytes;
-                              });
-                            }
-                          },
-                          child: Container(
-                            width: 120.w,
-                            height: 120.h,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(16),
-                              color: Colors.grey.shade100,
-                              border: Border.all(
-                                color: Colors.grey.shade300,
-                                width: 1,
-                              ),
-                            ),
-                            child: imageBytes != null
-                                ? ClipRRect(
-                                    borderRadius: BorderRadius.circular(16),
-                                    child: Image.memory(
-                                      imageBytes!,
-                                      fit: BoxFit.cover,
-                                    ),
-                                  )
-                                : (site.imageUrl != null
-                                      ? ClipRRect(
-                                          borderRadius: BorderRadius.circular(
-                                            16,
-                                          ),
-                                          child: Image.asset(
-                                            site.imageUrl!,
-                                            fit: BoxFit.cover,
-                                            errorBuilder:
-                                                (context, error, stackTrace) {
-                                                  return Center(
-                                                    child: Icon(
-                                                      Icons.business,
-                                                      size: 40.sp,
-                                                      color: Colors.grey,
-                                                    ),
-                                                  );
-                                                },
-                                          ),
-                                        )
-                                      : Column(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            Icon(
-                                              Icons.add_a_photo,
-                                              size: 30.sp,
-                                              color: Colors.grey.shade400,
-                                            ),
-                                            const SizedBox(height: 8),
-                                            Text(
-                                              'Add Photo',
-                                              style: TextStyle(
-                                                color: Colors.grey.shade600,
-                                                fontSize: 12.sp,
-                                              ),
-                                            ),
-                                          ],
-                                        )),
-                          ),
-                        ),
-                        GestureDetector(
-                          onTap: () => _pickImage(),
-                          child: Icon(Icons.add_a_photo_outlined),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                SizedBox(height: 20.h),
-                _buildModernInputField(
-                  controller: nameController,
-                  label: 'Site Name',
-                  icon: Icons.construction,
-                ),
-                SizedBox(height: 16.h),
-                _buildModernInputField(
-                  controller: addressController,
-                  label: 'Address',
-                  icon: Icons.location_on,
-                ),
-                SizedBox(height: 16.h),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildModernInputField(
-                        controller: startDateController,
-                        label: 'Start Date',
-                        icon: Icons.calendar_today,
-                        isDateField: true,
-                      ),
-                    ),
-                    SizedBox(width: 16.w),
-                    Expanded(
-                      child: _buildModernInputField(
-                        controller: endDateController,
-                        label: 'End Date',
-                        icon: Icons.calendar_today,
-                        isDateField: true,
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 16.h),
-
-                SizedBox(
-                  width: double.infinity,
-                  height: 50.h,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      if (nameController.text.isNotEmpty &&
-                          addressController.text.isNotEmpty) {
-                        final updatedSite = Site(
-                          id: site.id,
-                          name: nameController.text,
-                          address: addressController.text,
-                          companyId: currentCompany ?? '',
-                        );
-                        _companyProvider.updateSite(updatedSite).then((_) {
-                          _siteDataMap[site.id] = SiteData(
-                            id: site.id,
-                            name: nameController.text,
-                            address: addressController.text,
-                            companyId: currentCompany ?? '',
-                            status: selectedStatus,
-                            progress: site.progress,
-                            onProgressTap: site.onProgressTap,
-                            startDate: startDateController.text,
-                            endDate: endDateController.text,
-                            imageUrl: site.imageUrl,
-                            imageBytes: imageBytes,
-                          );
-                          if (imageBytes != null) {
-                            setState(() {
-                              _siteImages[site.id] = imageBytes;
-                            });
-                          }
-                          setState(() {});
-                          Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                'Site "${nameController.text}" updated successfully!',
-                              ),
-                              behavior: SnackBarBehavior.floating,
-                              backgroundColor: Colors.green,
-                            ),
-                          );
-                        });
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Color(0xFF4a63c0),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      elevation: 1,
-                    ),
-                    child: Text(
-                      'Update Site',
-                      style: TextStyle(fontSize: 16.sp, color: Colors.white),
-                    ),
-                  ),
-                ),
-                SizedBox(height: 16.h),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildModernInputField({
     required TextEditingController controller,
     required String label,
@@ -1585,6 +1758,14 @@ void _showDeleteCompanyDialog(String companyName) {
     required String value,
     required Function(String?) onChanged,
   }) {
+    // Define the status options
+    final statusOptions = ['On Hold', 'Ongoing', 'Finished'];
+
+    // Ensure the current value exists in the options, if not use the first option
+    final currentValue = statusOptions.contains(value)
+        ? value
+        : statusOptions.first;
+
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
@@ -1598,7 +1779,7 @@ void _showDeleteCompanyDialog(String companyName) {
         ],
       ),
       child: DropdownButtonFormField<String>(
-        value: value,
+        value: currentValue,
         onChanged: onChanged,
         decoration: InputDecoration(
           border: OutlineInputBorder(
@@ -1616,7 +1797,7 @@ void _showDeleteCompanyDialog(String companyName) {
             vertical: 8,
           ),
         ),
-        items: ['Planning', 'Active', 'On Hold', 'Completed']
+        items: statusOptions
             .map(
               (status) => DropdownMenuItem(value: status, child: Text(status)),
             )
@@ -1662,22 +1843,25 @@ void _showDeleteCompanyDialog(String companyName) {
                   const SizedBox(width: 8),
                   ElevatedButton(
                     onPressed: () {
-                      _companyProvider.deleteSite(site.id).then((_) {
-                        setState(() {
-                          _siteImages.remove(site.id);
-                          _siteDataMap.remove(site.id);
-                        });
-                        Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              'Site "${site.name}" deleted successfully!',
-                            ),
-                            behavior: SnackBarBehavior.floating,
-                            backgroundColor: Colors.green,
-                          ),
-                        );
-                      });
+                      _companyProvider
+                          .deleteSite(site.id)
+                          .then((_) {
+                            setState(() {
+                              _siteImages.remove(site.id);
+                              _siteDataMap.remove(site.id);
+                            });
+                            Navigator.pop(context);
+                            _showSnackBar(
+                              'Site deleted successfully',
+                              Colors.green,
+                            );
+                          })
+                          .catchError((e) {
+                            _showSnackBar(
+                              'Failed to delete site: $e',
+                              Colors.red,
+                            );
+                          });
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color.fromARGB(255, 214, 69, 66),
@@ -1699,6 +1883,7 @@ void _showDeleteCompanyDialog(String companyName) {
   void _showAddCompanyBottomSheet() {
     final TextEditingController companyController = TextEditingController();
     final screenHeight = MediaQuery.of(context).size.height;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -1759,28 +1944,17 @@ void _showDeleteCompanyDialog(String companyName) {
                 child: ElevatedButton(
                   onPressed: () async {
                     if (companyController.text.isNotEmpty) {
-                      bool success = await _companyProvider.addCompany(companyController.text);
+                      bool success = await _companyProvider.addCompany(
+                        companyController.text,
+                      );
                       if (success) {
                         Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              'Company "${companyController.text}" added successfully!',
-                            ),
-                            behavior: SnackBarBehavior.floating,
-                            backgroundColor: Colors.green,
-                          ),
+                        _showSnackBar(
+                          'Company added successfully',
+                          Colors.green,
                         );
                       } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: const Text(
-                              'Company already exists!',
-                            ),
-                            behavior: SnackBarBehavior.floating,
-                            backgroundColor: Colors.red,
-                          ),
-                        );
+                        _showSnackBar('Failed to add company', Colors.red);
                       }
                     }
                   },
@@ -2044,9 +2218,7 @@ class SiteCard extends StatelessWidget {
                                   begin: 0,
                                   end: site.progress,
                                 ),
-                                duration: const Duration(
-                                  seconds: 1,
-                                ), // adjust speed
+                                duration: const Duration(seconds: 1),
                                 curve: Curves.easeOut,
                                 builder: (context, value, child) {
                                   return Stack(
@@ -2056,7 +2228,7 @@ class SiteCard extends StatelessWidget {
                                         width: 35.w,
                                         height: 35.h,
                                         child: CircularProgressIndicator(
-                                          value: value, // animated progress
+                                          value: value,
                                           backgroundColor: Colors.grey.shade300,
                                           valueColor:
                                               const AlwaysStoppedAnimation<
@@ -2066,7 +2238,7 @@ class SiteCard extends StatelessWidget {
                                         ),
                                       ),
                                       Text(
-                                        '${(value * 100).round()}%', // animated percentage
+                                        '${(value * 100).round()}%',
                                         style: TextStyle(
                                           fontSize: 11.sp,
                                           fontWeight: FontWeight.bold,
@@ -2089,7 +2261,6 @@ class SiteCard extends StatelessWidget {
                             ],
                           ),
                         ),
-
                         SizedBox(width: 17.w),
                         Container(
                           height: 25.h,
@@ -2107,7 +2278,6 @@ class SiteCard extends StatelessWidget {
                         Container(
                           height: 25.h,
                           width: 25.w,
-
                           child: GestureDetector(
                             onTap: onDelete,
                             child: FaIcon(
@@ -2142,7 +2312,6 @@ class SiteCard extends StatelessWidget {
                       children: [
                         Text("Status:", style: TextStyle(fontSize: 14.sp)),
                         SizedBox(width: 5.w),
-
                         GestureDetector(
                           onTap: onStatusTap,
                           child: Container(
@@ -2192,9 +2361,7 @@ class SiteCard extends StatelessWidget {
                                     begin: 0,
                                     end: site.progress,
                                   ),
-                                  duration: const Duration(
-                                    seconds: 1,
-                                  ), // adjust speed
+                                  duration: const Duration(seconds: 1),
                                   curve: Curves.easeOut,
                                   builder: (context, value, child) {
                                     return Stack(
@@ -2204,7 +2371,7 @@ class SiteCard extends StatelessWidget {
                                           width: 35.w,
                                           height: 35.h,
                                           child: CircularProgressIndicator(
-                                            value: value, // animated progress
+                                            value: value,
                                             backgroundColor:
                                                 Colors.grey.shade300,
                                             valueColor:
@@ -2215,7 +2382,7 @@ class SiteCard extends StatelessWidget {
                                           ),
                                         ),
                                         Text(
-                                          '${(value * 100).round()}%', // animated percentage
+                                          '${(value * 100).round()}%',
                                           style: TextStyle(
                                             fontSize: 11.sp,
                                             fontWeight: FontWeight.bold,
@@ -2285,7 +2452,6 @@ class SiteCard extends StatelessWidget {
               ),
               SizedBox(height: 8.h),
               if (isGridView) ...[
-                // Status container
                 Row(
                   children: [
                     Text("Status:", style: TextStyle(fontSize: 11.sp)),
@@ -2321,7 +2487,6 @@ class SiteCard extends StatelessWidget {
                   ],
                 ),
                 SizedBox(height: 9.h),
-                // Dates
                 Text(
                   '${site.startDate}    ${site.endDate}',
                   style: TextStyle(fontSize: 10.sp, color: Colors.grey),
@@ -2336,14 +2501,12 @@ class SiteCard extends StatelessWidget {
 
   Color _getStatusColor(String status) {
     switch (status.toLowerCase()) {
-      case 'active':
-        return const Color.fromARGB(255, 74, 146, 77);
       case 'on hold':
         return const Color.fromARGB(255, 211, 151, 61);
-      case 'completed':
-        return const Color.fromARGB(255, 72, 116, 211);
-      case 'planning':
-        return const Color.fromARGB(255, 181, 78, 199);
+      case 'ongoing':
+        return const Color.fromARGB(255, 106, 211, 109);
+      case 'finished':
+        return Colors.orange;
       default:
         return const Color.fromARGB(255, 71, 87, 156);
     }

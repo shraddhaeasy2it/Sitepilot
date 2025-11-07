@@ -6,9 +6,9 @@ import 'package:ecoteam_app/contractor/models/site_model.dart';
 class ApiService {
   // Static list to maintain sites across the app with company association
   static List<Site> _sites = [
-    Site(id: 'site1', name: 'Site A', address: '123 Main St', companyId: 'ABC Construction'),
-    Site(id: 'site2', name: 'Site B', address: '456 Oak Ave', companyId: 'ABC Construction'),
-    Site(id: 'site3', name: 'Site C', address: '789 Pine Blvd', companyId: 'XYZ Builders'),
+    Site(id: 'site1', name: 'Site A', companyId: 'ABC Construction'),
+    Site(id: 'site2', name: 'Site B', companyId: 'ABC Construction'),
+    Site(id: 'site3', name: 'Site C', companyId: 'XYZ Builders'),
   ];
   
   // Static list to maintain companies
@@ -116,7 +116,7 @@ class ApiService {
           _sites[i] = Site(
             id: _sites[i].id,
             name: _sites[i].name,
-            address: _sites[i].address,
+            description: _sites[i].description,
             companyId: newCompanyName,
           );
         }

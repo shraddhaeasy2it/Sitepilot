@@ -7,6 +7,8 @@ class Consumption {
   final String consumptionFile;
   final String? remarks;
   final List<ConsumptionItem>? items;
+  final String? machineryType;
+  final String? machinery;
 
   Consumption({
     required this.id,
@@ -17,6 +19,8 @@ class Consumption {
     required this.consumptionFile,
     this.remarks,
     this.items,
+    this.machineryType,
+    this.machinery,
   });
 
   Consumption copyWith({
@@ -28,6 +32,8 @@ class Consumption {
     String? consumptionFile,
     String? remarks,
     List<ConsumptionItem>? items,
+    String? machineryType,
+    String? machinery,
   }) {
     return Consumption(
       id: id ?? this.id,
@@ -38,6 +44,8 @@ class Consumption {
       consumptionFile: consumptionFile ?? this.consumptionFile,
       remarks: remarks ?? this.remarks,
       items: items ?? this.items,
+      machineryType: machineryType ?? this.machineryType,
+      machinery: machinery ?? this.machinery,
     );
   }
 }

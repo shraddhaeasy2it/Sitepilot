@@ -76,7 +76,7 @@ class _ToolsScreenState extends State<ToolsScreen> {
     final site = widget.sites.firstWhere(
       (site) => site.id == widget.selectedSiteId,
       orElse: () =>
-          Site(id: '', name: 'Unknown Site', address: '', companyId: ''),
+          Site(id: '', name: 'Unknown Site', companyId: ''),
     );
     return site.name;
   }
@@ -735,7 +735,7 @@ class _ToolsScreenState extends State<ToolsScreen> {
         .firstWhere(
           (site) => site.id == siteId,
           orElse: () =>
-              Site(id: '', name: 'Unknown Site', address: '', companyId: ''),
+              Site(id: '', name: 'Unknown Site', companyId: ''),
         )
         .name;
   }

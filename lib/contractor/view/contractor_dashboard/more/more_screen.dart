@@ -274,7 +274,7 @@ class _MoreScreenState extends State<MoreScreen> {
                                   orElse: () => Site(
                                     id: '',
                                     name: 'Unknown Site',
-                                    address: '',
+                                    companyId: '',
                                   ),
                                 )
                                 .name),

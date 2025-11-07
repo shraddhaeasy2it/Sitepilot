@@ -707,6 +707,8 @@ class _ConsumptionFormSheetState extends State<ConsumptionFormSheet> {
   String? _selectedMaterial;
   final TextEditingController _quantityController = TextEditingController();
   String _selectedUnit = 'unit';
+  String _selectedMachineryType = 'Select Machinery Type';
+  String _selectedMachinery = 'Select Machinery';
 
   final List<String> _consumptionTypes = ['All Material', 'Fuel'];
   final List<String> _sites = [
@@ -716,7 +718,7 @@ class _ConsumptionFormSheetState extends State<ConsumptionFormSheet> {
     'LandMark Towers',
     'Easy2IT SEO'
 
-    
+
   ];
   final List<String> _materials = [
     'Select Material',
@@ -726,6 +728,20 @@ class _ConsumptionFormSheetState extends State<ConsumptionFormSheet> {
     'Material 4'
   ];
   final List<String> _units = ['unit', 'kg', 'liters', 'pieces'];
+  final List<String> _machineryTypes = [
+    'Select Machinery Type',
+    'Excavator',
+    'Bulldozer',
+    'Crane',
+    'Truck'
+  ];
+  final List<String> _machineries = [
+    'Select Machinery',
+    'Excavator 1',
+    'Bulldozer 1',
+    'Crane 1',
+    'Truck 1'
+  ];
 
   @override
   void initState() {
@@ -738,6 +754,8 @@ class _ConsumptionFormSheetState extends State<ConsumptionFormSheet> {
       _selectedConsumptionType = consumption.consumptionType == 'fuel' ? 'Fuel' : 'All Material';
       _selectedSite = consumption.site;
       _remarksController.text = consumption.remarks ?? '';
+      _selectedMachineryType = consumption.machineryType ?? 'Select Machinery Type';
+      _selectedMachinery = consumption.machinery ?? 'Select Machinery';
       if (consumption.items != null) {
         _items.addAll(consumption.items!);
       }
@@ -800,6 +818,8 @@ class _ConsumptionFormSheetState extends State<ConsumptionFormSheet> {
         consumptionFile: 'N/A',
         remarks: _remarksController.text.isEmpty ? null : _remarksController.text,
         items: _items.isEmpty ? null : _items,
+        machineryType: _selectedMachineryType != 'Select Machinery Type' ? _selectedMachineryType : null,
+        machinery: _selectedMachinery != 'Select Machinery' ? _selectedMachinery : null,
       );
 
       Navigator.pop(context, consumption);
@@ -891,7 +911,7 @@ class _ConsumptionFormSheetState extends State<ConsumptionFormSheet> {
                       ),
                       contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     ),
-                    style: const TextStyle(fontSize: 14),
+                    style: const TextStyle(fontSize: 14,color: Colors.black),
                     items: _consumptionTypes.map((String type) {
                       return DropdownMenuItem<String>(
                         value: type,
@@ -945,7 +965,7 @@ class _ConsumptionFormSheetState extends State<ConsumptionFormSheet> {
                       ),
                       contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     ),
-                    style: const TextStyle(fontSize: 14),
+                    style: const TextStyle(fontSize: 14,color: Colors.black),
                     items: _sites.map((String site) {
                       return DropdownMenuItem<String>(
                         value: site,
@@ -962,6 +982,56 @@ class _ConsumptionFormSheetState extends State<ConsumptionFormSheet> {
                         return 'Please select a site';
                       }
                       return null;
+                    },
+                  ),
+                  const SizedBox(height: 10),
+
+                  // Machinery Type
+                  DropdownButtonFormField<String>(
+                    value: _selectedMachineryType,
+                    decoration: const InputDecoration(
+                      labelText: 'Machinery Type',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.all(Radius.circular(10)),
+                      ),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    ),
+                    style: const TextStyle(fontSize: 14,color: Colors.black),
+                    items: _machineryTypes.map((String type) {
+                      return DropdownMenuItem<String>(
+                        value: type,
+                        child: Text(type),
+                      );
+                    }).toList(),
+                    onChanged: (String? newValue) {
+                      setState(() {
+                        _selectedMachineryType = newValue!;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 10),
+
+                  // Machinery
+                  DropdownButtonFormField<String>(
+                    value: _selectedMachinery,
+                    decoration: const InputDecoration(
+                      labelText: 'Machinery',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.all(Radius.circular(10)),
+                      ),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    ),
+                    style: const TextStyle(fontSize: 14,color: Colors.black),
+                    items: _machineries.map((String machinery) {
+                      return DropdownMenuItem<String>(
+                        value: machinery,
+                        child: Text(machinery),
+                      );
+                    }).toList(),
+                    onChanged: (String? newValue) {
+                      setState(() {
+                        _selectedMachinery = newValue!;
+                      });
                     },
                   ),
                   const SizedBox(height: 14),
@@ -982,7 +1052,7 @@ class _ConsumptionFormSheetState extends State<ConsumptionFormSheet> {
                       ),
                       contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     ),
-                    style: const TextStyle(fontSize: 14),
+                    style: const TextStyle(fontSize: 14,color: Colors.black),
                     items: _materials.map((String material) {
                       return DropdownMenuItem<String>(
                         value: material,
@@ -1027,7 +1097,7 @@ class _ConsumptionFormSheetState extends State<ConsumptionFormSheet> {
                             ),
                             contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                           ),
-                          style: const TextStyle(fontSize: 14),
+                          style: const TextStyle(fontSize: 14,color: Colors.black),
                           items: _units.map((String unit) {
                             return DropdownMenuItem<String>(
                               value: unit,

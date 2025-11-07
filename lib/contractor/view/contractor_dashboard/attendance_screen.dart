@@ -781,7 +781,9 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                                       orElse: () => Site(
                                         id: '',
                                         name: 'Unknown Site',
-                                        address: '',
+                                        description: '',
+                                        companyId: '',
+                                        
                                       ),
                                     )
                                     .name),
@@ -1464,7 +1466,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       if (_selectedSiteId.isNotEmpty) {
         final site = widget.sites.firstWhere(
           (site) => site.id == _selectedSiteId,
-          orElse: () => Site(id: '', name: 'Unknown Site', address: ''),
+          orElse: () => Site(id: '', name: 'Unknown Site', companyId: ''),
         );
         siteName = site.name;
       }

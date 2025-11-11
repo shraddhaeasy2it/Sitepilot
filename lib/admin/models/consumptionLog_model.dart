@@ -9,6 +9,8 @@ class Consumption {
   final List<ConsumptionItem>? items;
   final String? machineryType;
   final String? machinery;
+  final String? siteId;
+  final int? machineryId;
 
   Consumption({
     required this.id,
@@ -21,6 +23,8 @@ class Consumption {
     this.items,
     this.machineryType,
     this.machinery,
+    this.siteId,
+    this.machineryId,
   });
 
   Consumption copyWith({
@@ -34,6 +38,8 @@ class Consumption {
     List<ConsumptionItem>? items,
     String? machineryType,
     String? machinery,
+    String? siteId,
+    int? machineryId,
   }) {
     return Consumption(
       id: id ?? this.id,
@@ -46,6 +52,8 @@ class Consumption {
       items: items ?? this.items,
       machineryType: machineryType ?? this.machineryType,
       machinery: machinery ?? this.machinery,
+      siteId: siteId ?? this.siteId,
+      machineryId: machineryId ?? this.machineryId,
     );
   }
 }
@@ -55,11 +63,13 @@ class ConsumptionItem {
   final double quantity;
   final String unit;
   final double? price;
+  final int? materialId;
 
   ConsumptionItem({
     required this.material,
     required this.quantity,
     required this.unit,
     this.price,
+    this.materialId,
   });
 }

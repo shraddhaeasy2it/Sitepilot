@@ -1,6 +1,55 @@
 import 'package:ecoteam_app/admin/models/consumptionLog_model.dart';
+import 'package:ecoteam_app/admin/models/Allmachinery_model.dart';
+import 'package:ecoteam_app/admin/models/project_site_model.dart';
+import 'package:ecoteam_app/admin/models/tools_model.dart';
+import 'package:ecoteam_app/admin/provider/project_site_provider.dart';
+import 'package:ecoteam_app/admin/services/Allmachinery_services.dart';
+import 'package:ecoteam_app/admin/services/tools_services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:provider/provider.dart';
+
+class MaterialModel {
+  final int id;
+  final String name;
+  final Unit? unit;
+  final int? categoryId;
+  final String? category;
+
+  MaterialModel({
+    required this.id,
+    required this.name,
+    this.unit,
+    this.categoryId,
+    this.category,
+  });
+
+  factory MaterialModel.fromJson(Map<String, dynamic> json, int id) {
+    return MaterialModel(
+      id: id,
+      name: json['name']?.toString() ?? 'Unknown',
+      unit: json['unit'] != null ? Unit.fromJson(json['unit']) : null,
+      categoryId: json['category_id'] != null ? int.tryParse(json['category_id'].toString()) : null,
+      category: json['category']?.toString(),
+    );
+  }
+}
+
+class Unit {
+  final int id;
+  final String name;
+
+  Unit({required this.id, required this.name});
+
+  factory Unit.fromJson(Map<String, dynamic> json) {
+    return Unit(
+      id: json['id'] != null ? int.tryParse(json['id'].toString()) ?? 0 : 0,
+      name: json['name']?.toString() ?? 'unit',
+    );
+  }
+}
 
 class ConsumptionLogPage extends StatefulWidget {
   const ConsumptionLogPage({super.key});
@@ -11,88 +60,172 @@ class ConsumptionLogPage extends StatefulWidget {
 
 class _ConsumptionLogPageState extends State<ConsumptionLogPage> {
   List<Consumption> consumptions = [];
-  final List<Consumption> _allConsumptions = [
-    Consumption(
-      id: 1,
-      consumptionNo: 'DCM-0010',
-      consumptionDate: DateTime(2025, 10, 6),
-      consumptionType: 'fuel',
-      site: 'Vijay Residency',
-      consumptionFile: 'N/A',
-      items: [
-        ConsumptionItem(material: 'Diesel', quantity: 50, unit: 'liters', price: 85.5),
-      ],
-    ),
-    Consumption(
-      id: 2,
-      consumptionNo: 'DCM-0009',
-      consumptionDate: DateTime(2025, 10, 7),
-      consumptionType: 'all',
-      site: 'LandMark Towers',
-      consumptionFile: 'N/A',
-      items: [
-        ConsumptionItem(material: 'Cement', quantity: 100, unit: 'kg', price: 420),
-        ConsumptionItem(material: 'Steel Rods', quantity: 50, unit: 'kg', price: 65),
-      ],
-    ),
-    Consumption(
-      id: 3,
-      consumptionNo: 'DCM-0008',
-      consumptionDate: DateTime(2025, 10, 8),
-      consumptionType: 'fuel',
-      site: 'Nisarg Residency',
-      consumptionFile: 'N/A',
-      items: [
-        ConsumptionItem(material: 'Petrol', quantity: 30, unit: 'liters', price: 96.7),
-      ],
-    ),
-    Consumption(
-      id: 4,
-      consumptionNo: 'DCM-0007',
-      consumptionDate: DateTime(2025, 10, 9),
-      consumptionType: 'all',
-      site: 'LandMark Towers',
-      consumptionFile: 'N/A',
-      items: [
-        ConsumptionItem(material: 'Bricks', quantity: 500, unit: 'pieces', price: 2500),
-      ],
-    ),
-    Consumption(
-      id: 5,
-      consumptionNo: 'DCM-0006',
-      consumptionDate: DateTime(2025, 10, 10),
-      consumptionType: 'fuel',
-      site: 'Easy2IT SEO',
-      consumptionFile: 'N/A',
-    ),
-    Consumption(
-      id: 6,
-      consumptionNo: 'DCM-0005',
-      consumptionDate: DateTime(2025, 10, 11),
-      consumptionType: 'all',
-      site: 'Vijay Residency',
-      consumptionFile: 'N/A',
-    ),
-  ];
+  final List<Consumption> _allConsumptions = [];
+
+  // API Configuration
+  final String baseUrl = 'http://sitepilot.easy2it.in';
+  final String apiEndpoint = '/api/daily-consumptions';
 
   String _selectedFilter = 'All';
   final List<String> _filters = ['All', 'Fuel', 'All Material'];
   bool _isLoading = false;
   final TextEditingController _searchController = TextEditingController();
 
+  // Data for form
+  List<Project> _sites = [];
+  List<AllMachinery> _machineries = [];
+  List<MaterialModel> _materialsAll = [];
+  List<MaterialModel> _materialsFuel = [];
+  bool _isDataLoading = false;
+
   @override
   void initState() {
     super.initState();
     _loadConsumptions();
+    _loadFormData();
   }
 
-  void _loadConsumptions() async {
+  Future<void> _loadConsumptions() async {
     setState(() => _isLoading = true);
-    await Future.delayed(const Duration(milliseconds: 500));
-    setState(() {
-      consumptions = _allConsumptions;
-      _isLoading = false;
-    });
+
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl$apiEndpoint'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> responseData = json.decode(response.body);
+
+        setState(() {
+          _allConsumptions.clear();
+          _allConsumptions.addAll(_parseApiResponse(responseData));
+          consumptions = _allConsumptions;
+          _isLoading = false;
+        });
+      } else {
+        setState(() => _isLoading = false);
+        _showErrorSnackBar('Failed to load data: ${response.statusCode}');
+      }
+    } catch (e) {
+      setState(() => _isLoading = false);
+      _showErrorSnackBar('Error loading data: $e');
+    }
+  }
+
+  Future<void> _loadFormData() async {
+    setState(() => _isDataLoading = true);
+
+    try {
+      // Load sites
+      final siteProvider = Provider.of<ProjectSiteProvider>(context, listen: false);
+      await siteProvider.loadProjects();
+      _sites = siteProvider.projects;
+
+      // Load machineries
+      final machineryService = MachineryService();
+      final machineryResponse = await machineryService.getMachineries();
+      _machineries = machineryResponse.data;
+
+      // Load materials
+      _materialsAll = await _fetchMaterialsByCategory(1); // Building Materials
+      _materialsFuel = await _fetchMaterialsByCategory(2); // Fuels
+
+      setState(() => _isDataLoading = false);
+    } catch (e) {
+      setState(() => _isDataLoading = false);
+      _showErrorSnackBar('Error loading form data: $e');
+    }
+  }
+
+  Future<List<MaterialModel>> _fetchMaterialsByCategory(int categoryId) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/api/daily-consumptions/create-data'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: json.encode({
+          "site_id": 0,
+          "workspace_id": 0
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> responseData = json.decode(response.body);
+        final List<MaterialModel> materials = [];
+
+        String materialsKey = categoryId == 1 ? 'materials_all' : 'materials_fuels';
+        
+        if (responseData.containsKey(materialsKey)) {
+          final materialsMap = responseData[materialsKey] as Map<String, dynamic>;
+          
+          int index = 1;
+          materialsMap.forEach((key, value) {
+            materials.add(MaterialModel.fromJson(value, index));
+            index++;
+          });
+        }
+
+        return materials;
+      } else {
+        throw Exception('Failed to load materials: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error loading materials: $e');
+    }
+  }
+
+  List<Consumption> _parseApiResponse(List<dynamic> apiData) {
+    return apiData.map((item) {
+      final consumptionType = item['consumption_type']?.toString() ?? '';
+      final machineryType = item['machinery_type']?.toString() ?? '';
+      final siteData = item['site'] is Map ? item['site'] : {};
+      
+      List<ConsumptionItem> items = [];
+      if (item['details'] is List) {
+        items = (item['details'] as List).map((detail) {
+          final materialData = detail['material'] is Map ? detail['material'] : {};
+          return ConsumptionItem(
+            material: materialData['name']?.toString() ?? 'Unknown Material',
+            quantity: double.tryParse(detail['quantity']?.toString() ?? '0') ?? 0,
+            unit: detail['unit']?.toString() ?? 'unit',
+            price: double.tryParse(materialData['price']?.toString() ?? '0') ?? 0,
+            materialId: detail['material_id'] != null ? int.tryParse(detail['material_id'].toString()) : null,
+          );
+        }).toList();
+      }
+
+      final machineryData = item['machinery'] is Map ? item['machinery'] : {};
+
+      return Consumption(
+        id: item['id'] ?? 0,
+        consumptionNo: item['consumption_number']?.toString() ?? 'N/A',
+        consumptionDate: _parseDate(item['consumption_date']?.toString()),
+        consumptionType: consumptionType,
+        site: siteData['name']?.toString() ?? 'Unknown Site',
+        consumptionFile: item['consumption_file']?.toString() ?? 'N/A',
+        remarks: item['remarks']?.toString(),
+        items: items.isNotEmpty ? items : null,
+        machineryType: machineryType.isNotEmpty ? machineryType : null,
+        machinery: machineryData['name']?.toString(),
+        siteId: item['site_id']?.toString(),
+        machineryId: item['machinery_id'] != null ? int.tryParse(item['machinery_id'].toString()) : null,
+      );
+    }).toList();
+  }
+
+  DateTime _parseDate(String? dateString) {
+    if (dateString == null) return DateTime.now();
+    try {
+      return DateTime.parse(dateString);
+    } catch (e) {
+      return DateTime.now();
+    }
   }
 
   void _filterConsumptions(String type) {
@@ -101,72 +234,202 @@ class _ConsumptionLogPageState extends State<ConsumptionLogPage> {
       if (type == 'All') {
         consumptions = _allConsumptions;
       } else if (type == 'Fuel') {
-        consumptions = _allConsumptions.where((c) => c.consumptionType == 'fuel').toList();
+        consumptions = _allConsumptions.where((c) => 
+          c.consumptionType.toLowerCase().contains('fuel')).toList();
       } else if (type == 'All Material') {
-        consumptions = _allConsumptions.where((c) => c.consumptionType == 'all').toList();
+        consumptions = _allConsumptions.where((c) => 
+          !c.consumptionType.toLowerCase().contains('fuel')).toList();
       }
     });
   }
 
-  void _addConsumption() async {
+  Future<void> _addConsumption() async {
+    if (_isDataLoading) {
+      _showErrorSnackBar('Loading form data, please wait...');
+      return;
+    }
+
     final result = await showModalBottomSheet<Consumption>(
-  context: context,
-  isScrollControlled: true,
-  shape: const RoundedRectangleBorder(
-    borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-  ),
-  builder: (context) => Container(
-    height: MediaQuery.of(context).size.height * 0.8, // 60% of screen height
-    child: Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-        left: 16,
-        right: 16,
-        top: 16,
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      child: ConsumptionFormSheet(),
-    ),
-  ),
-);
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.9,
+        child: Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+            left: 16,
+            right: 16,
+            top: 16,
+          ),
+          child: ConsumptionFormSheet(
+            sites: _sites,
+            machineries: _machineries,
+            materialsAll: _materialsAll,
+            materialsFuel: _materialsFuel,
+            onSave: _saveConsumptionToAPI,
+          ),
+        ),
+      ),
+    );
 
     if (result != null) {
-      setState(() {
-        _allConsumptions.insert(0, result);
-        _filterConsumptions(_selectedFilter);
-      });
-      _showSuccessSnackBar('Consumption ${result.consumptionNo} added successfully');
+      await _saveConsumptionToAPI(result);
+    }
+  }
+
+  Future<void> _saveConsumptionToAPI(Consumption consumption) async {
+    try {
+      setState(() => _isLoading = true);
+
+      // Prepare the request body according to your API structure
+      final Map<String, dynamic> requestBody = {
+        "consumption_date": consumption.consumptionDate.toIso8601String().split('T')[0],
+        "site_id": int.parse(consumption.siteId ?? '1'),
+        "consumption_type": consumption.consumptionType,
+        "machinery_type": consumption.machineryType,
+        "machinery_id": consumption.machineryId ?? 2,
+        "created_by": 1,
+        "workspace_id": 1,
+        "items": consumption.items?.map((item) => {
+          "material_id": item.materialId ?? 8,
+          "quantity": item.quantity,
+          "unit": item.unit,
+          "remarks": consumption.remarks ?? "Added from app"
+        }).toList() ?? [],
+        "remarks": consumption.remarks
+      };
+
+      final response = await http.post(
+        Uri.parse('$baseUrl$apiEndpoint'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: json.encode(requestBody),
+      );
+
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        
+        // Reload the consumptions to get the updated list from API
+        await _loadConsumptions();
+        _showSuccessSnackBar('Consumption added successfully');
+      } else {
+        _showErrorSnackBar('Failed to add consumption: ${response.statusCode}');
+      }
+    } catch (e) {
+      _showErrorSnackBar('Error adding consumption: $e');
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _updateConsumptionInAPI(Consumption consumption) async {
+    try {
+      setState(() => _isLoading = true);
+
+      final Map<String, dynamic> requestBody = {
+        "consumption_date": consumption.consumptionDate.toIso8601String().split('T')[0],
+        "site_id": int.parse(consumption.siteId ?? '1'),
+        "consumption_type": consumption.consumptionType,
+        "machinery_type": consumption.machineryType,
+        "machinery_id": consumption.machineryId ?? 2,
+        "created_by": 1,
+        "workspace_id": 1,
+        "items": consumption.items?.map((item) => {
+          "material_id": item.materialId ?? 8,
+          "quantity": item.quantity,
+          "unit": item.unit,
+          "remarks": consumption.remarks ?? "Updated from app"
+        }).toList() ?? [],
+        "remarks": consumption.remarks
+      };
+
+      final response = await http.put(
+        Uri.parse('$baseUrl$apiEndpoint/${consumption.id}'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: json.encode(requestBody),
+      );
+
+      if (response.statusCode == 200) {
+        await _loadConsumptions();
+        _showSuccessSnackBar('Consumption updated successfully');
+      } else {
+        _showErrorSnackBar('Failed to update consumption: ${response.statusCode}');
+      }
+    } catch (e) {
+      _showErrorSnackBar('Error updating consumption: $e');
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _deleteConsumptionFromAPI(Consumption consumption) async {
+    try {
+      setState(() => _isLoading = true);
+
+      final response = await http.delete(
+        Uri.parse('$baseUrl$apiEndpoint/${consumption.id}'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        await _loadConsumptions();
+        _showSuccessSnackBar('Consumption deleted successfully');
+      } else {
+        _showErrorSnackBar('Failed to delete consumption: ${response.statusCode}');
+      }
+    } catch (e) {
+      _showErrorSnackBar('Error deleting consumption: $e');
+    } finally {
+      setState(() => _isLoading = false);
     }
   }
 
   void _editConsumption(Consumption consumption) async {
+    if (_isDataLoading) {
+      _showErrorSnackBar('Loading form data, please wait...');
+      return;
+    }
+
     final result = await showModalBottomSheet<Consumption>(
-  context: context,
-  isScrollControlled: true,
-  shape: const RoundedRectangleBorder(
-    borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-  ),
-  builder: (context) => Container(
-    height: MediaQuery.of(context).size.height * 0.8, // 60% of screen height
-    child: Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-        left: 16,
-        right: 16,
-        top: 16,
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      child: ConsumptionFormSheet(),
-    ),
-  ),
-);
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.9,
+        child: Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+            left: 16,
+            right: 16,
+            top: 16,
+          ),
+          child: ConsumptionFormSheet(
+            consumption: consumption,
+            sites: _sites,
+            machineries: _machineries,
+            materialsAll: _materialsAll,
+            materialsFuel: _materialsFuel,
+            onSave: _updateConsumptionInAPI,
+          ),
+        ),
+      ),
+    );
+
     if (result != null) {
-      setState(() {
-        final index = _allConsumptions.indexWhere((c) => c.id == consumption.id);
-        if (index != -1) {
-          _allConsumptions[index] = result;
-          _filterConsumptions(_selectedFilter);
-        }
-      });
-      _showSuccessSnackBar('Consumption ${result.consumptionNo} updated successfully');
+      await _updateConsumptionInAPI(result);
     }
   }
 
@@ -186,12 +449,8 @@ class _ConsumptionLogPageState extends State<ConsumptionLogPage> {
             ),
             TextButton(
               onPressed: () {
-                setState(() {
-                  _allConsumptions.removeWhere((c) => c.id == consumption.id);
-                  _filterConsumptions(_selectedFilter);
-                });
                 Navigator.of(context).pop();
-                _showSuccessSnackBar('Consumption ${consumption.consumptionNo} deleted');
+                _deleteConsumptionFromAPI(consumption);
               },
               child: const Text('Delete', style: TextStyle(color: Colors.red)),
             ),
@@ -206,6 +465,17 @@ class _ConsumptionLogPageState extends State<ConsumptionLogPage> {
       SnackBar(
         content: Text(message),
         backgroundColor: Colors.green,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+    );
+  }
+
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
@@ -252,7 +522,10 @@ class _ConsumptionLogPageState extends State<ConsumptionLogPage> {
             icon: const Icon(Icons.refresh, color: Colors.white),
             onPressed: _loadConsumptions,
           ),
-          IconButton(onPressed:_addConsumption , icon: Icon(Icons.add)),
+          IconButton(
+            onPressed: _addConsumption, 
+            icon: const Icon(Icons.add, color: Colors.white)
+          ),
         ],
       ),
       body: Column(
@@ -264,7 +537,6 @@ class _ConsumptionLogPageState extends State<ConsumptionLogPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                
                 // Search Bar
                 Container(
                   height: 45,
@@ -283,6 +555,9 @@ class _ConsumptionLogPageState extends State<ConsumptionLogPage> {
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16),
                     ),
                     style: const TextStyle(fontSize: 14),
+                    onChanged: (value) {
+                      _performSearch(value);
+                    },
                   ),
                 ),
               ],
@@ -381,8 +656,24 @@ class _ConsumptionLogPageState extends State<ConsumptionLogPage> {
           ),
         ],
       ),
-      
     );
+  }
+
+  void _performSearch(String query) {
+    if (query.isEmpty) {
+      _filterConsumptions(_selectedFilter);
+    } else {
+      final filtered = _allConsumptions.where((consumption) {
+        return consumption.consumptionNo.toLowerCase().contains(query.toLowerCase()) ||
+               consumption.site.toLowerCase().contains(query.toLowerCase()) ||
+               (consumption.items?.any((item) => 
+                  item.material.toLowerCase().contains(query.toLowerCase())) ?? false);
+      }).toList();
+      
+      setState(() {
+        consumptions = filtered;
+      });
+    }
   }
 
   Widget _buildLoadingIndicator() {
@@ -438,6 +729,11 @@ class _ConsumptionLogPageState extends State<ConsumptionLogPage> {
               color: Colors.grey.shade400,
             ),
           ),
+          const SizedBox(height: 16),
+          ElevatedButton(
+            onPressed: _loadConsumptions,
+            child: const Text('Retry'),
+          ),
         ],
       ),
     );
@@ -460,7 +756,7 @@ class ConsumptionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isFuel = consumption.consumptionType == 'fuel';
+    final isFuel = consumption.consumptionType.toLowerCase().contains('fuel');
     final totalItems = consumption.items?.length ?? 0;
 
     return Container(
@@ -588,6 +884,26 @@ class ConsumptionCard extends StatelessWidget {
 
             const SizedBox(height: 8),
 
+            // Machinery Information (if available)
+            if (consumption.machinery != null) ...[
+              Row(
+                children: [
+                  Icon(Icons.build, size: 16, color: Colors.grey.shade500),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      consumption.machinery!,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey.shade700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+            ],
+
             // Items Information
             if (totalItems > 0) ...[
               Row(
@@ -684,11 +1000,23 @@ class ConsumptionCard extends StatelessWidget {
   }
 }
 
-// ConsumptionFormSheet for bottom sheet
 class ConsumptionFormSheet extends StatefulWidget {
   final Consumption? consumption;
+  final List<Project> sites;
+  final List<AllMachinery> machineries;
+  final List<MaterialModel> materialsAll;
+  final List<MaterialModel> materialsFuel;
+  final Function(Consumption)? onSave;
 
-  const ConsumptionFormSheet({super.key, this.consumption});
+  const ConsumptionFormSheet({
+    super.key,
+    this.consumption,
+    required this.sites,
+    required this.machineries,
+    required this.materialsAll,
+    required this.materialsFuel,
+    this.onSave,
+  });
 
   @override
   State<ConsumptionFormSheet> createState() => _ConsumptionFormSheetState();
@@ -703,66 +1031,105 @@ class _ConsumptionFormSheetState extends State<ConsumptionFormSheet> {
   final TextEditingController _consumptionDateController = TextEditingController();
   final TextEditingController _remarksController = TextEditingController();
   String _selectedConsumptionType = 'All Material';
-  String _selectedSite = 'Select Site';
-  String? _selectedMaterial;
-  final TextEditingController _quantityController = TextEditingController();
-  String _selectedUnit = 'unit';
-  String _selectedMachineryType = 'Select Machinery Type';
-  String _selectedMachinery = 'Select Machinery';
+  String? _selectedSiteId;
+  String? _selectedMachineryType;
+  int? _selectedMachineryId;
 
   final List<String> _consumptionTypes = ['All Material', 'Fuel'];
-  final List<String> _sites = [
-    'Select Site',
-    'Vijay Residency',
-    'Nisarg Residency',
-    'LandMark Towers',
-    'Easy2IT SEO'
+  final List<String> _machineryTypes = ['Own', 'Rental'];
 
-
-  ];
-  final List<String> _materials = [
-    'Select Material',
-    'Material 1',
-    'Material 2',
-    'Material 3',
-    'Material 4'
-  ];
-  final List<String> _units = ['unit', 'kg', 'liters', 'pieces'];
-  final List<String> _machineryTypes = [
-    'Select Machinery Type',
-    'Excavator',
-    'Bulldozer',
-    'Crane',
-    'Truck'
-  ];
-  final List<String> _machineries = [
-    'Select Machinery',
-    'Excavator 1',
-    'Bulldozer 1',
-    'Crane 1',
-    'Truck 1'
-  ];
+  // Item fields controllers (for multiple items)
+  final List<TextEditingController> _quantityControllers = [];
+  final List<int?> _selectedMaterialIds = [];
+  final List<String> _selectedUnits = [];
 
   @override
   void initState() {
     super.initState();
+    _initializeForm();
+  }
+
+  void _initializeForm() {
     if (widget.consumption != null) {
       // Edit mode - populate fields
       final consumption = widget.consumption!;
       _consumptionNoController.text = consumption.consumptionNo;
       _consumptionDateController.text = _formatDate(consumption.consumptionDate);
       _selectedConsumptionType = consumption.consumptionType == 'fuel' ? 'Fuel' : 'All Material';
-      _selectedSite = consumption.site;
+      
+      // Set site ID - ensure it's in the list
+      _selectedSiteId = (consumption.siteId != null && widget.sites.any((s) => s.id == consumption.siteId))
+          ? consumption.siteId
+          : (widget.sites.any((s) => s.name == consumption.site)
+              ? widget.sites.firstWhere((s) => s.name == consumption.site).id
+              : (widget.sites.isNotEmpty ? widget.sites.first.id : null));
       _remarksController.text = consumption.remarks ?? '';
-      _selectedMachineryType = consumption.machineryType ?? 'Select Machinery Type';
-      _selectedMachinery = consumption.machinery ?? 'Select Machinery';
-      if (consumption.items != null) {
-        _items.addAll(consumption.items!);
+      
+      // Set machinery fields only if consumption type is Fuel
+      if (_selectedConsumptionType == 'Fuel') {
+        _selectedMachineryType = consumption.machineryType;
+        _selectedMachineryId = (consumption.machineryId != null && widget.machineries.any((m) => m.id == consumption.machineryId))
+            ? consumption.machineryId
+            : (consumption.machinery != null && widget.machineries.any((m) => m.name == consumption.machinery)
+                ? widget.machineries.firstWhere((m) => m.name == consumption.machinery).id
+                : null);
+      }
+      
+      // Initialize items
+      if (consumption.items != null && consumption.items!.isNotEmpty) {
+        for (var item in consumption.items!) {
+          _items.add(item);
+          _quantityControllers.add(TextEditingController(text: item.quantity.toString()));
+          _selectedMaterialIds.add(item.materialId);
+          _selectedUnits.add(item.unit);
+        }
+      } else {
+        // Add one empty item field by default
+        _addNewItemField();
       }
     } else {
       // Add mode - set default values
       _consumptionNoController.text = 'DCM-0011';
-      _consumptionDateController.text = _formatDate(DateTime(2025, 10, 17));
+      _consumptionDateController.text = _formatDate(DateTime.now());
+      // Add one empty item field by default
+      _addNewItemField();
+    }
+  }
+
+  void _addNewItemField() {
+    setState(() {
+      _quantityControllers.add(TextEditingController());
+      _selectedMaterialIds.add(null);
+      _selectedUnits.add('unit');
+    });
+  }
+
+  void _removeItemField(int index) {
+    setState(() {
+      if (_quantityControllers.length > index) {
+        _quantityControllers.removeAt(index);
+      }
+      if (_selectedMaterialIds.length > index) {
+        _selectedMaterialIds.removeAt(index);
+      }
+      if (_selectedUnits.length > index) {
+        _selectedUnits.removeAt(index);
+      }
+      if (_items.length > index) {
+        _items.removeAt(index);
+      }
+    });
+  }
+
+  void _onMaterialChanged(int? newValue, int index) {
+    if (newValue != null) {
+      final currentMaterials = _selectedConsumptionType == 'Fuel' ? widget.materialsFuel : widget.materialsAll;
+      final selectedMaterial = currentMaterials.firstWhere((m) => m.id == newValue);
+      
+      setState(() {
+        _selectedMaterialIds[index] = newValue;
+        _selectedUnits[index] = selectedMaterial.unit?.name ?? 'unit';
+      });
     }
   }
 
@@ -771,7 +1138,9 @@ class _ConsumptionFormSheetState extends State<ConsumptionFormSheet> {
     _consumptionNoController.dispose();
     _consumptionDateController.dispose();
     _remarksController.dispose();
-    _quantityController.dispose();
+    for (var controller in _quantityControllers) {
+      controller.dispose();
+    }
     super.dispose();
   }
 
@@ -779,47 +1148,52 @@ class _ConsumptionFormSheetState extends State<ConsumptionFormSheet> {
     return '${date.month}/${date.day}/${date.year}';
   }
 
-  void _addItem() {
-    if (_selectedMaterial == null || _selectedMaterial == 'Select Material' || _quantityController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select material and enter quantity')),
-      );
-      return;
-    }
-
-    setState(() {
-      _items.add(ConsumptionItem(
-        material: _selectedMaterial!,
-        quantity: double.parse(_quantityController.text),
-        unit: _selectedUnit,
-      ));
-
-      // Reset item fields
-      _selectedMaterial = 'Select Material';
-      _quantityController.clear();
-      _selectedUnit = 'unit';
-    });
-  }
-
-  void _removeItem(int index) {
-    setState(() {
-      _items.removeAt(index);
-    });
-  }
-
   void _submitForm() {
-    if (_formKey.currentState!.validate() && _selectedSite != 'Select Site') {
+    if (_formKey.currentState!.validate() && _selectedSiteId != null) {
+      // Validate items
+      for (int i = 0; i < _quantityControllers.length; i++) {
+        if (_selectedMaterialIds[i] == null || _quantityControllers[i].text.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Please fill all item fields')),
+          );
+          return;
+        }
+      }
+
+      // Build items list
+      final List<ConsumptionItem> items = [];
+      final currentMaterials = _selectedConsumptionType == 'Fuel' ? widget.materialsFuel : widget.materialsAll;
+
+      for (int i = 0; i < _quantityControllers.length; i++) {
+        final materialId = _selectedMaterialIds[i];
+        if (materialId != null) {
+          final material = currentMaterials.firstWhere((m) => m.id == materialId);
+          items.add(ConsumptionItem(
+            material: material.name,
+            quantity: double.parse(_quantityControllers[i].text),
+            unit: _selectedUnits[i],
+            materialId: materialId,
+          ));
+        }
+      }
+
+      final siteName = widget.sites.firstWhere((s) => s.id == _selectedSiteId).name;
+      final machineryName = _selectedMachineryId != null ? 
+          widget.machineries.firstWhere((m) => m.id == _selectedMachineryId).name : null;
+
       final consumption = Consumption(
-        id: widget.consumption?.id ?? DateTime.now().millisecondsSinceEpoch,
+        id: widget.consumption?.id ?? 0, // API will assign ID
         consumptionNo: _consumptionNoController.text,
         consumptionDate: _parseDate(_consumptionDateController.text),
         consumptionType: _selectedConsumptionType.toLowerCase().contains('fuel') ? 'fuel' : 'all',
-        site: _selectedSite,
+        site: siteName,
         consumptionFile: 'N/A',
         remarks: _remarksController.text.isEmpty ? null : _remarksController.text,
-        items: _items.isEmpty ? null : _items,
-        machineryType: _selectedMachineryType != 'Select Machinery Type' ? _selectedMachineryType : null,
-        machinery: _selectedMachinery != 'Select Machinery' ? _selectedMachinery : null,
+        items: items.isEmpty ? null : items,
+        machineryType: _selectedConsumptionType == 'Fuel' ? _selectedMachineryType : null,
+        machinery: _selectedConsumptionType == 'Fuel' ? machineryName : null,
+        siteId: _selectedSiteId,
+        machineryId: _selectedConsumptionType == 'Fuel' ? _selectedMachineryId : null,
       );
 
       Navigator.pop(context, consumption);
@@ -849,9 +1223,115 @@ class _ConsumptionFormSheetState extends State<ConsumptionFormSheet> {
     }
   }
 
+  void _onConsumptionTypeChanged(String? newValue) {
+    setState(() {
+      _selectedConsumptionType = newValue!;
+      // Reset machinery fields when switching consumption type
+      if (_selectedConsumptionType == 'All Material') {
+        _selectedMachineryType = null;
+        _selectedMachineryId = null;
+      }
+      // Reset material selections
+      for (int i = 0; i < _selectedMaterialIds.length; i++) {
+        _selectedMaterialIds[i] = null;
+        _selectedUnits[i] = 'unit';
+      }
+    });
+  }
+
+  Widget _buildItemField(int index) {
+    final currentMaterials = _selectedConsumptionType == 'Fuel' ? widget.materialsFuel : widget.materialsAll;
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Item ${index + 1}',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                if (_quantityControllers.length > 1)
+                  IconButton(
+                    icon: const Icon(Icons.delete, color: Colors.red, size: 20),
+                    onPressed: () => _removeItemField(index),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            DropdownButtonFormField<int>(
+              value: _selectedMaterialIds[index],
+              decoration: const InputDecoration(
+                labelText: 'Material *',
+                border: OutlineInputBorder(),
+                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              ),
+              items: currentMaterials.map((MaterialModel material) {
+                return DropdownMenuItem<int>(
+                  value: material.id,
+                  child: Text(material.name),
+                );
+              }).toList(),
+              onChanged: (value) => _onMaterialChanged(value, index),
+              validator: (value) {
+                if (value == null) {
+                  return 'Please select material';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: TextFormField(
+                    controller: _quantityControllers[index],
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Quantity *',
+                      border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter quantity';
+                      }
+                      return null;
+                    },
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  flex: 1,
+                  child: TextFormField(
+                    controller: TextEditingController(text: _selectedUnits[index]),
+                    decoration: const InputDecoration(
+                      labelText: 'Unit',
+                      border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    ),
+                    readOnly: true,
+                    enabled: false,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isEdit = widget.consumption != null;
+    final showMachineryFields = _selectedConsumptionType == 'Fuel';
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -886,12 +1366,9 @@ class _ConsumptionFormSheetState extends State<ConsumptionFormSheet> {
                     controller: _consumptionNoController,
                     decoration: const InputDecoration(
                       labelText: 'Consumption Number *',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.all(Radius.circular(10)),
-                      ),
+                      border: OutlineInputBorder(),
                       contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     ),
-                    style: const TextStyle(fontSize: 14),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
                         return 'Please enter consumption number';
@@ -906,23 +1383,16 @@ class _ConsumptionFormSheetState extends State<ConsumptionFormSheet> {
                     value: _selectedConsumptionType,
                     decoration: const InputDecoration(
                       labelText: 'Consumption Type *',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.all(Radius.circular(10)),
-                      ),
+                      border: OutlineInputBorder(),
                       contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     ),
-                    style: const TextStyle(fontSize: 14,color: Colors.black),
                     items: _consumptionTypes.map((String type) {
                       return DropdownMenuItem<String>(
                         value: type,
                         child: Text(type),
                       );
                     }).toList(),
-                    onChanged: (String? newValue) {
-                      setState(() {
-                        _selectedConsumptionType = newValue!;
-                      });
-                    },
+                    onChanged: _onConsumptionTypeChanged,
                     validator: (value) {
                       if (value == null || value.isEmpty) {
                         return 'Please select consumption type';
@@ -937,13 +1407,10 @@ class _ConsumptionFormSheetState extends State<ConsumptionFormSheet> {
                     controller: _consumptionDateController,
                     decoration: const InputDecoration(
                       labelText: 'Consumption Date *',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.all(Radius.circular(10)),
-                      ),
+                      border: OutlineInputBorder(),
                       suffixIcon: Icon(Icons.calendar_today),
                       contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     ),
-                    style: const TextStyle(fontSize: 14),
                     readOnly: true,
                     onTap: _selectDate,
                     validator: (value) {
@@ -957,28 +1424,25 @@ class _ConsumptionFormSheetState extends State<ConsumptionFormSheet> {
 
                   // Site
                   DropdownButtonFormField<String>(
-                    value: _selectedSite,
+                    value: _selectedSiteId,
                     decoration: const InputDecoration(
                       labelText: 'Site *',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.all(Radius.circular(10)),
-                      ),
+                      border: OutlineInputBorder(),
                       contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     ),
-                    style: const TextStyle(fontSize: 14,color: Colors.black),
-                    items: _sites.map((String site) {
+                    items: widget.sites.map((Project site) {
                       return DropdownMenuItem<String>(
-                        value: site,
-                        child: Text(site),
+                        value: site.id,
+                        child: Text(site.name),
                       );
                     }).toList(),
                     onChanged: (String? newValue) {
                       setState(() {
-                        _selectedSite = newValue!;
+                        _selectedSiteId = newValue;
                       });
                     },
                     validator: (value) {
-                      if (value == null || value == 'Select Site') {
+                      if (value == null) {
                         return 'Please select a site';
                       }
                       return null;
@@ -986,142 +1450,85 @@ class _ConsumptionFormSheetState extends State<ConsumptionFormSheet> {
                   ),
                   const SizedBox(height: 10),
 
-                  // Machinery Type
-                  DropdownButtonFormField<String>(
-                    value: _selectedMachineryType,
-                    decoration: const InputDecoration(
-                      labelText: 'Machinery Type',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.all(Radius.circular(10)),
+                  // Machinery Type (only for Fuel)
+                  if (showMachineryFields) ...[
+                    DropdownButtonFormField<String>(
+                      value: _selectedMachineryType,
+                      decoration: const InputDecoration(
+                        labelText: 'Machinery Type *',
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       ),
-                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      items: _machineryTypes.map((String type) {
+                        return DropdownMenuItem<String>(
+                          value: type,
+                          child: Text(type),
+                        );
+                      }).toList(),
+                      onChanged: (String? newValue) {
+                        setState(() {
+                          _selectedMachineryType = newValue;
+                        });
+                      },
+                      validator: (value) {
+                        if (value == null) {
+                          return 'Please select machinery type';
+                        }
+                        return null;
+                      },
                     ),
-                    style: const TextStyle(fontSize: 14,color: Colors.black),
-                    items: _machineryTypes.map((String type) {
-                      return DropdownMenuItem<String>(
-                        value: type,
-                        child: Text(type),
-                      );
-                    }).toList(),
-                    onChanged: (String? newValue) {
-                      setState(() {
-                        _selectedMachineryType = newValue!;
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 10),
+                    const SizedBox(height: 10),
+                  ],
 
-                  // Machinery
-                  DropdownButtonFormField<String>(
-                    value: _selectedMachinery,
-                    decoration: const InputDecoration(
-                      labelText: 'Machinery',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.all(Radius.circular(10)),
+                  // Machinery (only for Fuel)
+                  if (showMachineryFields) ...[
+                    DropdownButtonFormField<int>(
+                      value: _selectedMachineryId,
+                      decoration: const InputDecoration(
+                        labelText: 'Machinery *',
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       ),
-                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      items: widget.machineries.map((AllMachinery machinery) {
+                        return DropdownMenuItem<int>(
+                          value: machinery.id,
+                          child: Text(machinery.name),
+                        );
+                      }).toList(),
+                      onChanged: (int? newValue) {
+                        setState(() {
+                          _selectedMachineryId = newValue;
+                        });
+                      },
+                      validator: (value) {
+                        if (value == null) {
+                          return 'Please select machinery';
+                        }
+                        return null;
+                      },
                     ),
-                    style: const TextStyle(fontSize: 14,color: Colors.black),
-                    items: _machineries.map((String machinery) {
-                      return DropdownMenuItem<String>(
-                        value: machinery,
-                        child: Text(machinery),
-                      );
-                    }).toList(),
-                    onChanged: (String? newValue) {
-                      setState(() {
-                        _selectedMachinery = newValue!;
-                      });
-                    },
-                  ),
+                    const SizedBox(height: 10),
+                  ],
+
                   const SizedBox(height: 14),
 
-                  // Material Selection
+                  // Items Section
                   const Text(
-                    'Consumption Details',
+                    'Consumption Items',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 10),
 
-                  DropdownButtonFormField<String>(
-                    value: _selectedMaterial,
-                    decoration: const InputDecoration(
-                      labelText: 'Material',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.all(Radius.circular(10)),
-                      ),
-                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    ),
-                    style: const TextStyle(fontSize: 14,color: Colors.black),
-                    items: _materials.map((String material) {
-                      return DropdownMenuItem<String>(
-                        value: material,
-                        child: Text(material),
-                      );
-                    }).toList(),
-                    onChanged: (String? newValue) {
-                      setState(() {
-                        _selectedMaterial = newValue;
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 10),
-
-                  // Quantity and Unit
-                  Row(
-                    children: [
-                      Expanded(
-                        flex: 2,
-                        child: TextFormField(
-                          controller: _quantityController,
-                          keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(
-                            labelText: 'Quantity',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.all(Radius.circular(10)),
-                            ),
-                            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          ),
-                          style: const TextStyle(fontSize: 14),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        flex: 1,
-                        child: DropdownButtonFormField<String>(
-                          value: _selectedUnit,
-                          decoration: const InputDecoration(
-                            labelText: 'Unit',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.all(Radius.circular(10)),
-                            ),
-                            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          ),
-                          style: const TextStyle(fontSize: 14,color: Colors.black),
-                          items: _units.map((String unit) {
-                            return DropdownMenuItem<String>(
-                              value: unit,
-                              child: Text(unit),
-                            );
-                          }).toList(),
-                          onChanged: (String? newValue) {
-                            setState(() {
-                              _selectedUnit = newValue!;
-                            });
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
+                  // Dynamic Item Fields
+                  ...List.generate(_quantityControllers.length, (index) => _buildItemField(index)),
 
                   // Add Item Button
                   SizedBox(
-                    width: 50,
+                    width: double.infinity,
                     child: ElevatedButton.icon(
-                      onPressed: _addItem,
+                      onPressed: _addNewItemField,
                       icon: const Icon(Icons.add),
-                      label: const Text('Add Item'),
+                      label: const Text('Add New Item'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.blue.shade50,
                         foregroundColor: const Color.fromARGB(255, 25, 53, 210),
@@ -1130,44 +1537,15 @@ class _ConsumptionFormSheetState extends State<ConsumptionFormSheet> {
                   ),
                   const SizedBox(height: 10),
 
-                  // Added Items List
-                  if (_items.isNotEmpty) ...[
-                    const Text(
-                      'Added Items:',
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 8),
-                    ..._items.asMap().entries.map((entry) {
-                      final index = entry.key;
-                      final item = entry.value;
-                      return Card(
-                        margin: const EdgeInsets.only(bottom: 4),
-                        child: ListTile(
-                          dense: true,
-                          title: Text(item.material, style: const TextStyle(fontSize: 14)),
-                          subtitle: Text('${item.quantity} ${item.unit}', style: const TextStyle(fontSize: 12)),
-                          trailing: IconButton(
-                            icon: const Icon(Icons.delete, color: Colors.red, size: 20),
-                            onPressed: () => _removeItem(index),
-                          ),
-                        ),
-                      );
-                    }),
-                  ],
-                  const SizedBox(height: 10),
-
                   // Remarks
                   TextFormField(
                     controller: _remarksController,
                     maxLines: 2,
                     decoration: const InputDecoration(
                       labelText: 'Remarks',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.all(Radius.circular(10)),
-                      ),
+                      border: OutlineInputBorder(),
                       contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     ),
-                    style: const TextStyle(fontSize: 14),
                   ),
                 ],
               ),
@@ -1191,470 +1569,6 @@ class _ConsumptionFormSheetState extends State<ConsumptionFormSheet> {
           ),
         ),
         const SizedBox(height: 14),
-      ],
-    );
-  }
-}
-
-// AddEditConsumptionPage remains the same as in previous code...
-class AddEditConsumptionPage extends StatefulWidget {
-  final Consumption? consumption;
-
-  const AddEditConsumptionPage({super.key, this.consumption});
-
-  @override
-  State<AddEditConsumptionPage> createState() => _AddEditConsumptionPageState();
-}
-
-class _AddEditConsumptionPageState extends State<AddEditConsumptionPage> {
-  final _formKey = GlobalKey<FormState>();
-  final List<ConsumptionItem> _items = [];
-
-  // Form controllers
-  final TextEditingController _consumptionNoController = TextEditingController();
-  final TextEditingController _consumptionDateController = TextEditingController();
-  final TextEditingController _remarksController = TextEditingController();
-  String _selectedConsumptionType = 'All Material';
-  String _selectedSite = 'Select Site';
-  String? _selectedMaterial;
-  final TextEditingController _quantityController = TextEditingController();
-  String _selectedUnit = 'unit';
-
-  final List<String> _consumptionTypes = ['All Material', 'Fuel'];
-  final List<String> _sites = [
-    'Select Site',
-    'Vijay Residency',
-    'LandMark Towers',
-    'Nisarg Residency',
-    'Easy2IT SEO'
-  ];
-  final List<String> _materials = [
-    'Select Material',
-    'Material 1',
-    'Material 2',
-    'Material 3',
-    'Material 4'
-  ];
-  final List<String> _units = ['unit', 'kg', 'liters', 'pieces'];
-
-  @override
-  void initState() {
-    super.initState();
-    if (widget.consumption != null) {
-      // Edit mode - populate fields
-      final consumption = widget.consumption!;
-      _consumptionNoController.text = consumption.consumptionNo;
-      _consumptionDateController.text = _formatDate(consumption.consumptionDate);
-      _selectedConsumptionType = consumption.consumptionType == 'fuel' ? 'Fuel' : 'All Material';
-      _selectedSite = consumption.site;
-      _remarksController.text = consumption.remarks ?? '';
-    } else {
-      // Add mode - set default values
-      _consumptionNoController.text = 'DCM-0011';
-      _consumptionDateController.text = _formatDate(DateTime(2025, 10, 17));
-    }
-  }
-
-  @override
-  void dispose() {
-    _consumptionNoController.dispose();
-    _consumptionDateController.dispose();
-    _remarksController.dispose();
-    _quantityController.dispose();
-    super.dispose();
-  }
-
-  String _formatDate(DateTime date) {
-    return '${date.month}/${date.day}/${date.year}';
-  }
-
-  void _addItem() {
-    if (_selectedMaterial == null || _selectedMaterial == 'Select Material' || _quantityController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select material and enter quantity')),
-      );
-      return;
-    }
-
-    setState(() {
-      _items.add(ConsumptionItem(
-        material: _selectedMaterial!,
-        quantity: double.parse(_quantityController.text),
-        unit: _selectedUnit,
-      ));
-      
-      // Reset item fields
-      _selectedMaterial = 'Select Material';
-      _quantityController.clear();
-      _selectedUnit = 'unit';
-    });
-  }
-
-  void _removeItem(int index) {
-    setState(() {
-      _items.removeAt(index);
-    });
-  }
-
-  void _submitForm() {
-    if (_formKey.currentState!.validate() && _selectedSite != 'Select Site') {
-      final consumption = Consumption(
-        id: widget.consumption?.id ?? DateTime.now().millisecondsSinceEpoch,
-        consumptionNo: _consumptionNoController.text,
-        consumptionDate: _parseDate(_consumptionDateController.text),
-        consumptionType: _selectedConsumptionType.toLowerCase().contains('fuel') ? 'fuel' : 'all',
-        site: _selectedSite,
-        consumptionFile: 'N/A',
-        remarks: _remarksController.text.isEmpty ? null : _remarksController.text,
-        items: _items.isEmpty ? null : _items,
-      );
-
-      Navigator.pop(context, consumption);
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill all required fields')),
-      );
-    }
-  }
-
-  DateTime _parseDate(String dateString) {
-    final parts = dateString.split('/');
-    return DateTime(int.parse(parts[2]), int.parse(parts[0]), int.parse(parts[1]));
-  }
-
-  Future<void> _selectDate() async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: _parseDate(_consumptionDateController.text),
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2100),
-    );
-    if (picked != null) {
-      setState(() {
-        _consumptionDateController.text = _formatDate(picked);
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final isEdit = widget.consumption != null;
-
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(isEdit ? 'Edit Consumption' : 'Create Consumption Log'),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-        elevation: 0,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Consumption Number
-              _buildFormField(
-                'Consumption Number *',
-                TextFormField(
-                  controller: _consumptionNoController,
-                  decoration: const InputDecoration(
-                    hintText: 'Enter consumption number',
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter consumption number';
-                    }
-                    return null;
-                  },
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
-              // Consumption Type
-              _buildFormField(
-                'Consumption Type *',
-                DropdownButtonFormField<String>(
-                  value: _selectedConsumptionType,
-                  items: _consumptionTypes.map((String type) {
-                    return DropdownMenuItem<String>(
-                      value: type,
-                      child: Text(type),
-                    );
-                  }).toList(),
-                  onChanged: (String? newValue) {
-                    setState(() {
-                      _selectedConsumptionType = newValue!;
-                    });
-                  },
-                  decoration: const InputDecoration(
-                    hintText: 'Select consumption type',
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please select consumption type';
-                    }
-                    return null;
-                  },
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
-              // Consumption Date
-              _buildFormField(
-                'Consumption Date *',
-                TextFormField(
-                  controller: _consumptionDateController,
-                  decoration: const InputDecoration(
-                    hintText: 'MM/DD/YYYY',
-                    suffixIcon: Icon(Icons.calendar_today),
-                  ),
-                  readOnly: true,
-                  onTap: _selectDate,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please select consumption date';
-                    }
-                    return null;
-                  },
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
-              // Site
-              _buildFormField(
-                'Site *',
-                DropdownButtonFormField<String>(
-                  value: _selectedSite,
-                  items: _sites.map((String site) {
-                    return DropdownMenuItem<String>(
-                      value: site,
-                      child: Text(site),
-                    );
-                  }).toList(),
-                  onChanged: (String? newValue) {
-                    setState(() {
-                      _selectedSite = newValue!;
-                    });
-                  },
-                  validator: (value) {
-                    if (value == null || value == 'Select Site') {
-                      return 'Please select a site';
-                    }
-                    return null;
-                  },
-                ),
-              ),
-
-              const SizedBox(height: 24),
-
-              // Reference File Section
-              const Text(
-                'Reference File',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              OutlinedButton.icon(
-                onPressed: () {
-                  // File picker implementation would go here
-                },
-                icon: const Icon(Icons.attach_file),
-                label: const Text('Choose File'),
-              ),
-              const SizedBox(height: 4),
-              const Text(
-                'No file chosen',
-                style: TextStyle(color: Colors.grey),
-              ),
-              const SizedBox(height: 4),
-              const Text(
-                'Allowed: pdf, jpg, jpeg, png, doc, docx',
-                style: TextStyle(fontSize: 12, color: Colors.grey),
-              ),
-
-              const SizedBox(height: 24),
-
-              // Consumption Details Section
-              const Text(
-                'Consumption Details',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 16),
-
-              // Material Selection
-              const Text(
-                'MATERIAL',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey),
-              ),
-              const SizedBox(height: 8),
-
-              DropdownButtonFormField<String>(
-                value: _selectedMaterial,
-                items: _materials.map((String material) {
-                  return DropdownMenuItem<String>(
-                    value: material,
-                    child: Text(material),
-                  );
-                }).toList(),
-                onChanged: (String? newValue) {
-                  setState(() {
-                    _selectedMaterial = newValue;
-                  });
-                },
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  hintText: 'Select Material',
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
-              // Quantity and Unit
-              Row(
-                children: [
-                  Expanded(
-                    flex: 2,
-                    child: TextFormField(
-                      controller: _quantityController,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        labelText: 'QUANTITY',
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    flex: 1,
-                    child: DropdownButtonFormField<String>(
-                      value: _selectedUnit,
-                      items: _units.map((String unit) {
-                        return DropdownMenuItem<String>(
-                          value: unit,
-                          child: Text(unit),
-                        );
-                      }).toList(),
-                      onChanged: (String? newValue) {
-                        setState(() {
-                          _selectedUnit = newValue!;
-                        });
-                      },
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        labelText: 'UNIT',
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 16),
-
-              // Add Item Button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: _addItem,
-                  icon: const Icon(Icons.add),
-                  label: const Text('Add Item'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue.shade50,
-                    foregroundColor: Colors.blue.shade700,
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
-              // Added Items List
-              if (_items.isNotEmpty) ...[
-                const Text(
-                  'Added Items:',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                ..._items.asMap().entries.map((entry) {
-                  final index = entry.key;
-                  final item = entry.value;
-                  return Card(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    child: ListTile(
-                      title: Text(item.material),
-                      subtitle: Text('${item.quantity} ${item.unit}'),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.red),
-                        onPressed: () => _removeItem(index),
-                      ),
-                    ),
-                  );
-                }),
-              ],
-
-              const SizedBox(height: 24),
-
-              // Remarks
-              const Text(
-                'REMARKS',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey),
-              ),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: _remarksController,
-                maxLines: 3,
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  hintText: 'Enter remarks...',
-                ),
-              ),
-
-              const SizedBox(height: 32),
-
-              // Action Buttons
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                      ),
-                      child: const Text('Cancel'),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: _submitForm,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue.shade700,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                      ),
-                      child: Text(isEdit ? 'Update' : 'Create'),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFormField(String label, Widget field) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey),
-        ),
-        const SizedBox(height: 8),
-        field,
       ],
     );
   }

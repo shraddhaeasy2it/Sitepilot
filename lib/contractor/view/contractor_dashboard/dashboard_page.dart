@@ -8,6 +8,7 @@ import 'package:ecoteam_app/admin/Screens/machineryCategory_screen.dart';
 import 'package:ecoteam_app/admin/Screens/Project-site_screen.dart';
 import 'package:ecoteam_app/admin/Screens/manpowerType_screen.dart';
 import 'package:ecoteam_app/admin/Screens/manpower_screen.dart';
+import 'package:ecoteam_app/admin/Screens/materialTransfer_screen.dart';
 import 'package:ecoteam_app/admin/Screens/purchase_invoice_screen.dart';
 import 'package:ecoteam_app/admin/Screens/role_management_page.dart'
     hide AdminColors;
@@ -675,548 +676,585 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-    Widget _buildNavigationDrawer() {
-  return Drawer(
-    child: Container(
-      color: Colors.white,
-      child: Column(
-        children: [
-          // Header section remains the same
-          Container(
-            padding: EdgeInsets.only(top: 50.h, bottom: 20.h),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [AdminColors.primary, AdminColors.primaryLight],
+  Widget _buildNavigationDrawer() {
+    return Drawer(
+       width: MediaQuery.of(context).size.width * 0.69,
+      child: Container(
+        
+        color: Colors.white,
+        child: Column(
+          children: [
+            // Header section remains the same
+            Container(
+              padding: EdgeInsets.only(top: 40.h, bottom: 20.h),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [AdminColors.primary, AdminColors.primaryLight],
+                ),
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(20.r),
+                  bottomRight: Radius.circular(20.r),
+                ),
               ),
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(20.r),
-                bottomRight: Radius.circular(20.r),
+              child: Center(
+                child: Column(
+                  children: [
+                    CircleAvatar(
+                      radius: 40.r,
+                      backgroundColor: Colors.white.withOpacity(0.2),
+                      child: Icon(
+                        Icons.admin_panel_settings,
+                        size: 40.sp,
+                        color: Colors.white,
+                      ),
+                    ),
+                    SizedBox(height: 12.h),
+                    Text(
+                      'Admin Panel',
+                      style: TextStyle(
+                        fontSize: 20.sp,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-            child: Center(
-              child: Column(
+            Expanded(
+              child: ListView(
+                padding: EdgeInsets.zero,
                 children: [
-                  CircleAvatar(
-                    radius: 40.r,
-                    backgroundColor: Colors.white.withOpacity(0.2),
-                    child: Icon(
-                      Icons.admin_panel_settings,
-                      size: 40.sp,
-                      color: Colors.white,
-                    ),
-                  ),
-                  SizedBox(height: 12.h),
-                  Text(
-                    'Admin Panel',
-                    style: TextStyle(
-                      fontSize: 20.sp,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          Expanded(
-            child: ListView(
-              padding: EdgeInsets.zero,
-              children: [
-                // Dashboard Section
-                _buildExpandableDrawerItem(
-                  icon: Icons.dashboard,
-                  title: 'Dashboard',
-                  isExpanded: _isDashboardExpanded,
-                  onTap: () {
-                    setState(() {
-                      _isDashboardExpanded = !_isDashboardExpanded;
-                    });
-                  },
-                ),
-                if (_isDashboardExpanded) ...[
-                  _buildSubDrawerItem(
-                    icon: Icons.business_center,
-                    title: 'Project/Site Dashboard',
-                    onTap: () {
-                      Navigator.pop(context);
-                    },
-                  ),
-                  _buildSubDrawerItem(
-                    icon: Icons.people_alt,
-                    title: 'HRM Dashboard',
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const HRMDashboard(),
-                        ),
-                      );
-                    },
-                  ),
-                ],
-
-                // User Management Section
-                _buildExpandableDrawerItem(
-                  icon: Icons.people,
-                  title: 'User Management',
-                  isExpanded: _isUserManagementExpanded,
-                  onTap: () {
-                    setState(() {
-                      _isUserManagementExpanded = !_isUserManagementExpanded;
-                    });
-                  },
-                ),
-                if (_isUserManagementExpanded) ...[
-                  _buildSubDrawerItem(
-                    icon: Icons.person,
-                    title: 'User',
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const AdminUserManagementPage(),
-                        ),
-                      );
-                    },
-                  ),
-                  _buildSubDrawerItem(
-                    icon: Icons.admin_panel_settings,
-                    title: 'Role',
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const AdminRoleManagementPage(),
-                        ),
-                      );
-                    },
-                  ),
-                ],
-
-                // Master Section
-                _buildExpandableDrawerItem(
-                  icon: Icons.inventory,
-                  title: 'Master',
-                  isExpanded: _isMasterExpanded,
-                  onTap: () {
-                    setState(() {
-                      _isMasterExpanded = !_isMasterExpanded;
-                    });
-                  },
-                ),
-                if (_isMasterExpanded) ...[
-                  // Material Sub-section
-                  _buildExpandableSubDrawerItem(
-                    icon: Icons.inventory_2,
-                    title: 'Material',
-                    isExpanded: _isMaterialExpanded,
+                  // Dashboard Section
+                  _buildExpandableDrawerItem(
+                    icon: Icons.dashboard,
+                    title: 'Dashboard',
+                    isExpanded: _isDashboardExpanded,
                     onTap: () {
                       setState(() {
-                        _isMaterialExpanded = !_isMaterialExpanded;
+                        _isDashboardExpanded = !_isDashboardExpanded;
                       });
                     },
                   ),
-                  if (_isMaterialExpanded) ...[
-                    _buildNestedSubDrawerItem(
-                      icon: Icons.list,
-                      title: 'All Material',
+                  if (_isDashboardExpanded) ...[
+                    _buildSubDrawerItem(
+                      icon: Icons.radio_button_checked,
+                      title: 'Project/Site Dashboard',
                       onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const AdminAllMaterialPage(),
-                          ),
-                        );
+                        Navigator.pop(context);
                       },
                     ),
-                    _buildNestedSubDrawerItem(
-                      icon: Icons.category,
-                      title: 'Material Category',
+                    _buildSubDrawerItem(
+                      icon: Icons.radio_button_checked,
+                      title: 'HRM Dashboard',
                       onTap: () {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => const MaterialCategoryScreen(),
-                          ),
-                        );
-                      },
-                    ),
-                    _buildNestedSubDrawerItem(
-                      icon: Icons.straighten,
-                      title: 'Unit',
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const UnitManagementPage(),
+                            builder: (context) => const HRMDashboard(),
                           ),
                         );
                       },
                     ),
                   ],
 
-                  // Supplier Sub-section
-                  _buildExpandableSubDrawerItem(
-                    icon: Icons.business_center,
-                    title: 'Supplier',
-                    isExpanded: _isSupplierExpanded,
+                  // User Management Section
+                  _buildExpandableDrawerItem(
+                    icon: Icons.people,
+                    title: 'User Management',
+                    isExpanded: _isUserManagementExpanded,
                     onTap: () {
                       setState(() {
-                        _isSupplierExpanded = !_isSupplierExpanded;
+                        _isUserManagementExpanded = !_isUserManagementExpanded;
                       });
                     },
                   ),
-                  if (_isSupplierExpanded) ...[
-                    _buildNestedSubDrawerItem(
-                      icon: Icons.list,
-                      title: 'All Supplier',
+                  if (_isUserManagementExpanded) ...[
+                    _buildSubDrawerItem(
+                      icon: Icons.radio_button_checked,
+                      title: 'User',
                       onTap: () {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => const AllSupplierPage(),
+                            builder: (context) =>
+                                const AdminUserManagementPage(),
                           ),
                         );
                       },
                     ),
-                    _buildNestedSubDrawerItem(
-                      icon: Icons.category,
-                      title: 'Supplier Category',
+                    _buildSubDrawerItem(
+                      icon: Icons.radio_button_checked,
+                      title: 'Role',
                       onTap: () {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => SupplierCategoriesScreen(),
-                          ),
-                        );
-                      },
-                    ),
-                     _buildNestedSubDrawerItem(
-                      icon: Icons.category,
-                      title: 'Manpower Type',
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => ManpowerTypesScreen(),
+                            builder: (context) =>
+                                const AdminRoleManagementPage(),
                           ),
                         );
                       },
                     ),
                   ],
 
-                  // Assets Sub-section
-                  _buildExpandableSubDrawerItem(
-                    icon: Icons.devices,
-                    title: 'Assets',
-                    isExpanded: _isAssetsExpanded,
+                  // Master Section
+                  _buildExpandableDrawerItem(
+                    icon: Icons.inventory,
+                    title: 'Master',
+                    isExpanded: _isMasterExpanded,
                     onTap: () {
                       setState(() {
-                        _isAssetsExpanded = !_isAssetsExpanded;
+                        _isMasterExpanded = !_isMasterExpanded;
                       });
                     },
                   ),
-                  if (_isAssetsExpanded) ...[
-                    _buildNestedSubDrawerItem(
-                      icon: Icons.build,
-                      title: 'All machinery',
+                  if (_isMasterExpanded) ...[
+                    // Material Sub-section
+                    _buildExpandableSubDrawerItem(
+                      icon: Icons.radio_button_checked,
+                      title: 'Material',
+                      isExpanded: _isMaterialExpanded,
                       onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const AdminAllMachineryScreen(),
-                          ),
-                        );
+                        setState(() {
+                          _isMaterialExpanded = !_isMaterialExpanded;
+                        });
                       },
+                      
+                      // Set your desired size
                     ),
-                    _buildNestedSubDrawerItem(
-                      icon: Icons.category,
-                      title: 'machinery Category',
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const MachineryCategoriesScreen(),
-                          ),
-                        );
-                      },
-                    ),
-                    _buildNestedSubDrawerItem(
-                      icon: Icons.handyman,
-                      title: 'tools & equipment',
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>  ToolsEquipmentPage(),
-                          ),
-                        );
-                      },
-                    ),
-                  ],
-                ],
-
-                // Transaction Section
-                _buildExpandableDrawerItem(
-                  icon: Icons.account_balance_wallet,
-                  title: 'Transaction',
-                  isExpanded: _isTransactionExpanded,
-                  onTap: () {
-                    setState(() {
-                      _isTransactionExpanded = !_isTransactionExpanded;
-                    });
-                  },
-                ),
-                if (_isTransactionExpanded) ...[
-                  _buildExpandableSubDrawerItem(
-                    icon: Icons.business_center,
-                    title: 'Daily Transaction',
-                    isExpanded: _isDailyTransactionExpanded,
-                    onTap: () {
-                      setState(() {
-                        _isDailyTransactionExpanded = !_isDailyTransactionExpanded;
-                      });
-                    },
-                  ),
-                  if (_isDailyTransactionExpanded) ...[
-                    _buildNestedSubDrawerItem(
-                      icon: Icons.receipt,
-                      title: 'Purchase Invoice',
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>  PurchaseInvoicesPage(),
-                          ),
-                        );
+                    if (_isMaterialExpanded) ...[
+                      _buildNestedSubDrawerItem(
+                        icon: Icons.fiber_manual_record,
+                        title: 'All Material',
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  const AdminAllMaterialPage(),
+                            ),
+                          );
                         },
-                    ),
-                    _buildNestedSubDrawerItem(
-                      icon: Icons.person,
-                      title: 'Manpower',
+                      ),
+                      _buildNestedSubDrawerItem(
+                        icon: Icons.fiber_manual_record,
+                        title: 'Material Category',
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  const MaterialCategoryScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                      _buildNestedSubDrawerItem(
+                        icon: Icons.fiber_manual_record,
+                        title: 'Unit',
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const UnitManagementPage(),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+
+                    // Supplier Sub-section
+                    _buildExpandableSubDrawerItem(
+                      icon: Icons.radio_button_checked,
+                      title: 'Supplier',
+                      isExpanded: _isSupplierExpanded,
                       onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const ManpowerPage(),
-                          ),
-                        );
+                        setState(() {
+                          _isSupplierExpanded = !_isSupplierExpanded;
+                        });
                       },
+                      
                     ),
+                    if (_isSupplierExpanded) ...[
+                      _buildNestedSubDrawerItem(
+                        icon: Icons.fiber_manual_record,
+                        title: 'All Supplier',
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const AllSupplierPage(),
+                            ),
+                          );
+                        },
+                      ),
+                      _buildNestedSubDrawerItem(
+                       icon: Icons.fiber_manual_record,
+                        title: 'Supplier Category',
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => SupplierCategoriesScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                      _buildNestedSubDrawerItem(
+                        icon: Icons.fiber_manual_record,
+                        title: 'Manpower Type',
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ManpowerTypesScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+
+                    // Assets Sub-section
+                    _buildExpandableSubDrawerItem(
+                      icon: Icons.radio_button_checked,
+                      title: 'Assets',
+                      isExpanded: _isAssetsExpanded,
+                      onTap: () {
+                        setState(() {
+                          _isAssetsExpanded = !_isAssetsExpanded;
+                        });
+                      },
+                      
+                    ),
+                    if (_isAssetsExpanded) ...[
+                      _buildNestedSubDrawerItem(
+                        icon: Icons.fiber_manual_record,
+                        title: 'All machinery',
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  const AdminAllMachineryScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                      _buildNestedSubDrawerItem(
+                      icon: Icons.fiber_manual_record,
+                        title: 'machinery Category',
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  const MachineryCategoriesScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                      _buildNestedSubDrawerItem(
+                       icon: Icons.fiber_manual_record,
+                        title: 'tools & equipment',
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ToolsEquipmentPage(),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
                   ],
-                  _buildExpandableSubDrawerItem(
-                    icon: Icons.business_center,
-                    title: 'Daily Consumption',
-                    isExpanded: _isDailyConsumptionExpanded,
+
+                  // Transaction Section
+                  _buildExpandableDrawerItem(
+                    icon: Icons.account_balance_wallet,
+                    title: 'Transaction',
+                    isExpanded: _isTransactionExpanded,
                     onTap: () {
                       setState(() {
-                        _isDailyConsumptionExpanded = !_isDailyConsumptionExpanded;
+                        _isTransactionExpanded = !_isTransactionExpanded;
                       });
                     },
                   ),
-                  if (_isDailyConsumptionExpanded) ...[
-                    _buildNestedSubDrawerItem(
-                      icon: Icons.list,
-                      title: 'Consumption Log',
+                  if (_isTransactionExpanded) ...[
+                    _buildExpandableSubDrawerItem(
+                      icon: Icons.radio_button_checked,
+                      title: 'Daily Transaction',
+                      isExpanded: _isDailyTransactionExpanded,
                       onTap: () {
+                        setState(() {
+                          _isDailyTransactionExpanded =
+                              !_isDailyTransactionExpanded;
+                        });
+                      },
+                      
+                    ),
+                    if (_isDailyTransactionExpanded) ...[
+                      _buildNestedSubDrawerItem(
+                        icon: Icons.fiber_manual_record,
+                        title: 'Purchase Invoice',
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => PurchaseInvoicesPage(),
+                            ),
+                          );
+                        },
+                      ),
+                      _buildNestedSubDrawerItem(
+                        icon: Icons.fiber_manual_record,
+                        title: 'Manpower',
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const ManpowerPage(),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                    _buildExpandableSubDrawerItem(
+                       icon: Icons.radio_button_checked,
+                      title: 'Daily Consumption',
+                      isExpanded: _isDailyConsumptionExpanded,
+                      onTap: () {
+                        setState(() {
+                          _isDailyConsumptionExpanded =
+                              !_isDailyConsumptionExpanded;
+                        });
+                      },
+                      
+                    ),
+                    if (_isDailyConsumptionExpanded) ...[
+                      _buildNestedSubDrawerItem(
+                       icon: Icons.fiber_manual_record,
+                        title: 'Consumption Log',
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const ConsumptionLogPage(),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                    _buildSubDrawerItem(
+                       icon: Icons.radio_button_checked,
+                      title: 'Material Transfer',
+                      onTap: () {
+                        final companyProvider = Provider.of<CompanySiteProvider>(
+                          context,
+                          listen: false,
+                        );
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => const ConsumptionLogPage(),
+                            builder: (context) => MaterialTransferScreen(
+                              workspaceId: companyProvider.selectedCompanyId != null
+                                  ? int.tryParse(companyProvider.selectedCompanyId!)
+                                  : null,
+                              workspaceName: widget.companyName,
+                            ),
                           ),
                         );
                       },
                     ),
-                    
                   ],
-                  
-                ],
 
-                // Project/Sites Section
-                _buildExpandableDrawerItem(
-                  icon: Icons.business,
-                  title: 'Project/Sites',
-                  isExpanded: _isProjectSitesExpanded,
-                  onTap: () {
-                    setState(() {
-                      _isProjectSitesExpanded = !_isProjectSitesExpanded;
-                    });
-                  },
-                ),
-                if (_isProjectSitesExpanded) ...[
-                  _buildSubDrawerItem(
-                    icon: Icons.list,
-                    title: 'All Project/Site',
+                  // Project/Sites Section
+                  _buildExpandableDrawerItem(
+                    icon: Icons.business,
+                    title: 'Project/Sites',
+                    isExpanded: _isProjectSitesExpanded,
                     onTap: () {
-                      Navigator.push(
+                      setState(() {
+                        _isProjectSitesExpanded = !_isProjectSitesExpanded;
+                      });
+                    },
+                  ),
+                  if (_isProjectSitesExpanded) ...[
+                    _buildSubDrawerItem(
+                      icon: Icons.radio_button_checked,
+                      title: 'All Project/Site',
+                      onTap: () {
+                        Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (context) => ProjectSitePage(),
                           ),
                         );
-                    },
-                  ),
-                  _buildSubDrawerItem(
-                    icon: Icons.assessment,
-                    title: 'Project/Site Report',
-                    onTap: () {
-                      Navigator.pop(context);
-                      _showSnackBar('Project/Site Report coming soon');
-                    },
-                  ),
-                ],
-
-                // HRM Section
-                _buildExpandableDrawerItem(
-                  icon: Icons.group,
-                  title: 'HRM',
-                  isExpanded: _isHRMExpanded,
-                  onTap: () {
-                    setState(() {
-                      _isHRMExpanded = !_isHRMExpanded;
-                    });
-                  },
-                ),
-                if (_isHRMExpanded) ...[
-                  _buildSubDrawerItem(
-                    icon: Icons.person_outline,
-                    title: 'Employee',
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => EmployeePage(),
-                        ),
-                      );
-                    },
-                  ),
-                  _buildExpandableSubDrawerItem(
-                    icon: Icons.fact_check,
-                    title: 'Attendance',
-                    isExpanded: _isAttendanceExpanded,
-                    onTap: () {
-                      setState(() {
-                        _isAttendanceExpanded = !_isAttendanceExpanded;
-                      });
-                    },
-                  ),
-                  if (_isAttendanceExpanded) ...[
-                    _buildNestedSubDrawerItem(
-                      icon: Icons.check_circle,
-                      title: 'Mark Attendance',
-                      onTap: () {
-                        Navigator.pop(context);
-                        _showSnackBar('Mark Attendance coming soon');
                       },
                     ),
-                    _buildNestedSubDrawerItem(
-                      icon: Icons.group_add,
-                      title: 'Bulk Attendance',
+                    _buildSubDrawerItem(
+                      icon: Icons.radio_button_checked,
+                      title: 'Project/Site Report',
                       onTap: () {
                         Navigator.pop(context);
-                        _showSnackBar('Bulk Attendance coming soon');
+                        _showSnackBar('Project/Site Report coming soon');
                       },
                     ),
                   ],
-                  _buildSubDrawerItem(
-                    icon: Icons.calendar_today,
-                    title: 'Manage Leave',
-                    onTap: () {
-                      Navigator.pop(context);
-                      _showSnackBar('Leave management coming soon');
-                    },
-                  ),
-                  _buildSubDrawerItem(
-                    icon: Icons.description,
-                    title: 'Document',
-                    onTap: () {
-                      Navigator.pop(context);
-                      _showSnackBar('HR Document management coming soon');
-                    },
-                  ),
-                  _buildExpandableSubDrawerItem(
-                    icon: Icons.bar_chart,
-                    title: 'Report',
-                    isExpanded: _isReportExpanded,
+
+                  // HRM Section
+                  _buildExpandableDrawerItem(
+                    icon: Icons.group,
+                    title: 'HRM',
+                    isExpanded: _isHRMExpanded,
                     onTap: () {
                       setState(() {
-                        _isReportExpanded = !_isReportExpanded;
+                        _isHRMExpanded = !_isHRMExpanded;
                       });
                     },
                   ),
-                  if (_isReportExpanded) ...[
-                    _buildNestedSubDrawerItem(
-                      icon: Icons.calendar_view_month,
-                      title: 'Monthly Attendance',
+                  if (_isHRMExpanded) ...[
+                    _buildSubDrawerItem(
+                     icon: Icons.radio_button_checked,
+                      title: 'Employee',
                       onTap: () {
-                        Navigator.pop(context);
-                        _showSnackBar('Monthly Attendance coming soon');
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => EmployeePage(),
+                          ),
+                        );
                       },
                     ),
-                    _buildNestedSubDrawerItem(
-                      icon: Icons.leave_bags_at_home,
-                      title: 'Leave Report',
+                    _buildExpandableSubDrawerItem(
+                     icon: Icons.radio_button_checked,
+                      title: 'Attendance',
+                      isExpanded: _isAttendanceExpanded,
+                      onTap: () {
+                        setState(() {
+                          _isAttendanceExpanded = !_isAttendanceExpanded;
+                        });
+                      },
+                      
+                    ),
+                    if (_isAttendanceExpanded) ...[
+                      _buildNestedSubDrawerItem(
+                        icon: Icons.fiber_manual_record,
+                        title: 'Mark Attendance',
+                        onTap: () {
+                          Navigator.pop(context);
+                          _showSnackBar('Mark Attendance coming soon');
+                        },
+                      ),
+                      _buildNestedSubDrawerItem(
+                        icon: Icons.fiber_manual_record,
+                        title: 'Bulk Attendance',
+                        onTap: () {
+                          Navigator.pop(context);
+                          _showSnackBar('Bulk Attendance coming soon');
+                        },
+                      ),
+                    ],
+                    _buildSubDrawerItem(
+                      icon: Icons.radio_button_checked,
+                      title: 'Manage Leave',
                       onTap: () {
                         Navigator.pop(context);
-                        _showSnackBar('Leave Report coming soon');
+                        _showSnackBar('Leave management coming soon');
+                      },
+                    ),
+                    _buildSubDrawerItem(
+                     icon: Icons.radio_button_checked,
+                      title: 'Document',
+                      onTap: () {
+                        Navigator.pop(context);
+                        _showSnackBar('HR Document management coming soon');
+                      },
+                    ),
+                    _buildExpandableSubDrawerItem(
+                      icon: Icons.radio_button_checked,
+                      title: 'Report',
+                      isExpanded: _isReportExpanded,
+                      onTap: () {
+                        setState(() {
+                          _isReportExpanded = !_isReportExpanded;
+                        });
+                      },
+                     
+                    ),
+                    if (_isReportExpanded) ...[
+                      _buildNestedSubDrawerItem(
+                        icon: Icons.fiber_manual_record,
+                        title: 'Monthly Attendance',
+                        onTap: () {
+                          Navigator.pop(context);
+                          _showSnackBar('Monthly Attendance coming soon');
+                        },
+                      ),
+                      _buildNestedSubDrawerItem(
+                        icon: Icons.fiber_manual_record,
+                        title: 'Leave Report',
+                        onTap: () {
+                          Navigator.pop(context);
+                          _showSnackBar('Leave Report coming soon');
+                        },
+                      ),
+                    ],
+                  ],
+
+                  // Chat
+                  _buildDrawerItem(
+                    icon: Icons.chat,
+                    title: 'Chat',
+                    onTap: () {
+                      Navigator.pop(context);
+                      _showSnackBar('Chat functionality coming soon');
+                    },
+                  ),
+
+                  // Settings
+                  _buildExpandableDrawerItem(
+                    icon: Icons.settings,
+                    title: 'Settings',
+                    isExpanded: _isSettingsExpanded,
+                    onTap: () {
+                      setState(() {
+                        _isSettingsExpanded = !_isSettingsExpanded;
+                      });
+                    },
+                  ),
+                  if (_isSettingsExpanded) ...[
+                    _buildSubDrawerItem(
+                      icon: Icons.radio_button_checked,
+                      title: 'System settings',
+                      onTap: () {
+                        Navigator.pop(context);
+                        _showSnackBar('System settings coming soon');
                       },
                     ),
                   ],
-                ],
 
-                // Chat
-                _buildDrawerItem(
-                  icon: Icons.chat,
-                  title: 'Chat',
-                  onTap: () {
-                    Navigator.pop(context);
-                    _showSnackBar('Chat functionality coming soon');
-                  },
-                ),
+                  const Divider(),
 
-                // Settings
-                _buildExpandableDrawerItem(
-                  icon: Icons.settings,
-                  title: 'Settings',
-                  isExpanded: _isSettingsExpanded,
-                  onTap: () {
-                    setState(() {
-                      _isSettingsExpanded = !_isSettingsExpanded;
-                    });
-                  },
-                ),
-                if (_isSettingsExpanded) ...[
-                  _buildSubDrawerItem(
-                    icon: Icons.settings_applications,
-                    title: 'System settings',
+                  // Logout
+                  _buildDrawerItem(
+                    icon: Icons.logout,
+                    title: 'Logout',
                     onTap: () {
                       Navigator.pop(context);
-                      _showSnackBar('System settings coming soon');
+                      _showSnackBar('Logout functionality coming soon');
                     },
                   ),
                 ],
-
-                const Divider(),
-
-                // Logout
-                _buildDrawerItem(
-                  icon: Icons.logout,
-                  title: 'Logout',
-                  onTap: () {
-                    Navigator.pop(context);
-                    _showSnackBar('Logout functionality coming soon');
-                  },
-                ),
-              ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   Widget _buildDrawerItem({
     required IconData icon,
@@ -1224,7 +1262,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     required VoidCallback onTap,
   }) {
     return ListTile(
-      leading: Icon(icon, color: AdminColors.primary),
+      leading: Icon(icon, color: AdminColors.primary,size: 20,),
       title: Text(
         title,
         style: TextStyle(
@@ -1235,6 +1273,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
       onTap: onTap,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
+      horizontalTitleGap: 10,
+        dense: true,
     );
   }
 
@@ -1245,13 +1285,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
     required VoidCallback onTap,
   }) {
     return ListTile(
-      leading: Icon(icon, color: AdminColors.primary),
+      leading: Icon(icon, color: AdminColors.primary,size: 20,),
       title: Text(
         title,
         style: TextStyle(
           fontSize: 14.sp,
           fontWeight: FontWeight.w500,
-          color: const Color.fromARGB(255, 20, 27, 36),
+          color: const Color.fromARGB(255, 10, 10, 10),
         ),
       ),
       trailing: Icon(
@@ -1260,6 +1300,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
       onTap: onTap,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
+      horizontalTitleGap: 10,
+        dense: true,
     );
   }
 
@@ -1273,20 +1315,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: ListTile(
         leading: Icon(
           icon,
-          color: AdminColors.primary.withOpacity(0.7),
-          size: 20.sp,
+          color: const Color.fromARGB(255, 54, 83, 190),
+          size: 9.sp,
         ),
         title: Text(
           title,
           style: TextStyle(
             fontSize: 14.sp,
             fontWeight: FontWeight.w400,
-            color: AdminColors.textPrimary.withOpacity(0.8),
+            color: const Color.fromARGB(255, 26, 34, 46).withOpacity(0.8),
           ),
         ),
         onTap: onTap,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
         contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
+        horizontalTitleGap: 3,
+        dense: true,
       ),
     );
   }
@@ -1296,21 +1340,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
     required String title,
     required bool isExpanded,
     required VoidCallback onTap,
+   
   }) {
     return Container(
       margin: EdgeInsets.only(left: 16.w),
       child: ListTile(
         leading: Icon(
           icon,
-          color: AdminColors.primary.withOpacity(0.7),
-          size: 20.sp,
+          color: const Color.fromARGB(255, 59, 92, 207),
+          size: 9.sp,
         ),
         title: Text(
           title,
           style: TextStyle(
             fontSize: 14.sp,
             fontWeight: FontWeight.w400,
-            color: AdminColors.textPrimary.withOpacity(0.8),
+            color: const Color.fromARGB(255, 26, 34, 46).withOpacity(0.8),
           ),
         ),
         trailing: Icon(
@@ -1321,6 +1366,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         onTap: onTap,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
         contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
+        horizontalTitleGap: 3,
+        dense: true,
       ),
     );
   }
@@ -1329,19 +1376,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
     required IconData icon,
     required String title,
     required VoidCallback onTap,
+  
   }) {
     return Container(
       margin: EdgeInsets.only(left: 32.w),
       child: ListTile(
         leading: Icon(
           icon,
-          color: AdminColors.primary.withOpacity(0.6),
-          size: 18.sp,
+          color: const Color.fromARGB(255, 57, 95, 219),
+          size: 7.sp,
         ),
         title: Text(
           title,
           style: TextStyle(
-            fontSize: 13.sp,
+            fontSize: 14.sp,
             fontWeight: FontWeight.w400,
             color: AdminColors.textPrimary.withOpacity(0.7),
           ),
@@ -1350,6 +1398,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6.r)),
         contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 2.h),
         dense: true,
+        horizontalTitleGap: 3,
       ),
     );
   }

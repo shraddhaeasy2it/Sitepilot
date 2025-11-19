@@ -1,112 +1,189 @@
-// services/manpower_services.dart
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import '../models/mapowerType_model.dart';
+import '../models/manpower_model.dart';
 
-class ManpowerTypeService {
-  static const String baseUrl = 'http://sitepilot.easy2it.in/api/manpower-types';
+class ManpowerService {
+  static const String baseUrl = 'http://sitepilot.easy2it.in/api';
+  
+  // Static maps to store dropdown data
+  static Map<int, String> typeMap = {};
+  static Map<int, String> supplierMap = {};
+  static Map<int, String> siteMap = {};
+  
+  final Map<String, String> headers = {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+  };
 
-  Future<List<ManpowerType>> getManpowerTypes() async {
-    try {
-      final response = await http.get(
-        Uri.parse(baseUrl),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-      );
-
-      print('GET Status Code: ${response.statusCode}');
-      print('GET Response: ${response.body}');
-
-      if (response.statusCode == 200) {
-        final List<dynamic> jsonResponse = json.decode(response.body);
-        return jsonResponse.map((data) => ManpowerType.fromJson(data)).toList();
-      } else {
-        throw Exception('Failed to load manpower types: ${response.statusCode}');
-      }
-    } catch (e) {
-      print('GET Error: $e');
-      throw Exception('Network error: $e');
-    }
-  }
-
-  Future<ManpowerType> createManpowerType(ManpowerType manpowerType) async {
+  // GET dropdown data (manpower types, suppliers, sites)
+  Future<DropdownData> getDropdownData() async {
     try {
       final response = await http.post(
-        Uri.parse(baseUrl),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: json.encode(manpowerType.toJson()),
+        Uri.parse('$baseUrl/manpower/create-data'),
+        headers: headers,
+        body: json.encode({
+          'site_id': 0,
+          'workspace_id': 0,
+        }),
       );
 
-      print('POST Status Code: ${response.statusCode}');
-      print('POST Response: ${response.body}');
-
-      if (response.statusCode == 201) {
-        final Map<String, dynamic> jsonResponse = json.decode(response.body);
-        return ManpowerType.fromJson(jsonResponse);
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(response.body);
+        final dropdownData = DropdownData.fromJson(data);
+        
+        // Update static maps
+        typeMap = dropdownData.manpowerTypes;
+        supplierMap = dropdownData.suppliers;
+        siteMap = dropdownData.sites;
+        
+        return dropdownData;
       } else {
-        throw Exception('Failed to create manpower type: ${response.statusCode} - ${response.body}');
+        throw Exception('Failed to load dropdown data: ${response.statusCode}');
       }
     } catch (e) {
-      print('POST Error: $e');
-      throw Exception('Network error: $e');
+      throw Exception('Failed to load dropdown data: $e');
     }
   }
 
-  Future<ManpowerType> updateManpowerType(ManpowerType manpowerType) async {
+  // GET all manpower records
+  Future<List<ManpowerRecord>> getManpowerRecords() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/manpower'),
+        headers: headers,
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        return data.map((json) => ManpowerRecord.fromJson(json)).toList();
+      } else {
+        throw Exception('Failed to load manpower records: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Failed to load manpower records: $e');
+    }
+  }
+
+  // GET single manpower record
+  Future<ManpowerRecord> getManpowerRecord(int id) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/manpower/$id'),
+        headers: headers,
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(response.body);
+        return ManpowerRecord.fromJson(data);
+      } else {
+        throw Exception('Failed to load manpower record: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Failed to load manpower record: $e');
+    }
+  }
+
+  // POST new manpower record
+  Future<ManpowerRecord> createManpowerRecord(ManpowerRecord record) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/manpower'),
+        headers: headers,
+        body: json.encode(record.toJson()),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final Map<String, dynamic> data = json.decode(response.body);
+        return ManpowerRecord.fromJson(data);
+      } else {
+        final errorBody = json.decode(response.body);
+        throw Exception('Failed to create manpower record: ${errorBody['message'] ?? response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Failed to create manpower record: $e');
+    }
+  }
+
+  // PUT update manpower record
+  Future<ManpowerRecord> updateManpowerRecord(ManpowerRecord record) async {
     try {
       final response = await http.put(
-        Uri.parse('$baseUrl/${manpowerType.id}'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: json.encode(manpowerType.toUpdateJson()),
+        Uri.parse('$baseUrl/manpower/${record.id}'),
+        headers: headers,
+        body: json.encode(record.toJson()),
       );
 
-      print('PUT Status Code: ${response.statusCode}');
-      print('PUT Response: ${response.body}');
-
       if (response.statusCode == 200) {
-        final Map<String, dynamic> jsonResponse = json.decode(response.body);
-        return ManpowerType.fromJson(jsonResponse);
+        final Map<String, dynamic> data = json.decode(response.body);
+        return ManpowerRecord.fromJson(data);
       } else {
-        throw Exception('Failed to update manpower type: ${response.statusCode} - ${response.body}');
+        final errorBody = json.decode(response.body);
+        throw Exception('Failed to update manpower record: ${errorBody['message'] ?? response.statusCode}');
       }
     } catch (e) {
-      print('PUT Error: $e');
-      throw Exception('Network error: $e');
+      throw Exception('Failed to update manpower record: $e');
     }
   }
 
-  Future<bool> deleteManpowerType(int id) async {
+  // DELETE manpower record
+  Future<void> deleteManpowerRecord(int id) async {
     try {
       final response = await http.delete(
-        Uri.parse('$baseUrl/$id'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
+        Uri.parse('$baseUrl/manpower/$id'),
+        headers: headers,
       );
 
-      print('DELETE Status Code: ${response.statusCode}');
-      print('DELETE Response: ${response.body}');
-      print('DELETE ID: $id');
-
-      if (response.statusCode == 200) {
-        return true;
-      } else if (response.statusCode == 204) {
-        return true; // No content - successful delete
-      } else {
-        throw Exception('Failed to delete manpower type: ${response.statusCode} - ${response.body}');
+      if (response.statusCode != 200 && response.statusCode != 204) {
+        final errorBody = json.decode(response.body);
+        throw Exception('Failed to delete manpower record: ${errorBody['message'] ?? response.statusCode}');
       }
     } catch (e) {
-      print('DELETE Error: $e');
-      throw Exception('Network error: $e');
+      throw Exception('Failed to delete manpower record: $e');
     }
+  }
+
+  // Helper method to get type name by ID
+  static String getTypeNameById(int id) {
+    return typeMap[id] ?? 'Unknown Type';
+  }
+
+  // Helper method to get supplier name by ID
+  static String getSupplierNameById(int id) {
+    return supplierMap[id] ?? 'Unknown Supplier';
+  }
+
+  // Helper method to get site name by ID
+  static String getSiteNameById(int id) {
+    return siteMap[id] ?? 'Unknown Site';
+  }
+
+  // Helper method to get type ID by name
+  static int getTypeIdByName(String name) {
+    return typeMap.entries
+        .firstWhere(
+          (entry) => entry.value.toLowerCase() == name.toLowerCase(),
+          orElse: () => MapEntry(0, ''),
+        )
+        .key;
+  }
+
+  // Helper method to get supplier ID by name
+  static int getSupplierIdByName(String name) {
+    return supplierMap.entries
+        .firstWhere(
+          (entry) => entry.value.toLowerCase() == name.toLowerCase(),
+          orElse: () => MapEntry(0, ''),
+        )
+        .key;
+  }
+
+  // Helper method to get site ID by name
+  static int getSiteIdByName(String name) {
+    return siteMap.entries
+        .firstWhere(
+          (entry) => entry.value.toLowerCase() == name.toLowerCase(),
+          orElse: () => MapEntry(0, ''),
+        )
+        .key;
   }
 }

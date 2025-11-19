@@ -1,7 +1,7 @@
 // screens/manpower_types_screen.dart
 
 import 'package:ecoteam_app/admin/models/mapowerType_model.dart';
-import 'package:ecoteam_app/admin/services/manpower_services.dart';
+import 'package:ecoteam_app/admin/services/manpowerType_services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 

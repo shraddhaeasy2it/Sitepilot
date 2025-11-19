@@ -1,4 +1,4 @@
-package com.example.ecoteam_app
+package com.easy2it.sitepilot
 
 import io.flutter.embedding.android.FlutterActivity
 

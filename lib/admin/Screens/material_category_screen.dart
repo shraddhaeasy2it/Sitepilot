@@ -134,14 +134,16 @@ class _MaterialCategoryScreenState extends State<MaterialCategoryScreen> {
       actions: [
         IconButton(
           icon: Icon(
-            Icons.picture_as_pdf,
+            Icons.refresh,
             size: 28.sp,
             color: Colors.white,
           ),
-          onPressed: _downloadPDF,
-          tooltip: 'Download PDF Report',
+          onPressed: () async {
+            await Provider.of<MaterialCategoryProvider>(context, listen: false).refreshCategories();
+          },
+          tooltip: 'Refresh',
         ),
-        SizedBox(width: 8.w),
+       
       ],
     );
   }
@@ -661,9 +663,7 @@ void _showAddEditBottomSheet(BuildContext context, {MaterialCategory? category})
     );
   }
 
-  void _downloadPDF() {
-    _showSuccessSnackBar(context, 'PDF report downloaded successfully');
-  }
+ 
 
   void _showSuccessSnackBar(BuildContext context, String message) {
     ScaffoldMessenger.of(context).showSnackBar(

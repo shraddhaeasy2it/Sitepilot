@@ -1,0 +1,2093 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import '../models/material_transfer_model.dart';
+
+class MaterialTransferService {
+  static const String baseUrl = 'http://sitepilot.easy2it.in';
+
+  // Get all material transfers
+  static Future<List<MaterialTransfer>> getMaterialTransfers() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/api/material-transfer'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      );
+
+      print('API Response Status: ${response.statusCode}');
+      print('API Response Body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(response.body);
+        print('API Success: ${data['success']}');
+        print('API Message: ${data['message']}');
+        
+        if (data['success'] == true) {
+          List<dynamic> transfers = data['data'];
+          print('Number of transfers fetched: ${transfers.length}');
+          
+          List<MaterialTransfer> materialTransfers = transfers.map((json) {
+            try {
+              return MaterialTransfer.fromJson(json);
+            } catch (e) {
+              print('Error parsing transfer: $e');
+              print('Problematic JSON: $json');
+              return MaterialTransfer(); // Return empty transfer on error
+            }
+          }).toList();
+          
+          return materialTransfers;
+        } else {
+          throw Exception('Failed to load material transfers: ${data['message']}');
+        }
+      } else {
+        throw Exception('Failed to load material transfers. Status code: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error in getMaterialTransfers: $e');
+      throw Exception('Error fetching material transfers: $e');
+    }
+  }
+
+  // Get sites by workspace ID
+  static Future<List<Site>> getSitesByWorkspace(int workspaceId) async {
+    try {
+      print('Fetching sites for workspace: $workspaceId');
+      
+      final response = await http.get(
+        Uri.parse('$baseUrl/api/sites?workspace_id=$workspaceId'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      );
+
+      print('Sites API Response Status: ${response.statusCode}');
+      print('Sites API Response Body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(response.body);
+        if (data['success'] == true) {
+          List<dynamic> sitesData = data['data'];
+          List<Site> sites = sitesData.map((siteJson) => Site.fromJson(siteJson)).toList();
+          print('Fetched ${sites.length} sites for workspace $workspaceId');
+          return sites;
+        } else {
+          throw Exception('Failed to load sites: ${data['message']}');
+        }
+      } else {
+        throw Exception('Failed to load sites. Status code: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error in getSitesByWorkspace: $e');
+      throw Exception('Error fetching sites: $e');
+    }
+  }
+
+  // Get materials by site ID
+  static Future<List<Material>> getMaterialsBySite(int siteId) async {
+    try {
+      print('Fetching materials for site: $siteId');
+      
+      final response = await http.get(
+        Uri.parse('$baseUrl/api/ajax/get-stock-by-site?site_id=$siteId'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      );
+
+      print('Materials API Response Status: ${response.statusCode}');
+      print('Materials API Response Body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(response.body);
+        if (data['success'] == true) {
+          List<dynamic> materialsData = data['data'];
+          List<Material> materials = materialsData.map((materialJson) {
+            return Material(
+              id: materialJson['material_id'] as int?,
+              name: materialJson['material_name'] as String?,
+              price: materialJson['material_price'] as String?,
+              unit: Unit(
+                name: materialJson['unit_name'] as String?,
+              ),
+              purchasedQty: materialJson['purchased_qty'] as String?,
+              totalQty: materialJson['total_qty'] != null 
+                  ? int.tryParse(materialJson['total_qty'].toString())
+                  : null,
+            );
+          }).toList();
+          
+          print('Fetched ${materials.length} materials for site $siteId');
+          return materials;
+        } else {
+          throw Exception('Failed to load materials: ${data['message']}');
+        }
+      } else {
+        throw Exception('Failed to load materials. Status code: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error in getMaterialsBySite: $e');
+      throw Exception('Error fetching materials: $e');
+    }
+  }
+
+  // Get form data for material transfer (materials, sites, etc.)
+  static Future<FormDataResponse> getFormData({int? siteId, int? workspaceId}) async {
+    try {
+      final Map<String, dynamic> requestBody = {};
+      if (siteId != null) requestBody['site_id'] = siteId;
+      if (workspaceId != null) requestBody['workspace_id'] = workspaceId;
+
+      print('Fetching form data from: $baseUrl/api/material-transfer/create-data');
+      print('Request body: ${json.encode(requestBody)}');
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/api/material-transfer/create-data'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: json.encode(requestBody),
+      );
+
+      print('Form Data API Response Status: ${response.statusCode}');
+      print('Form Data API Response Body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(response.body);
+        if (data['success'] == true) {
+          return FormDataResponse.fromJson(data['data']);
+        } else {
+          throw Exception('Failed to load form data: ${data['message']}');
+        }
+      } else {
+        throw Exception('Failed to load form data: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error in getFormData: $e');
+      throw Exception('Error fetching form data: $e');
+    }
+  }
+
+  // Get all sites (with workspace filtering capability)
+  static Future<List<Site>> getSites({int? workspaceId}) async {
+    try {
+      if (workspaceId != null) {
+        return await getSitesByWorkspace(workspaceId);
+      } else {
+        final formData = await getFormData();
+        return formData.sites;
+      }
+    } catch (e) {
+      print('Error getting sites: $e');
+      return [];
+    }
+  }
+
+  // Get all materials (with site filtering capability)
+  static Future<List<Material>> getMaterials({int? siteId}) async {
+    try {
+      if (siteId != null) {
+        return await getMaterialsBySite(siteId);
+      } else {
+        final formData = await getFormData();
+        return formData.materials.values.toList();
+      }
+    } catch (e) {
+      print('Error getting materials: $e');
+      return [];
+    }
+  }
+
+  // Create material transfer - POST API
+  static Future<MaterialTransfer> createMaterialTransfer(MaterialTransfer transfer) async {
+    try {
+      // Prepare the request body according to API documentation
+      final Map<String, dynamic> requestBody = {
+        'record_date': transfer.recordDate,
+        'from_site_id': transfer.fromSiteId,
+        'to_site_id': transfer.toSiteId,
+        'created_by': transfer.createdBy ?? 1,
+        'workspace_id': transfer.workspaceId ?? 1,
+        'items': transfer.items.map((item) => {
+          'material_id': item.materialId,
+          'quantity': item.quantity,
+          'unit': item.unit,
+          'price': item.price,
+        }).toList(),
+      };
+
+      print('Creating transfer with data: ${json.encode(requestBody)}');
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/api/material-transfer'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: json.encode(requestBody),
+      );
+
+      print('Create Transfer Response Status: ${response.statusCode}');
+      print('Create Transfer Response Body: ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final Map<String, dynamic> data = json.decode(response.body);
+        if (data['success'] == true) {
+          return MaterialTransfer.fromJson(data['data']);
+        } else {
+          throw Exception('Failed to create transfer: ${data['message']}');
+        }
+      } else {
+        throw Exception('Failed to create transfer. Status code: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error creating material transfer: $e');
+      throw Exception('Error creating material transfer: $e');
+    }
+  }
+
+  // Update material transfer - PUT API
+  static Future<MaterialTransfer> updateMaterialTransfer(MaterialTransfer transfer) async {
+    try {
+      // Prepare the request body according to API documentation
+      final Map<String, dynamic> requestBody = {
+        'record_date': transfer.recordDate,
+        'from_site_id': transfer.fromSiteId,
+        'to_site_id': transfer.toSiteId,
+        'created_by': transfer.createdBy ?? 1,
+        'workspace_id': transfer.workspaceId ?? 1,
+        'items': transfer.items.map((item) => {
+          'material_id': item.materialId,
+          'quantity': item.quantity,
+          'unit': item.unit,
+          'price': item.price,
+        }).toList(),
+      };
+
+      print('Updating transfer ${transfer.id} with data: ${json.encode(requestBody)}');
+
+      final response = await http.put(
+        Uri.parse('$baseUrl/api/material-transfer/${transfer.id}'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: json.encode(requestBody),
+      );
+
+      print('Update Transfer Response Status: ${response.statusCode}');
+      print('Update Transfer Response Body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(response.body);
+        if (data['success'] == true) {
+          return MaterialTransfer.fromJson(data['data']);
+        } else {
+          throw Exception('Failed to update transfer: ${data['message']}');
+        }
+      } else {
+        throw Exception('Failed to update transfer. Status code: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error updating material transfer: $e');
+      throw Exception('Error updating material transfer: $e');
+    }
+  }
+
+  // Delete material transfer
+  static Future<bool> deleteMaterialTransfer(int id) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('$baseUrl/api/material-transfer/$id'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      );
+
+      print('Delete Transfer Response Status: ${response.statusCode}');
+      print('Delete Transfer Response Body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(response.body);
+        return data['success'] == true;
+      } else {
+        throw Exception('Failed to delete transfer: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error deleting material transfer: $e');
+      throw Exception('Error deleting material transfer: $e');
+    }
+  }
+}
+
+class FormDataResponse {
+  final Map<String, Material> materials;
+  final List<Site> sites;
+
+  FormDataResponse({
+    required this.materials,
+    required this.sites,
+  });
+
+  factory FormDataResponse.fromJson(Map<String, dynamic> json) {
+    // Parse materials - they come as a map with material IDs as keys
+    final Map<String, Material> materialsMap = {};
+    if (json['materials'] is Map) {
+      json['materials'].forEach((key, materialData) {
+        try {
+          final material = Material.fromJson(materialData);
+          materialsMap[key] = material;
+        } catch (e) {
+          print('Error parsing material $key: $e');
+        }
+      });
+    }
+
+    // Parse sites - they come as a list
+    final List<Site> sitesList = [];
+    if (json['sites'] is List) {
+      for (var siteData in json['sites']) {
+        try {
+          sitesList.add(Site.fromJson(siteData));
+        } catch (e) {
+          print('Error parsing site: $e');
+        }
+      }
+    }
+
+    return FormDataResponse(
+      materials: materialsMap,
+      sites: sitesList,
+    );
+  }
+}class MaterialTransfer {
+  int? id;
+  String? recordNumber;
+  String? recordDate;
+  int? fromSiteId;
+  int? toSiteId;
+  String? totalAmount;
+  String? status;
+  int? createdBy;
+  int? workspaceId;
+  String? recordFile;
+  String? createdAt;
+  String? updatedAt;
+  List<TransferItem> items;
+  Site? fromSite;
+  Site? toSite;
+
+  MaterialTransfer({
+    this.id,
+    this.recordNumber,
+    this.recordDate,
+    this.fromSiteId,
+    this.toSiteId,
+    this.totalAmount,
+    this.status,
+    this.createdBy,
+    this.workspaceId,
+    this.recordFile,
+    this.createdAt,
+    this.updatedAt,
+    List<TransferItem>? items,
+    this.fromSite,
+    this.toSite,
+  }) : items = items ?? [];
+
+  factory MaterialTransfer.fromJson(Map<String, dynamic> json) {
+    return MaterialTransfer(
+      id: json['id'] as int?,
+      recordNumber: json['record_number'] as String?,
+      recordDate: json['record_date'] as String?,
+      fromSiteId: json['from_site_id'] as int?,
+      toSiteId: json['to_site_id'] as int?,
+      totalAmount: json['total_amount']?.toString(),
+      status: json['status'] as String?,
+      createdBy: json['created_by'] as int?,
+      workspaceId: json['workspace_id'] as int?,
+      recordFile: json['record_file'] as String?,
+      createdAt: json['created_at'] as String?,
+      updatedAt: json['updated_at'] as String?,
+      items: json['items'] != null
+          ? (json['items'] as List).map((i) => TransferItem.fromJson(i)).toList()
+          : [],
+      fromSite: json['from_site'] != null ? Site.fromJson(json['from_site']) : null,
+      toSite: json['to_site'] != null ? Site.fromJson(json['to_site']) : null,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'record_number': recordNumber,
+      'record_date': recordDate,
+      'from_site_id': fromSiteId,
+      'to_site_id': toSiteId,
+      'total_amount': totalAmount,
+      'status': status,
+      'created_by': createdBy,
+      'workspace_id': workspaceId,
+      'record_file': recordFile,
+      'created_at': createdAt,
+      'updated_at': updatedAt,
+      'items': items.map((item) => item.toJson()).toList(),
+    };
+  }
+
+  Map<String, dynamic> toApiJson() {
+    return {
+      'record_date': recordDate,
+      'from_site_id': fromSiteId,
+      'to_site_id': toSiteId,
+      'created_by': createdBy ?? 1,
+      'workspace_id': workspaceId ?? 1,
+      'items': items.map((item) => item.toApiJson()).toList(),
+    };
+  }
+
+  String get fromSiteName => fromSite?.name ?? 'Site ${fromSiteId ?? 'N/A'}';
+  String get toSiteName => toSite?.name ?? 'Site ${toSiteId ?? 'N/A'}';
+}
+
+class TransferItem {
+  int? id;
+  int? materialTransferId;
+  int? materialId;
+  String? quantity;
+  String? unit;
+  String? price;
+  String? subtotal;
+  String? receivedAt;
+  String? createdAt;
+  String? updatedAt;
+  Material? material;
+
+  TransferItem({
+    this.id,
+    this.materialTransferId,
+    this.materialId,
+    this.quantity,
+    this.unit,
+    this.price,
+    this.subtotal,
+    this.receivedAt,
+    this.createdAt,
+    this.updatedAt,
+    this.material,
+  });
+
+  factory TransferItem.fromJson(Map<String, dynamic> json) {
+    // Handle material data - it might be a list or single object
+    Material? materialData;
+    if (json['material'] != null) {
+      if (json['material'] is List) {
+        if ((json['material'] as List).isNotEmpty) {
+          materialData = Material.fromJson((json['material'] as List).first);
+        }
+      } else {
+        materialData = Material.fromJson(json['material']);
+      }
+    }
+
+    return TransferItem(
+      id: json['id'] as int?,
+      materialTransferId: json['material_transfer_id'] as int?,
+      materialId: json['material_id'] as int?,
+      quantity: json['quantity']?.toString(),
+      unit: json['unit'] as String?,
+      price: json['price']?.toString(),
+      subtotal: json['subtotal']?.toString(),
+      receivedAt: json['received_at'] as String?,
+      createdAt: json['created_at'] as String?,
+      updatedAt: json['updated_at'] as String?,
+      material: materialData,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'material_transfer_id': materialTransferId,
+      'material_id': materialId,
+      'quantity': quantity,
+      'unit': unit,
+      'price': price,
+      'subtotal': subtotal,
+      'received_at': receivedAt,
+      'created_at': createdAt,
+      'updated_at': updatedAt,
+      'material': material?.toJson(),
+    };
+  }
+
+  Map<String, dynamic> toApiJson() {
+    return {
+      'material_id': materialId,
+      'quantity': quantity,
+      'unit': unit,
+      'price': price,
+    };
+  }
+}
+
+class Material {
+  int? id;
+  String? name;
+  String? sku;
+  int? categoryId;
+  int? unitId;
+  String? description;
+  String? price;
+  int? reorderLevel;
+  String? status;
+  String? image;
+  int? siteId;
+  int? createdBy;
+  int? workspaceId;
+  String? createdAt;
+  String? updatedAt;
+  Unit? unit;
+  String? purchasedQty;
+  int? totalQty;
+
+  Material({
+    this.id,
+    this.name,
+    this.sku,
+    this.categoryId,
+    this.unitId,
+    this.description,
+    this.price,
+    this.reorderLevel,
+    this.status,
+    this.image,
+    this.siteId,
+    this.createdBy,
+    this.workspaceId,
+    this.createdAt,
+    this.updatedAt,
+    this.unit,
+    this.purchasedQty,
+    this.totalQty,
+  });
+
+  factory Material.fromJson(Map<String, dynamic> json) {
+    return Material(
+      id: json['id'] != null ? int.tryParse(json['id'].toString()) : null,
+      name: json['name'] as String?,
+      sku: json['sku'] as String?,
+      categoryId: json['category_id'] != null ? int.tryParse(json['category_id'].toString()) : null,
+      unitId: json['unit_id'] != null ? int.tryParse(json['unit_id'].toString()) : null,
+      description: json['description'] as String?,
+      price: json['price']?.toString(),
+      reorderLevel: json['reorder_level'] != null ? int.tryParse(json['reorder_level'].toString()) : null,
+      status: json['status'] as String?,
+      image: json['image'] as String?,
+      siteId: json['site_id'] != null ? int.tryParse(json['site_id'].toString()) : null,
+      createdBy: json['created_by'] != null ? int.tryParse(json['created_by'].toString()) : null,
+      workspaceId: json['workspace_id'] != null ? int.tryParse(json['workspace_id'].toString()) : null,
+      createdAt: json['created_at'] as String?,
+      updatedAt: json['updated_at'] as String?,
+      unit: json['unit'] != null ? Unit.fromJson(json['unit']) : null,
+      purchasedQty: json['purchased_qty'] as String?,
+      totalQty: json['total_qty'] != null ? int.tryParse(json['total_qty'].toString()) : null,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'sku': sku,
+      'category_id': categoryId,
+      'unit_id': unitId,
+      'description': description,
+      'price': price,
+      'reorder_level': reorderLevel,
+      'status': status,
+      'image': image,
+      'site_id': siteId,
+      'created_by': createdBy,
+      'workspace_id': workspaceId,
+      'created_at': createdAt,
+      'updated_at': updatedAt,
+      'unit': unit?.toJson(),
+      'purchased_qty': purchasedQty,
+      'total_qty': totalQty,
+    };
+  }
+
+  String get displayName => '$name (₹$price)';
+  String get displayNameWithStock => '$name (₹$price) - Stock: ${totalQty ?? 0}';
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is Material && runtimeType == other.runtimeType && id == other.id;
+
+  @override
+  int get hashCode => id.hashCode;
+}
+
+class Unit {
+  int? id;
+  String? name;
+  String? symbol;
+  String? description;
+  int? isActive;
+  int? siteId;
+  int? createdBy;
+  int? workspaceId;
+  String? status;
+  String? createdAt;
+  String? updatedAt;
+
+  Unit({
+    this.id,
+    this.name,
+    this.symbol,
+    this.description,
+    this.isActive,
+    this.siteId,
+    this.createdBy,
+    this.workspaceId,
+    this.status,
+    this.createdAt,
+    this.updatedAt,
+  });
+
+  factory Unit.fromJson(Map<String, dynamic> json) {
+    return Unit(
+      id: json['id'] != null ? int.tryParse(json['id'].toString()) : null,
+      name: json['name'] as String?,
+      symbol: json['symbol'] as String?,
+      description: json['description'] as String?,
+      isActive: json['is_active'] != null ? int.tryParse(json['is_active'].toString()) : null,
+      siteId: json['site_id'] != null ? int.tryParse(json['site_id'].toString()) : null,
+      createdBy: json['created_by'] != null ? int.tryParse(json['created_by'].toString()) : null,
+      workspaceId: json['workspace_id'] != null ? int.tryParse(json['workspace_id'].toString()) : null,
+      status: json['status'] as String?,
+      createdAt: json['created_at'] as String?,
+      updatedAt: json['updated_at'] as String?,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'symbol': symbol,
+      'description': description,
+      'is_active': isActive,
+      'site_id': siteId,
+      'created_by': createdBy,
+      'workspace_id': workspaceId,
+      'status': status,
+      'created_at': createdAt,
+      'updated_at': updatedAt,
+    };
+  }
+}
+
+class Site {
+  int? id;
+  String? name;
+  String? status;
+  String? image;
+  String? description;
+  String? startDate;
+  String? endDate;
+  int? budget;
+  int? isActive;
+  String? type;
+  String? currency;
+  String? projectProgress;
+  String? progress;
+  String? taskProgress;
+  dynamic tags;
+  int? estimatedHrs;
+  String? copyLinkSetting;
+  String? password;
+  int? workspace;
+  int? createdBy;
+  String? createdAt;
+  String? updatedAt;
+
+  Site({
+    this.id,
+    this.name,
+    this.status,
+    this.image,
+    this.description,
+    this.startDate,
+    this.endDate,
+    this.budget,
+    this.isActive,
+    this.type,
+    this.currency,
+    this.projectProgress,
+    this.progress,
+    this.taskProgress,
+    this.tags,
+    this.estimatedHrs,
+    this.copyLinkSetting,
+    this.password,
+    this.workspace,
+    this.createdBy,
+    this.createdAt,
+    this.updatedAt,
+  });
+
+  factory Site.fromJson(Map<String, dynamic> json) {
+    return Site(
+      id: json['id'] != null ? int.tryParse(json['id'].toString()) : null,
+      name: json['name'] as String?,
+      status: json['status'] as String?,
+      image: json['image'] as String?,
+      description: json['description'] as String?,
+      startDate: json['start_date'] as String?,
+      endDate: json['end_date'] as String?,
+      budget: json['budget'] != null ? int.tryParse(json['budget'].toString()) : null,
+      isActive: json['is_active'] != null ? int.tryParse(json['is_active'].toString()) : null,
+      type: json['type'] as String?,
+      currency: json['currency'] as String?,
+      projectProgress: json['project_progress'] as String?,
+      progress: json['progress'] as String?,
+      taskProgress: json['task_progress'] as String?,
+      tags: json['tags'],
+      estimatedHrs: json['estimated_hrs'] != null ? int.tryParse(json['estimated_hrs'].toString()) : null,
+      copyLinkSetting: json['copylinksetting'] as String?,
+      password: json['password'] as String?,
+      workspace: json['workspace'] != null ? int.tryParse(json['workspace'].toString()) : null,
+      createdBy: json['created_by'] != null ? int.tryParse(json['created_by'].toString()) : null,
+      createdAt: json['created_at'] as String?,
+      updatedAt: json['updated_at'] as String?,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'status': status,
+      'image': image,
+      'description': description,
+      'start_date': startDate,
+      'end_date': endDate,
+      'budget': budget,
+      'is_active': isActive,
+      'type': type,
+      'currency': currency,
+      'project_progress': projectProgress,
+      'progress': progress,
+      'task_progress': taskProgress,
+      'tags': tags,
+      'estimated_hrs': estimatedHrs,
+      'copylinksetting': copyLinkSetting,
+      'password': password,
+      'workspace': workspace,
+      'created_by': createdBy,
+      'created_at': createdAt,
+      'updated_at': updatedAt,
+    };
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is Site && runtimeType == other.runtimeType && id == other.id;
+
+  @override
+  int get hashCode => id.hashCode;
+}import 'package:ecoteam_app/admin/services/materialTransfer_services.dart';
+import 'package:flutter/material.dart' hide Material;
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import '../models/material_transfer_model.dart';
+
+class MaterialTransferScreen extends StatefulWidget {
+  const MaterialTransferScreen({super.key});
+
+  @override
+  State<MaterialTransferScreen> createState() => _MaterialTransferScreenState();
+}
+
+class _MaterialTransferScreenState extends State<MaterialTransferScreen> {
+  List<MaterialTransfer> _transfers = [];
+  List<MaterialTransfer> _filteredTransfers = [];
+  bool _isLoading = true;
+  String _searchQuery = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMaterialTransfers();
+  }
+
+  Future<void> _loadMaterialTransfers() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final transfers = await MaterialTransferService.getMaterialTransfers();
+      setState(() {
+        _transfers = transfers
+            .where((transfer) => transfer.id != null)
+            .toList();
+        _filteredTransfers = _transfers;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      _showErrorSnackBar('Failed to load material transfers: $e');
+    }
+  }
+
+  void _filterTransfers(String query) {
+    setState(() {
+      _searchQuery = query;
+      if (query.isEmpty) {
+        _filteredTransfers = _transfers;
+      } else {
+        _filteredTransfers = _transfers.where((transfer) {
+          final recordNumber = transfer.recordNumber?.toLowerCase() ?? '';
+          final fromSiteName = transfer.fromSiteName.toLowerCase();
+          final toSiteName = transfer.toSiteName.toLowerCase();
+          final searchLower = query.toLowerCase();
+
+          return recordNumber.contains(searchLower) ||
+              fromSiteName.contains(searchLower) ||
+              toSiteName.contains(searchLower);
+        }).toList();
+      }
+    });
+  }
+
+  void _showErrorSnackBar(String message) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 3),
+        ),
+      );
+    }
+  }
+
+  void _showSuccessSnackBar(String message) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  void _showMaterialTransferForm({MaterialTransfer? transfer}) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => MaterialTransferForm(
+        transfer: transfer,
+        onSave: (savedTransfer) {
+          if (transfer == null) {
+            // Add new transfer
+            setState(() {
+              _transfers.insert(0, savedTransfer);
+              _filterTransfers(_searchQuery);
+            });
+            _showSuccessSnackBar('Material transfer created successfully');
+          } else {
+            // Update existing transfer
+            setState(() {
+              final index = _transfers.indexWhere((t) => t.id == transfer.id);
+              if (index != -1) {
+                _transfers[index] = savedTransfer;
+                _filterTransfers(_searchQuery);
+              }
+            });
+            _showSuccessSnackBar('Material transfer updated successfully');
+          }
+        },
+        onDelete: (deletedId) {
+          setState(() {
+            _transfers.removeWhere((t) => t.id == deletedId);
+            _filterTransfers(_searchQuery);
+          });
+          _showSuccessSnackBar('Material transfer deleted successfully');
+        },
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        iconTheme: const IconThemeData(color: Colors.white),
+        toolbarHeight: 80.h,
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            borderRadius: BorderRadius.vertical(bottom: Radius.circular(25)),
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color(0xFF4a63c0), Color(0xFF3a53b0), Color(0xFF2a43a0)],
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black12,
+                blurRadius: 10,
+                offset: Offset(0, 4),
+              ),
+            ],
+          ),
+        ),
+        title: Text(
+          'Material Transfer',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh, color: Colors.white),
+            onPressed: _loadMaterialTransfers,
+            tooltip: 'Refresh',
+          ),
+
+          IconButton(
+            onPressed: () => _showMaterialTransferForm(),
+            icon: const Icon(Icons.add),
+
+            tooltip: 'Add Material Transfer',
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          _buildSearchSection(),
+
+          // Content
+          Expanded(
+            child: _isLoading
+                ? const Center(
+                    child: CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2a43a0)),
+                    ),
+                  )
+                : _filteredTransfers.isEmpty
+                ? _buildEmptyState()
+                : _buildTransferList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSearchSection() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      color: Colors.white,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Search Bar
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: TextField(
+              onChanged: _filterTransfers,
+              decoration: InputDecoration(
+                hintText: 'Search by record number or site names...',
+                prefixIcon: Icon(Icons.search, color: Colors.grey),
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+              ),
+            ),
+          ),
+          SizedBox(height: 12),
+          // Count
+          Text(
+            'Total: ${_filteredTransfers.length} transfer${_filteredTransfers.length != 1 ? 's' : ''}',
+            style: TextStyle(
+              color: Colors.grey[600],
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTransferList() {
+    return RefreshIndicator(
+      onRefresh: _loadMaterialTransfers,
+      child: ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: _filteredTransfers.length,
+        itemBuilder: (context, index) {
+          final transfer = _filteredTransfers[index];
+          return MaterialTransferCard(
+            transfer: transfer,
+            onEdit: () => _showMaterialTransferForm(transfer: transfer),
+            onDelete: () => _showDeleteConfirmation(transfer),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.inventory_2, size: 64, color: Colors.grey[400]),
+          SizedBox(height: 16),
+          Text(
+            'No Material Transfers',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey[600],
+            ),
+          ),
+          SizedBox(height: 8),
+          Text(
+            _searchQuery.isEmpty
+                ? 'Add your first material transfer to get started'
+                : 'No transfers found for "$_searchQuery"',
+            style: TextStyle(color: Colors.grey[500]),
+            textAlign: TextAlign.center,
+          ),
+          SizedBox(height: 16),
+          ElevatedButton(
+            onPressed: () => _showMaterialTransferForm(),
+            child: Text('Add Material Transfer'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDeleteConfirmation(MaterialTransfer transfer) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Delete Transfer'),
+        content: Text(
+          'Are you sure you want to delete transfer ${transfer.recordNumber}? This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.of(context).pop();
+              try {
+                final success =
+                    await MaterialTransferService.deleteMaterialTransfer(
+                      transfer.id!,
+                    );
+                if (success) {
+                  setState(() {
+                    _transfers.removeWhere((t) => t.id == transfer.id);
+                    _filterTransfers(_searchQuery);
+                  });
+                  _showSuccessSnackBar(
+                    'Material transfer deleted successfully',
+                  );
+                } else {
+                  _showErrorSnackBar('Failed to delete transfer');
+                }
+              } catch (e) {
+                _showErrorSnackBar('Failed to delete transfer: $e');
+              }
+            },
+            child: Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class MaterialTransferCard extends StatelessWidget {
+  final MaterialTransfer transfer;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+
+  const MaterialTransferCard({
+    super.key,
+    required this.transfer,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header with Record Number and Actions
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    transfer.recordNumber ?? 'N/A',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF2a43a0),
+                    ),
+                  ),
+                ),
+                IconButton(
+                  icon: Icon(Icons.edit, color: Color(0xFF2a43a0), size: 20),
+                  onPressed: onEdit,
+                  padding: EdgeInsets.zero,
+                  constraints: BoxConstraints(),
+                  tooltip: 'Edit',
+                ),
+
+                IconButton(
+                  icon: Icon(Icons.delete, color: Colors.red, size: 20),
+                  onPressed: onDelete,
+                  padding: EdgeInsets.zero,
+                  constraints: BoxConstraints(),
+                  tooltip: 'Delete',
+                ),
+              ],
+            ),
+            SizedBox(height: 4),
+
+            // Record Date
+            _buildInfoRow('Record Date:', _formatDate(transfer.recordDate)),
+
+            // From Site
+            _buildInfoRow('From Site:', transfer.fromSiteName),
+
+            // To Site
+            _buildInfoRow('To Site:', transfer.toSiteName),
+
+
+            // Total Amount
+            _buildInfoRow(
+              'Total Amount:',
+              '₹${transfer.totalAmount ?? '0.00'}',
+              isAmount: true,
+            ),
+
+            // Status
+            if (transfer.status != null) ...[
+              SizedBox(height: 8),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: _getStatusColor(transfer.status!),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  transfer.status!.toUpperCase(),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value, {bool isAmount = false}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 100,
+            child: Text(
+              label,
+              style: TextStyle(
+                fontWeight: FontWeight.w500,
+                color: Colors.grey[600],
+                fontSize: 12,
+              ),
+            ),
+          ),
+          SizedBox(width: 4),
+          Expanded(
+            child: Text(
+              value,
+              style: TextStyle(
+                fontWeight: isAmount ? FontWeight.bold : FontWeight.normal,
+                color: isAmount ? Colors.green : Colors.black87,
+                fontSize: 12,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatDate(String? dateString) {
+    if (dateString == null) return 'N/A';
+
+    try {
+      final date = DateTime.parse(dateString);
+      return '${date.day}/${date.month}/${date.year}';
+    } catch (e) {
+      return dateString;
+    }
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return const Color.fromARGB(255, 211, 138, 28);
+      case 'completed':
+        return const Color.fromARGB(255, 68, 170, 72);
+      case 'approved':
+        return Color(0xFF2a43a0);
+      case 'cancelled':
+      case 'rejected':
+        return const Color.fromARGB(255, 204, 51, 40);
+      default:
+        return Colors.grey;
+    }
+  }
+}
+
+
+class MaterialTransferForm extends StatefulWidget {
+  final MaterialTransfer? transfer;
+  final Function(MaterialTransfer) onSave;
+  final Function(int)? onDelete;
+  final int? workspaceId; // Add workspace ID parameter
+
+  const MaterialTransferForm({
+    super.key,
+    this.transfer,
+    required this.onSave,
+    this.onDelete,
+    this.workspaceId, // Accept workspace ID
+  });
+
+  @override
+  State<MaterialTransferForm> createState() => _MaterialTransferFormState();
+}
+
+class _MaterialTransferFormState extends State<MaterialTransferForm> {
+  final _formKey = GlobalKey<FormState>();
+  late MaterialTransfer _transfer;
+  List<TransferItem> _items = [];
+  List<Material> _availableMaterials = [];
+  List<Site> _sites = [];
+  bool _isLoading = false;
+  bool _isLoadingFormData = false;
+  String? _errorMessage;
+  int? _selectedFromSiteId;
+
+  @override
+  void initState() {
+    super.initState();
+    _transfer = widget.transfer ?? MaterialTransfer();
+    _items = widget.transfer?.items?.toList() ?? [];
+    _selectedFromSiteId = _transfer.fromSiteId;
+    _loadFormData();
+  }
+
+  Future<void> _loadFormData() async {
+    setState(() {
+      _isLoadingFormData = true;
+      _errorMessage = null;
+    });
+
+    try {
+      // Load sites by workspace ID
+      if (widget.workspaceId != null) {
+        _sites = await MaterialTransferService.getSitesByWorkspace(widget.workspaceId!);
+      } else {
+        final formData = await MaterialTransferService.getFormData();
+        _sites = formData.sites;
+      }
+
+      // Load materials based on selected from site
+      if (_selectedFromSiteId != null) {
+        _availableMaterials = await MaterialTransferService.getMaterialsBySite(_selectedFromSiteId!);
+      } else {
+        final formData = await MaterialTransferService.getFormData();
+        _availableMaterials = formData.materials.values.toList();
+      }
+
+      setState(() {
+        _isLoadingFormData = false;
+      });
+
+      print('Loaded ${_sites.length} sites for workspace ${widget.workspaceId}');
+      print('Loaded ${_availableMaterials.length} materials');
+
+    } catch (e) {
+      setState(() {
+        _isLoadingFormData = false;
+        _errorMessage = 'Failed to load form data: $e';
+      });
+      print('Error loading form data: $e');
+    }
+  }
+
+  Future<void> _loadMaterialsForSite(int siteId) async {
+    try {
+      setState(() {
+        _isLoadingFormData = true;
+      });
+
+      final materials = await MaterialTransferService.getMaterialsBySite(siteId);
+      
+      setState(() {
+        _availableMaterials = materials;
+        _isLoadingFormData = false;
+      });
+
+      print('Loaded ${materials.length} materials for site $siteId');
+    } catch (e) {
+      setState(() {
+        _isLoadingFormData = false;
+      });
+      print('Error loading materials for site $siteId: $e');
+    }
+  }
+
+  void _addItem() {
+    setState(() {
+      _items.add(TransferItem());
+    });
+  }
+
+  void _removeItem(int index) {
+    setState(() {
+      _items.removeAt(index);
+    });
+    _calculateTotal();
+  }
+
+  void _updateItem(int index, TransferItem item) {
+    setState(() {
+      _items[index] = item;
+    });
+    _calculateTotal();
+  }
+
+  void _calculateTotal() {
+    double total = 0;
+    for (var item in _items) {
+      if (item.quantity != null && item.price != null) {
+        final quantity = double.tryParse(item.quantity!) ?? 0;
+        final price = double.tryParse(item.price!) ?? 0;
+        total += quantity * price;
+      }
+    }
+    setState(() {
+      _transfer.totalAmount = total.toStringAsFixed(2);
+    });
+  }
+
+  Future<void> _saveTransfer() async {
+    if (_formKey.currentState!.validate()) {
+      _formKey.currentState!.save();
+
+      // Validate items
+      if (_items.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please add at least one item')),
+        );
+        return;
+      }
+
+      for (var item in _items) {
+        if (item.materialId == null || item.quantity == null || item.quantity!.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Please fill all item fields')),
+          );
+          return;
+        }
+      }
+
+      setState(() {
+        _isLoading = true;
+      });
+
+      try {
+        _transfer.items = _items;
+        MaterialTransfer savedTransfer;
+
+        if (_transfer.id == null) {
+          savedTransfer = await MaterialTransferService.createMaterialTransfer(_transfer);
+        } else {
+          savedTransfer = await MaterialTransferService.updateMaterialTransfer(_transfer);
+        }
+
+        Navigator.of(context).pop();
+        widget.onSave(savedTransfer);
+      } catch (e) {
+        setState(() {
+          _isLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to save transfer: $e')),
+        );
+      }
+    }
+  }
+
+  void _deleteTransfer() {
+    if (_transfer.id != null) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Delete Transfer'),
+          content: const Text('Are you sure you want to delete this transfer?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                try {
+                  await MaterialTransferService.deleteMaterialTransfer(_transfer.id!);
+                  Navigator.of(context).pop();
+                  widget.onDelete?.call(_transfer.id!);
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Failed to delete transfer: $e')),
+                  );
+                }
+              },
+              child: const Text('Delete', style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.9,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      child: Column(
+        children: [
+          _buildHeader(),
+          Expanded(
+            child: _isLoadingFormData
+                ? _buildLoadingState()
+                : _errorMessage != null
+                    ? _buildErrorState()
+                    : Form(
+                        key: _formKey,
+                        child: SingleChildScrollView(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            children: [
+                              _buildBasicInfoSection(),
+                              const SizedBox(height: 20),
+                              _buildItemsSection(),
+                              _buildTotalSection(),
+                              _buildActionButtons(),
+                            ],
+                          ),
+                        ),
+                      ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: const BoxDecoration(
+        color: Colors.blue,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.inventory, color: Colors.white),
+          const SizedBox(width: 8),
+          Text(
+            widget.transfer == null
+                ? 'Add Material Transfer'
+                : 'Edit Material Transfer',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const Spacer(),
+          IconButton(
+            icon: const Icon(Icons.close, color: Colors.white),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLoadingState() {
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          CircularProgressIndicator(),
+          SizedBox(height: 16),
+          Text('Loading form data...'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.error, color: Colors.red, size: 64),
+          const SizedBox(height: 16),
+          const Text(
+            'Failed to load form data',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32),
+            child: Text(
+              _errorMessage ?? 'Unknown error',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.grey[600]),
+            ),
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton(
+            onPressed: _loadFormData,
+            child: const Text('Retry'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBasicInfoSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Basic Information',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 12),
+
+        // Record Date
+        TextFormField(
+          initialValue: _transfer.recordDate ?? DateTime.now().toIso8601String().split('T')[0],
+          decoration: const InputDecoration(
+            labelText: 'Record Date*',
+            border: OutlineInputBorder(),
+            suffixIcon: Icon(Icons.calendar_today),
+          ),
+          onTap: () => _selectDate(context),
+          readOnly: true,
+          onSaved: (value) => _transfer.recordDate = value,
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'Please select record date';
+            }
+            return null;
+          },
+        ),
+        const SizedBox(height: 12),
+
+        // From Site - Now shows site names
+        DropdownButtonFormField<int>(
+          value: _transfer.fromSiteId,
+          decoration: const InputDecoration(
+            labelText: 'From Project / Site*',
+            border: OutlineInputBorder(),
+          ),
+          items: _sites.map((site) {
+            return DropdownMenuItem<int>(
+              value: site.id,
+              child: Text(site.name ?? 'Unknown Site'),
+            );
+          }).toList(),
+          onChanged: (value) async {
+            setState(() {
+              _transfer.fromSiteId = value;
+              _selectedFromSiteId = value;
+              // Clear to site if it's the same as from site
+              if (_transfer.toSiteId == value) {
+                _transfer.toSiteId = null;
+              }
+            });
+            
+            // Load materials for the selected site
+            if (value != null) {
+              await _loadMaterialsForSite(value);
+            }
+          },
+          validator: (value) {
+            if (value == null) {
+              return 'Please select from site';
+            }
+            return null;
+          },
+        ),
+        const SizedBox(height: 12),
+
+        // To Site - Now shows site names
+        DropdownButtonFormField<int>(
+          value: _transfer.toSiteId,
+          decoration: const InputDecoration(
+            labelText: 'To Project / Site*',
+            border: OutlineInputBorder(),
+          ),
+          items: _sites.map((site) {
+            // Disable the from site in to site dropdown
+            final bool isFromSite = site.id == _transfer.fromSiteId;
+            return DropdownMenuItem<int>(
+              value: site.id,
+              child: Text(
+                site.name ?? 'Unknown Site',
+                style: TextStyle(
+                  color: isFromSite ? Colors.grey : null,
+                ),
+              ),
+              enabled: !isFromSite, // Disable if it's the from site
+            );
+          }).toList(),
+          onChanged: (value) {
+            setState(() {
+              _transfer.toSiteId = value;
+            });
+          },
+          validator: (value) {
+            if (value == null) {
+              return 'Please select to site';
+            }
+            if (value == _transfer.fromSiteId) {
+              return 'To site must be different from from site';
+            }
+            return null;
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildItemsSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Text(
+              'Transfer Items',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const Spacer(),
+            ElevatedButton.icon(
+              onPressed: _addItem,
+              icon: const Icon(Icons.add, size: 16),
+              label: const Text('Add Item'),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+
+        if (_items.isEmpty)
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey[300]!),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Center(
+              child: Text(
+                'No items added. Click "Add Item" to start.',
+                style: TextStyle(color: Colors.grey[600]),
+              ),
+            ),
+          )
+        else
+          ..._items.asMap().entries.map((entry) {
+            final index = entry.key;
+            final item = entry.value;
+            return _buildItemRow(index, item);
+          }).toList(),
+      ],
+    );
+  }
+
+  Widget _buildItemRow(int index, TransferItem item) {
+    Material? material;
+    if (item.materialId != null) {
+      try {
+        material = _availableMaterials.firstWhere(
+          (m) => m.id == item.materialId,
+        );
+      } catch (e) {
+        material = null;
+      }
+    }
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Text(
+                  'Item ${index + 1}',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const Spacer(),
+                IconButton(
+                  icon: const Icon(Icons.delete, color: Colors.red, size: 18),
+                  onPressed: () => _removeItem(index),
+                  padding: EdgeInsets.zero,
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+
+            // Material Dropdown with stock information
+            DropdownButtonFormField<Material>(
+              value: material,
+              decoration: const InputDecoration(
+                labelText: 'Material*',
+                border: OutlineInputBorder(),
+              ),
+              items: _availableMaterials.map((material) {
+                return DropdownMenuItem<Material>(
+                  value: material,
+                  child: Text(material.displayNameWithStock),
+                );
+              }).toList(),
+              onChanged: (selectedMaterial) {
+                if (selectedMaterial != null) {
+                  final updatedItem = TransferItem(
+                    id: item.id,
+                    materialTransferId: item.materialTransferId,
+                    materialId: selectedMaterial.id,
+                    material: selectedMaterial,
+                    unit: selectedMaterial.unit?.name ?? 'unit',
+                    price: selectedMaterial.price ?? '0.00', // Ensure price is set
+                    quantity: item.quantity,
+                    subtotal: item.subtotal,
+                    receivedAt: item.receivedAt,
+                    createdAt: item.createdAt,
+                    updatedAt: item.updatedAt,
+                  );
+                  _updateItem(index, updatedItem);
+                  
+                  // Recalculate subtotal if quantity exists
+                  if (item.quantity != null && item.quantity!.isNotEmpty) {
+                    final quantity = double.tryParse(item.quantity!) ?? 0;
+                    final price = double.tryParse(selectedMaterial.price ?? '0.00') ?? 0;
+                    final subtotal = (quantity * price).toStringAsFixed(2);
+                    
+                    final updatedItemWithSubtotal = TransferItem(
+                      id: item.id,
+                      materialTransferId: item.materialTransferId,
+                      materialId: selectedMaterial.id,
+                      material: selectedMaterial,
+                      unit: selectedMaterial.unit?.name ?? 'unit',
+                      price: selectedMaterial.price ?? '0.00',
+                      quantity: item.quantity,
+                      subtotal: subtotal,
+                      receivedAt: item.receivedAt,
+                      createdAt: item.createdAt,
+                      updatedAt: item.updatedAt,
+                    );
+                    _updateItem(index, updatedItemWithSubtotal);
+                  }
+                }
+              },
+              validator: (value) {
+                if (value == null) {
+                  return 'Please select material';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 12),
+
+            // Quantity and Price Row
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    initialValue: item.quantity,
+                    decoration: InputDecoration(
+                      labelText: 'Quantity*',
+                      border: const OutlineInputBorder(),
+                      suffixText: material?.unit?.name ?? 'unit',
+                    ),
+                    keyboardType: TextInputType.number,
+                    onChanged: (value) {
+                      if (value.isNotEmpty) {
+                        final quantity = double.tryParse(value) ?? 0;
+                        final price = double.tryParse(item.price ?? material?.price ?? '0.00') ?? 0;
+                        final subtotal = (quantity * price).toStringAsFixed(2);
+
+                        final updatedItem = TransferItem(
+                          id: item.id,
+                          materialTransferId: item.materialTransferId,
+                          materialId: item.materialId,
+                          material: item.material,
+                          unit: item.unit,
+                          price: item.price ?? material?.price ?? '0.00',
+                          quantity: value,
+                          subtotal: subtotal,
+                          receivedAt: item.receivedAt,
+                          createdAt: item.createdAt,
+                          updatedAt: item.updatedAt,
+                        );
+                        _updateItem(index, updatedItem);
+                      }
+                    },
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter quantity';
+                      }
+                      if (double.tryParse(value) == null) {
+                        return 'Please enter a valid number';
+                      }
+                      // Check stock availability
+                      if (material != null && material.totalQty != null) {
+                        final requestedQty = double.tryParse(value) ?? 0;
+                        if (requestedQty > material.totalQty!) {
+                          return 'Insufficient stock. Available: ${material.totalQty}';
+                        }
+                      }
+                      return null;
+                    },
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextFormField(
+                    controller: TextEditingController(text: item.price ?? material?.price ?? '0.00'),
+                    decoration: const InputDecoration(
+                      labelText: 'Price',
+                      border: OutlineInputBorder(),
+                      prefixText: '₹',
+                    ),
+                    readOnly: true,
+                    onChanged: (value) {
+                      // This shouldn't be called since it's read-only, but just in case
+                      if (value.isNotEmpty && item.quantity != null && item.quantity!.isNotEmpty) {
+                        final quantity = double.tryParse(item.quantity!) ?? 0;
+                        final price = double.tryParse(value) ?? 0;
+                        final subtotal = (quantity * price).toStringAsFixed(2);
+
+                        final updatedItem = TransferItem(
+                          id: item.id,
+                          materialTransferId: item.materialTransferId,
+                          materialId: item.materialId,
+                          material: item.material,
+                          unit: item.unit,
+                          price: value,
+                          quantity: item.quantity,
+                          subtotal: subtotal,
+                          receivedAt: item.receivedAt,
+                          createdAt: item.createdAt,
+                          updatedAt: item.updatedAt,
+                        );
+                        _updateItem(index, updatedItem);
+                      }
+                    },
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+
+            // Stock Information
+            if (material != null && material.totalQty != null)
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.blue[50],
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.inventory, size: 16, color: Colors.blue[700]),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Available Stock: ${material.totalQty} ${material.unit?.name ?? 'units'}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.blue[700],
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            const SizedBox(height: 8),
+
+            // Subtotal
+            TextFormField(
+              controller: TextEditingController(text: item.subtotal ?? '0.00'),
+              decoration: const InputDecoration(
+                labelText: 'Subtotal',
+                border: OutlineInputBorder(),
+                prefixText: '₹',
+              ),
+              readOnly: true,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTotalSection() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      child: Row(
+        children: [
+          const Text(
+            'Total Amount:',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          const Spacer(),
+          Text(
+            '₹${_transfer.totalAmount ?? '0.00'}',
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.green,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionButtons() {
+    return Padding(
+      padding: const EdgeInsets.only(top: 20, bottom: 20),
+      child: Row(
+        children: [
+          if (widget.transfer != null) ...[
+            Expanded(
+              child: OutlinedButton(
+                onPressed: _deleteTransfer,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.red,
+                  side: const BorderSide(color: Colors.red),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+                child: const Text('Delete'),
+              ),
+            ),
+            const SizedBox(width: 12),
+          ],
+          Expanded(
+            child: ElevatedButton(
+              onPressed: _isLoading ? null : _saveTransfer,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+              child: _isLoading
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation(Colors.white),
+                      ),
+                    )
+                  : Text(widget.transfer == null ? 'Create Transfer' : 'Update Transfer'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+    );
+
+    if (picked != null) {
+      setState(() {
+        _transfer.recordDate = picked.toIso8601String().split('T')[0];
+      });
+    }
+  }
+}

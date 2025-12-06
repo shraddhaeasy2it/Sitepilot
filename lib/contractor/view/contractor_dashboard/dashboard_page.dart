@@ -26,8 +26,8 @@ import 'package:ecoteam_app/contractor/models/site_model.dart';
 import 'package:ecoteam_app/contractor/services/api_ser.dart';
 import 'package:ecoteam_app/contractor/services/company_site_provider.dart';
 import 'package:ecoteam_app/contractor/view/contractor_dashboard/attendance_screen.dart';
-import 'package:ecoteam_app/contractor/view/contractor_dashboard/more/machinary.dart';
-import 'package:ecoteam_app/contractor/view/contractor_dashboard/more/material_screen.dart';
+import 'package:ecoteam_app/contractor/view/contractor_dashboard/machinary.dart';
+import 'package:ecoteam_app/contractor/view/contractor_dashboard/material_screen.dart';
 
 import 'package:ecoteam_app/contractor/view/contractor_dashboard/more/more_screen.dart';
 import 'package:ecoteam_app/contractor/view/contractor_dashboard/more/supplier.dart';
@@ -285,7 +285,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           onSiteChanged: _onSiteChanged,
           sites: _sites,
         ),
-        MachineryScreen(
+        AllMachineryScreen(
           key: const PageStorageKey('machinery'),
           selectedSiteId: _selectedSiteId,
           onSiteChanged: _onSiteChanged,
@@ -348,7 +348,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           onSiteChanged: _onSiteChanged,
           sites: _sites,
         ),
-        MachineryScreen(
+        AllMachineryScreen(
           key: const PageStorageKey('machinery'),
           selectedSiteId: _selectedSiteId,
           onSiteChanged: _onSiteChanged,
@@ -2030,7 +2030,7 @@ class DashboardContent extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => MachineryScreen(
+                          builder: (context) => AllMachineryScreen(
                             selectedSiteId: selectedSiteId,
                             onSiteChanged: onSiteChanged,
                             sites: sites,

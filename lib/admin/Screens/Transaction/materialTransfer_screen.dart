@@ -1,818 +1,12 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
-import '../models/material_transfer_model.dart';
-
-class MaterialTransferService {
-  static const String baseUrl = 'http://sitepilot.easy2it.in';
-
-  // Get all material transfers
-  static Future<List<MaterialTransfer>> getMaterialTransfers() async {
-    try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/api/material-transfer'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-      );
-
-      print('API Response Status: ${response.statusCode}');
-      print('API Response Body: ${response.body}');
-
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> data = json.decode(response.body);
-        print('API Success: ${data['success']}');
-        print('API Message: ${data['message']}');
-        
-        if (data['success'] == true) {
-          List<dynamic> transfers = data['data'];
-          print('Number of transfers fetched: ${transfers.length}');
-          
-          List<MaterialTransfer> materialTransfers = transfers.map((json) {
-            try {
-              return MaterialTransfer.fromJson(json);
-            } catch (e) {
-              print('Error parsing transfer: $e');
-              print('Problematic JSON: $json');
-              return MaterialTransfer(); // Return empty transfer on error
-            }
-          }).toList();
-          
-          return materialTransfers;
-        } else {
-          throw Exception('Failed to load material transfers: ${data['message']}');
-        }
-      } else {
-        throw Exception('Failed to load material transfers. Status code: ${response.statusCode}');
-      }
-    } catch (e) {
-      print('Error in getMaterialTransfers: $e');
-      throw Exception('Error fetching material transfers: $e');
-    }
-  }
-
-  // Get sites by workspace ID
-  static Future<List<Site>> getSitesByWorkspace(int workspaceId) async {
-    try {
-      print('Fetching sites for workspace: $workspaceId');
-      
-      final response = await http.get(
-        Uri.parse('$baseUrl/api/sites?workspace_id=$workspaceId'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-      );
-
-      print('Sites API Response Status: ${response.statusCode}');
-      print('Sites API Response Body: ${response.body}');
-
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> data = json.decode(response.body);
-        if (data['success'] == true) {
-          List<dynamic> sitesData = data['data'];
-          List<Site> sites = sitesData.map((siteJson) => Site.fromJson(siteJson)).toList();
-          print('Fetched ${sites.length} sites for workspace $workspaceId');
-          return sites;
-        } else {
-          throw Exception('Failed to load sites: ${data['message']}');
-        }
-      } else {
-        throw Exception('Failed to load sites. Status code: ${response.statusCode}');
-      }
-    } catch (e) {
-      print('Error in getSitesByWorkspace: $e');
-      throw Exception('Error fetching sites: $e');
-    }
-  }
-
-  // Get materials by site ID
-  static Future<List<Material>> getMaterialsBySite(int siteId) async {
-    try {
-      print('Fetching materials for site: $siteId');
-      
-      final response = await http.get(
-        Uri.parse('$baseUrl/api/ajax/get-stock-by-site?site_id=$siteId'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-      );
-
-      print('Materials API Response Status: ${response.statusCode}');
-      print('Materials API Response Body: ${response.body}');
-
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> data = json.decode(response.body);
-        if (data['success'] == true) {
-          List<dynamic> materialsData = data['data'];
-          List<Material> materials = materialsData.map((materialJson) {
-            return Material(
-              id: materialJson['material_id'] as int?,
-              name: materialJson['material_name'] as String?,
-              price: materialJson['material_price'] as String?,
-              unit: Unit(
-                name: materialJson['unit_name'] as String?,
-              ),
-              purchasedQty: materialJson['purchased_qty'] as String?,
-              totalQty: materialJson['total_qty'] != null 
-                  ? int.tryParse(materialJson['total_qty'].toString())
-                  : null,
-            );
-          }).toList();
-          
-          print('Fetched ${materials.length} materials for site $siteId');
-          return materials;
-        } else {
-          throw Exception('Failed to load materials: ${data['message']}');
-        }
-      } else {
-        throw Exception('Failed to load materials. Status code: ${response.statusCode}');
-      }
-    } catch (e) {
-      print('Error in getMaterialsBySite: $e');
-      throw Exception('Error fetching materials: $e');
-    }
-  }
-
-  // Get form data for material transfer (materials, sites, etc.)
-  static Future<FormDataResponse> getFormData({int? siteId, int? workspaceId}) async {
-    try {
-      final Map<String, dynamic> requestBody = {};
-      if (siteId != null) requestBody['site_id'] = siteId;
-      if (workspaceId != null) requestBody['workspace_id'] = workspaceId;
-
-      print('Fetching form data from: $baseUrl/api/material-transfer/create-data');
-      print('Request body: ${json.encode(requestBody)}');
-
-      final response = await http.post(
-        Uri.parse('$baseUrl/api/material-transfer/create-data'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: json.encode(requestBody),
-      );
-
-      print('Form Data API Response Status: ${response.statusCode}');
-      print('Form Data API Response Body: ${response.body}');
-
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> data = json.decode(response.body);
-        if (data['success'] == true) {
-          return FormDataResponse.fromJson(data['data']);
-        } else {
-          throw Exception('Failed to load form data: ${data['message']}');
-        }
-      } else {
-        throw Exception('Failed to load form data: ${response.statusCode}');
-      }
-    } catch (e) {
-      print('Error in getFormData: $e');
-      throw Exception('Error fetching form data: $e');
-    }
-  }
-
-  // Get all sites (with workspace filtering capability)
-  static Future<List<Site>> getSites({int? workspaceId}) async {
-    try {
-      if (workspaceId != null) {
-        return await getSitesByWorkspace(workspaceId);
-      } else {
-        final formData = await getFormData();
-        return formData.sites;
-      }
-    } catch (e) {
-      print('Error getting sites: $e');
-      return [];
-    }
-  }
-
-  // Get all materials (with site filtering capability)
-  static Future<List<Material>> getMaterials({int? siteId}) async {
-    try {
-      if (siteId != null) {
-        return await getMaterialsBySite(siteId);
-      } else {
-        final formData = await getFormData();
-        return formData.materials.values.toList();
-      }
-    } catch (e) {
-      print('Error getting materials: $e');
-      return [];
-    }
-  }
-
-  // Create material transfer - POST API
-  static Future<MaterialTransfer> createMaterialTransfer(MaterialTransfer transfer) async {
-    try {
-      // Prepare the request body according to API documentation
-      final Map<String, dynamic> requestBody = {
-        'record_date': transfer.recordDate,
-        'from_site_id': transfer.fromSiteId,
-        'to_site_id': transfer.toSiteId,
-        'created_by': transfer.createdBy ?? 1,
-        'workspace_id': transfer.workspaceId ?? 1,
-        'items': transfer.items.map((item) => {
-          'material_id': item.materialId,
-          'quantity': item.quantity,
-          'unit': item.unit,
-          'price': item.price,
-        }).toList(),
-      };
-
-      print('Creating transfer with data: ${json.encode(requestBody)}');
-
-      final response = await http.post(
-        Uri.parse('$baseUrl/api/material-transfer'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: json.encode(requestBody),
-      );
-
-      print('Create Transfer Response Status: ${response.statusCode}');
-      print('Create Transfer Response Body: ${response.body}');
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final Map<String, dynamic> data = json.decode(response.body);
-        if (data['success'] == true) {
-          return MaterialTransfer.fromJson(data['data']);
-        } else {
-          throw Exception('Failed to create transfer: ${data['message']}');
-        }
-      } else {
-        throw Exception('Failed to create transfer. Status code: ${response.statusCode}');
-      }
-    } catch (e) {
-      print('Error creating material transfer: $e');
-      throw Exception('Error creating material transfer: $e');
-    }
-  }
-
-  // Update material transfer - PUT API
-  static Future<MaterialTransfer> updateMaterialTransfer(MaterialTransfer transfer) async {
-    try {
-      // Prepare the request body according to API documentation
-      final Map<String, dynamic> requestBody = {
-        'record_date': transfer.recordDate,
-        'from_site_id': transfer.fromSiteId,
-        'to_site_id': transfer.toSiteId,
-        'created_by': transfer.createdBy ?? 1,
-        'workspace_id': transfer.workspaceId ?? 1,
-        'items': transfer.items.map((item) => {
-          'material_id': item.materialId,
-          'quantity': item.quantity,
-          'unit': item.unit,
-          'price': item.price,
-        }).toList(),
-      };
-
-      print('Updating transfer ${transfer.id} with data: ${json.encode(requestBody)}');
-
-      final response = await http.put(
-        Uri.parse('$baseUrl/api/material-transfer/${transfer.id}'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: json.encode(requestBody),
-      );
-
-      print('Update Transfer Response Status: ${response.statusCode}');
-      print('Update Transfer Response Body: ${response.body}');
-
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> data = json.decode(response.body);
-        if (data['success'] == true) {
-          return MaterialTransfer.fromJson(data['data']);
-        } else {
-          throw Exception('Failed to update transfer: ${data['message']}');
-        }
-      } else {
-        throw Exception('Failed to update transfer. Status code: ${response.statusCode}');
-      }
-    } catch (e) {
-      print('Error updating material transfer: $e');
-      throw Exception('Error updating material transfer: $e');
-    }
-  }
-
-  // Delete material transfer
-  static Future<bool> deleteMaterialTransfer(int id) async {
-    try {
-      final response = await http.delete(
-        Uri.parse('$baseUrl/api/material-transfer/$id'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-      );
-
-      print('Delete Transfer Response Status: ${response.statusCode}');
-      print('Delete Transfer Response Body: ${response.body}');
-
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> data = json.decode(response.body);
-        return data['success'] == true;
-      } else {
-        throw Exception('Failed to delete transfer: ${response.statusCode}');
-      }
-    } catch (e) {
-      print('Error deleting material transfer: $e');
-      throw Exception('Error deleting material transfer: $e');
-    }
-  }
-}
-
-class FormDataResponse {
-  final Map<String, Material> materials;
-  final List<Site> sites;
-
-  FormDataResponse({
-    required this.materials,
-    required this.sites,
-  });
-
-  factory FormDataResponse.fromJson(Map<String, dynamic> json) {
-    // Parse materials - they come as a map with material IDs as keys
-    final Map<String, Material> materialsMap = {};
-    if (json['materials'] is Map) {
-      json['materials'].forEach((key, materialData) {
-        try {
-          final material = Material.fromJson(materialData);
-          materialsMap[key] = material;
-        } catch (e) {
-          print('Error parsing material $key: $e');
-        }
-      });
-    }
-
-    // Parse sites - they come as a list
-    final List<Site> sitesList = [];
-    if (json['sites'] is List) {
-      for (var siteData in json['sites']) {
-        try {
-          sitesList.add(Site.fromJson(siteData));
-        } catch (e) {
-          print('Error parsing site: $e');
-        }
-      }
-    }
-
-    return FormDataResponse(
-      materials: materialsMap,
-      sites: sitesList,
-    );
-  }
-}class MaterialTransfer {
-  int? id;
-  String? recordNumber;
-  String? recordDate;
-  int? fromSiteId;
-  int? toSiteId;
-  String? totalAmount;
-  String? status;
-  int? createdBy;
-  int? workspaceId;
-  String? recordFile;
-  String? createdAt;
-  String? updatedAt;
-  List<TransferItem> items;
-  Site? fromSite;
-  Site? toSite;
-
-  MaterialTransfer({
-    this.id,
-    this.recordNumber,
-    this.recordDate,
-    this.fromSiteId,
-    this.toSiteId,
-    this.totalAmount,
-    this.status,
-    this.createdBy,
-    this.workspaceId,
-    this.recordFile,
-    this.createdAt,
-    this.updatedAt,
-    List<TransferItem>? items,
-    this.fromSite,
-    this.toSite,
-  }) : items = items ?? [];
-
-  factory MaterialTransfer.fromJson(Map<String, dynamic> json) {
-    return MaterialTransfer(
-      id: json['id'] as int?,
-      recordNumber: json['record_number'] as String?,
-      recordDate: json['record_date'] as String?,
-      fromSiteId: json['from_site_id'] as int?,
-      toSiteId: json['to_site_id'] as int?,
-      totalAmount: json['total_amount']?.toString(),
-      status: json['status'] as String?,
-      createdBy: json['created_by'] as int?,
-      workspaceId: json['workspace_id'] as int?,
-      recordFile: json['record_file'] as String?,
-      createdAt: json['created_at'] as String?,
-      updatedAt: json['updated_at'] as String?,
-      items: json['items'] != null
-          ? (json['items'] as List).map((i) => TransferItem.fromJson(i)).toList()
-          : [],
-      fromSite: json['from_site'] != null ? Site.fromJson(json['from_site']) : null,
-      toSite: json['to_site'] != null ? Site.fromJson(json['to_site']) : null,
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'record_number': recordNumber,
-      'record_date': recordDate,
-      'from_site_id': fromSiteId,
-      'to_site_id': toSiteId,
-      'total_amount': totalAmount,
-      'status': status,
-      'created_by': createdBy,
-      'workspace_id': workspaceId,
-      'record_file': recordFile,
-      'created_at': createdAt,
-      'updated_at': updatedAt,
-      'items': items.map((item) => item.toJson()).toList(),
-    };
-  }
-
-  Map<String, dynamic> toApiJson() {
-    return {
-      'record_date': recordDate,
-      'from_site_id': fromSiteId,
-      'to_site_id': toSiteId,
-      'created_by': createdBy ?? 1,
-      'workspace_id': workspaceId ?? 1,
-      'items': items.map((item) => item.toApiJson()).toList(),
-    };
-  }
-
-  String get fromSiteName => fromSite?.name ?? 'Site ${fromSiteId ?? 'N/A'}';
-  String get toSiteName => toSite?.name ?? 'Site ${toSiteId ?? 'N/A'}';
-}
-
-class TransferItem {
-  int? id;
-  int? materialTransferId;
-  int? materialId;
-  String? quantity;
-  String? unit;
-  String? price;
-  String? subtotal;
-  String? receivedAt;
-  String? createdAt;
-  String? updatedAt;
-  Material? material;
-
-  TransferItem({
-    this.id,
-    this.materialTransferId,
-    this.materialId,
-    this.quantity,
-    this.unit,
-    this.price,
-    this.subtotal,
-    this.receivedAt,
-    this.createdAt,
-    this.updatedAt,
-    this.material,
-  });
-
-  factory TransferItem.fromJson(Map<String, dynamic> json) {
-    // Handle material data - it might be a list or single object
-    Material? materialData;
-    if (json['material'] != null) {
-      if (json['material'] is List) {
-        if ((json['material'] as List).isNotEmpty) {
-          materialData = Material.fromJson((json['material'] as List).first);
-        }
-      } else {
-        materialData = Material.fromJson(json['material']);
-      }
-    }
-
-    return TransferItem(
-      id: json['id'] as int?,
-      materialTransferId: json['material_transfer_id'] as int?,
-      materialId: json['material_id'] as int?,
-      quantity: json['quantity']?.toString(),
-      unit: json['unit'] as String?,
-      price: json['price']?.toString(),
-      subtotal: json['subtotal']?.toString(),
-      receivedAt: json['received_at'] as String?,
-      createdAt: json['created_at'] as String?,
-      updatedAt: json['updated_at'] as String?,
-      material: materialData,
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'material_transfer_id': materialTransferId,
-      'material_id': materialId,
-      'quantity': quantity,
-      'unit': unit,
-      'price': price,
-      'subtotal': subtotal,
-      'received_at': receivedAt,
-      'created_at': createdAt,
-      'updated_at': updatedAt,
-      'material': material?.toJson(),
-    };
-  }
-
-  Map<String, dynamic> toApiJson() {
-    return {
-      'material_id': materialId,
-      'quantity': quantity,
-      'unit': unit,
-      'price': price,
-    };
-  }
-}
-
-class Material {
-  int? id;
-  String? name;
-  String? sku;
-  int? categoryId;
-  int? unitId;
-  String? description;
-  String? price;
-  int? reorderLevel;
-  String? status;
-  String? image;
-  int? siteId;
-  int? createdBy;
-  int? workspaceId;
-  String? createdAt;
-  String? updatedAt;
-  Unit? unit;
-  String? purchasedQty;
-  int? totalQty;
-
-  Material({
-    this.id,
-    this.name,
-    this.sku,
-    this.categoryId,
-    this.unitId,
-    this.description,
-    this.price,
-    this.reorderLevel,
-    this.status,
-    this.image,
-    this.siteId,
-    this.createdBy,
-    this.workspaceId,
-    this.createdAt,
-    this.updatedAt,
-    this.unit,
-    this.purchasedQty,
-    this.totalQty,
-  });
-
-  factory Material.fromJson(Map<String, dynamic> json) {
-    return Material(
-      id: json['id'] != null ? int.tryParse(json['id'].toString()) : null,
-      name: json['name'] as String?,
-      sku: json['sku'] as String?,
-      categoryId: json['category_id'] != null ? int.tryParse(json['category_id'].toString()) : null,
-      unitId: json['unit_id'] != null ? int.tryParse(json['unit_id'].toString()) : null,
-      description: json['description'] as String?,
-      price: json['price']?.toString(),
-      reorderLevel: json['reorder_level'] != null ? int.tryParse(json['reorder_level'].toString()) : null,
-      status: json['status'] as String?,
-      image: json['image'] as String?,
-      siteId: json['site_id'] != null ? int.tryParse(json['site_id'].toString()) : null,
-      createdBy: json['created_by'] != null ? int.tryParse(json['created_by'].toString()) : null,
-      workspaceId: json['workspace_id'] != null ? int.tryParse(json['workspace_id'].toString()) : null,
-      createdAt: json['created_at'] as String?,
-      updatedAt: json['updated_at'] as String?,
-      unit: json['unit'] != null ? Unit.fromJson(json['unit']) : null,
-      purchasedQty: json['purchased_qty'] as String?,
-      totalQty: json['total_qty'] != null ? int.tryParse(json['total_qty'].toString()) : null,
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'name': name,
-      'sku': sku,
-      'category_id': categoryId,
-      'unit_id': unitId,
-      'description': description,
-      'price': price,
-      'reorder_level': reorderLevel,
-      'status': status,
-      'image': image,
-      'site_id': siteId,
-      'created_by': createdBy,
-      'workspace_id': workspaceId,
-      'created_at': createdAt,
-      'updated_at': updatedAt,
-      'unit': unit?.toJson(),
-      'purchased_qty': purchasedQty,
-      'total_qty': totalQty,
-    };
-  }
-
-  String get displayName => '$name (₹$price)';
-  String get displayNameWithStock => '$name (₹$price) - Stock: ${totalQty ?? 0}';
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is Material && runtimeType == other.runtimeType && id == other.id;
-
-  @override
-  int get hashCode => id.hashCode;
-}
-
-class Unit {
-  int? id;
-  String? name;
-  String? symbol;
-  String? description;
-  int? isActive;
-  int? siteId;
-  int? createdBy;
-  int? workspaceId;
-  String? status;
-  String? createdAt;
-  String? updatedAt;
-
-  Unit({
-    this.id,
-    this.name,
-    this.symbol,
-    this.description,
-    this.isActive,
-    this.siteId,
-    this.createdBy,
-    this.workspaceId,
-    this.status,
-    this.createdAt,
-    this.updatedAt,
-  });
-
-  factory Unit.fromJson(Map<String, dynamic> json) {
-    return Unit(
-      id: json['id'] != null ? int.tryParse(json['id'].toString()) : null,
-      name: json['name'] as String?,
-      symbol: json['symbol'] as String?,
-      description: json['description'] as String?,
-      isActive: json['is_active'] != null ? int.tryParse(json['is_active'].toString()) : null,
-      siteId: json['site_id'] != null ? int.tryParse(json['site_id'].toString()) : null,
-      createdBy: json['created_by'] != null ? int.tryParse(json['created_by'].toString()) : null,
-      workspaceId: json['workspace_id'] != null ? int.tryParse(json['workspace_id'].toString()) : null,
-      status: json['status'] as String?,
-      createdAt: json['created_at'] as String?,
-      updatedAt: json['updated_at'] as String?,
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'name': name,
-      'symbol': symbol,
-      'description': description,
-      'is_active': isActive,
-      'site_id': siteId,
-      'created_by': createdBy,
-      'workspace_id': workspaceId,
-      'status': status,
-      'created_at': createdAt,
-      'updated_at': updatedAt,
-    };
-  }
-}
-
-class Site {
-  int? id;
-  String? name;
-  String? status;
-  String? image;
-  String? description;
-  String? startDate;
-  String? endDate;
-  int? budget;
-  int? isActive;
-  String? type;
-  String? currency;
-  String? projectProgress;
-  String? progress;
-  String? taskProgress;
-  dynamic tags;
-  int? estimatedHrs;
-  String? copyLinkSetting;
-  String? password;
-  int? workspace;
-  int? createdBy;
-  String? createdAt;
-  String? updatedAt;
-
-  Site({
-    this.id,
-    this.name,
-    this.status,
-    this.image,
-    this.description,
-    this.startDate,
-    this.endDate,
-    this.budget,
-    this.isActive,
-    this.type,
-    this.currency,
-    this.projectProgress,
-    this.progress,
-    this.taskProgress,
-    this.tags,
-    this.estimatedHrs,
-    this.copyLinkSetting,
-    this.password,
-    this.workspace,
-    this.createdBy,
-    this.createdAt,
-    this.updatedAt,
-  });
-
-  factory Site.fromJson(Map<String, dynamic> json) {
-    return Site(
-      id: json['id'] != null ? int.tryParse(json['id'].toString()) : null,
-      name: json['name'] as String?,
-      status: json['status'] as String?,
-      image: json['image'] as String?,
-      description: json['description'] as String?,
-      startDate: json['start_date'] as String?,
-      endDate: json['end_date'] as String?,
-      budget: json['budget'] != null ? int.tryParse(json['budget'].toString()) : null,
-      isActive: json['is_active'] != null ? int.tryParse(json['is_active'].toString()) : null,
-      type: json['type'] as String?,
-      currency: json['currency'] as String?,
-      projectProgress: json['project_progress'] as String?,
-      progress: json['progress'] as String?,
-      taskProgress: json['task_progress'] as String?,
-      tags: json['tags'],
-      estimatedHrs: json['estimated_hrs'] != null ? int.tryParse(json['estimated_hrs'].toString()) : null,
-      copyLinkSetting: json['copylinksetting'] as String?,
-      password: json['password'] as String?,
-      workspace: json['workspace'] != null ? int.tryParse(json['workspace'].toString()) : null,
-      createdBy: json['created_by'] != null ? int.tryParse(json['created_by'].toString()) : null,
-      createdAt: json['created_at'] as String?,
-      updatedAt: json['updated_at'] as String?,
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'name': name,
-      'status': status,
-      'image': image,
-      'description': description,
-      'start_date': startDate,
-      'end_date': endDate,
-      'budget': budget,
-      'is_active': isActive,
-      'type': type,
-      'currency': currency,
-      'project_progress': projectProgress,
-      'progress': progress,
-      'task_progress': taskProgress,
-      'tags': tags,
-      'estimated_hrs': estimatedHrs,
-      'copylinksetting': copyLinkSetting,
-      'password': password,
-      'workspace': workspace,
-      'created_by': createdBy,
-      'created_at': createdAt,
-      'updated_at': updatedAt,
-    };
-  }
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is Site && runtimeType == other.runtimeType && id == other.id;
-
-  @override
-  int get hashCode => id.hashCode;
-}import 'package:ecoteam_app/admin/services/materialTransfer_services.dart';
+import 'package:ecoteam_app/admin/services/materialTransfer_services.dart';
 import 'package:flutter/material.dart' hide Material;
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import '../models/material_transfer_model.dart';
+import '../../models/material_transfer_model.dart';
 
 class MaterialTransferScreen extends StatefulWidget {
-  const MaterialTransferScreen({super.key});
+  final int? workspaceId;
+  final String? workspaceName;
+  const MaterialTransferScreen({super.key, this.workspaceId, this.workspaceName});
 
   @override
   State<MaterialTransferScreen> createState() => _MaterialTransferScreenState();
@@ -903,7 +97,9 @@ class _MaterialTransferScreenState extends State<MaterialTransferScreen> {
       backgroundColor: Colors.transparent,
       builder: (context) => MaterialTransferForm(
         transfer: transfer,
-        onSave: (savedTransfer) {
+        workspaceId: widget.workspaceId,
+        workspaceName: widget.workspaceName,
+        onSave: (savedTransfer) async {
           if (transfer == null) {
             // Add new transfer
             setState(() {
@@ -922,6 +118,8 @@ class _MaterialTransferScreenState extends State<MaterialTransferScreen> {
             });
             _showSuccessSnackBar('Material transfer updated successfully');
           }
+          // Refresh the list from server
+          await _loadMaterialTransfers();
         },
         onDelete: (deletedId) {
           setState(() {
@@ -960,26 +158,26 @@ class _MaterialTransferScreenState extends State<MaterialTransferScreen> {
           ),
         ),
         title: Text(
-          'Material Transfer',
+          widget.workspaceName != null ? 'Material Transfer - ${widget.workspaceName}' : 'Material Transfer',
           style: TextStyle(
             color: Colors.white,
-            fontSize: 22,
+            fontSize: 18,
             fontWeight: FontWeight.bold,
           ),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.white),
+            onPressed: () => _showMaterialTransferForm(),
+            icon: Icon(Icons.add, color: Colors.white,size: 28.sp,),
+            tooltip: 'Add Material Transfer',
+          ),
+          IconButton(
+            icon:  Icon(Icons.refresh, color: Colors.white,size: 28.sp,),
             onPressed: _loadMaterialTransfers,
             tooltip: 'Refresh',
           ),
 
-          IconButton(
-            onPressed: () => _showMaterialTransferForm(),
-            icon: const Icon(Icons.add),
-
-            tooltip: 'Add Material Transfer',
-          ),
+          
         ],
       ),
       body: Column(
@@ -1181,7 +379,7 @@ class MaterialTransferCard extends StatelessWidget {
                   constraints: BoxConstraints(),
                   tooltip: 'Edit',
                 ),
-
+                SizedBox(width: 9),
                 IconButton(
                   icon: Icon(Icons.delete, color: Colors.red, size: 20),
                   onPressed: onDelete,
@@ -1296,19 +494,20 @@ class MaterialTransferCard extends StatelessWidget {
   }
 }
 
-
 class MaterialTransferForm extends StatefulWidget {
   final MaterialTransfer? transfer;
   final Function(MaterialTransfer) onSave;
   final Function(int)? onDelete;
-  final int? workspaceId; // Add workspace ID parameter
+  final int? workspaceId;
+  final String? workspaceName;
 
   const MaterialTransferForm({
     super.key,
     this.transfer,
     required this.onSave,
     this.onDelete,
-    this.workspaceId, // Accept workspace ID
+    this.workspaceId,
+    this.workspaceName,
   });
 
   @override
@@ -1330,7 +529,7 @@ class _MaterialTransferFormState extends State<MaterialTransferForm> {
   void initState() {
     super.initState();
     _transfer = widget.transfer ?? MaterialTransfer();
-    _items = widget.transfer?.items?.toList() ?? [];
+    _items = widget.transfer?.items.toList() ?? [];
     _selectedFromSiteId = _transfer.fromSiteId;
     _loadFormData();
   }
@@ -1342,29 +541,39 @@ class _MaterialTransferFormState extends State<MaterialTransferForm> {
     });
 
     try {
-      // Load sites by workspace ID
-      if (widget.workspaceId != null) {
-        _sites = await MaterialTransferService.getSitesByWorkspace(widget.workspaceId!);
-      } else {
-        final formData = await MaterialTransferService.getFormData();
-        _sites = formData.sites;
+      final formData = await MaterialTransferService.getFormData(
+        workspaceId: widget.workspaceId,
+      );
+
+      List<Site> filteredSites = widget.workspaceId != null
+          ? formData.sites
+              .where((site) => site.workspace == widget.workspaceId)
+              .toList()
+          : formData.sites;
+
+      if (filteredSites.isEmpty) {
+        filteredSites = formData.sites;
       }
 
-      // Load materials based on selected from site
-      if (_selectedFromSiteId != null) {
-        _availableMaterials = await MaterialTransferService.getMaterialsBySite(_selectedFromSiteId!);
-      } else {
-        final formData = await MaterialTransferService.getFormData();
-        _availableMaterials = formData.materials.values.toList();
-      }
+      final baseMaterials = formData.materials.values.toList();
+
+      final materials = _selectedFromSiteId != null
+          ? await _fetchMaterialsBySite(
+              _selectedFromSiteId!,
+              fallbackMaterials: baseMaterials,
+            )
+          : baseMaterials;
+
+      final mergedMaterials = _mergeSelectedMaterials(materials);
 
       setState(() {
+        _sites = filteredSites;
+        _availableMaterials = mergedMaterials;
         _isLoadingFormData = false;
       });
 
       print('Loaded ${_sites.length} sites for workspace ${widget.workspaceId}');
-      print('Loaded ${_availableMaterials.length} materials');
-
+      print('Loaded ${_availableMaterials.length} materials via form data');
     } catch (e) {
       setState(() {
         _isLoadingFormData = false;
@@ -1380,20 +589,85 @@ class _MaterialTransferFormState extends State<MaterialTransferForm> {
         _isLoadingFormData = true;
       });
 
-      final materials = await MaterialTransferService.getMaterialsBySite(siteId);
-      
+      final materials = await _fetchMaterialsBySite(siteId);
+      final mergedMaterials = _mergeSelectedMaterials(materials);
+
       setState(() {
-        _availableMaterials = materials;
+        _availableMaterials = mergedMaterials;
         _isLoadingFormData = false;
       });
 
-      print('Loaded ${materials.length} materials for site $siteId');
+      print('Loaded ${_availableMaterials.length} materials for site $siteId via form data');
     } catch (e) {
       setState(() {
         _isLoadingFormData = false;
       });
       print('Error loading materials for site $siteId: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to fetch latest materials. Showing previous list.'),
+          ),
+        );
+      }
     }
+  }
+
+  List<Material> _mergeSelectedMaterials(List<Material> materials) {
+    final merged = List<Material>.from(materials);
+    for (final item in _items) {
+      Material? material = item.material;
+      if (material == null && item.materialId != null) {
+        material = Material(
+          id: item.materialId,
+          name: 'Material #${item.materialId}',
+          price: item.price,
+          unit: item.unit != null ? Unit(name: item.unit) : null,
+        );
+      }
+
+      final materialId = material?.id;
+      if (material != null &&
+          materialId != null &&
+          !merged.any((m) => m.id == materialId)) {
+        merged.add(material);
+      }
+    }
+    return merged;
+  }
+
+  Future<List<Material>> _fetchMaterialsBySite(
+    int siteId, {
+    List<Material>? fallbackMaterials,
+  }) async {
+    try {
+      final materials = await MaterialTransferService.getMaterialsBySite(siteId);
+      if (materials.isNotEmpty) {
+        return materials;
+      }
+    } catch (e) {
+      print('Primary materials fetch failed for site $siteId: $e');
+    }
+
+    if (fallbackMaterials != null && fallbackMaterials.isNotEmpty) {
+      final filteredFallback =
+          fallbackMaterials.where((material) => material.siteId == siteId).toList();
+      if (filteredFallback.isNotEmpty) {
+        return filteredFallback;
+      }
+    }
+
+    try {
+      final fallbackFormData = await MaterialTransferService.getFormData(
+        siteId: siteId,
+        workspaceId: widget.workspaceId,
+      );
+      return fallbackFormData.materials.values.toList();
+    } catch (e) {
+      print('Fallback form data fetch failed for site $siteId: $e');
+    }
+
+    return _availableMaterials;
   }
 
   void _addItem() {
@@ -1552,7 +826,7 @@ class _MaterialTransferFormState extends State<MaterialTransferForm> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: const BoxDecoration(
-        color: Colors.blue,
+        color: Color(0xFF2a43a0),
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       child: Row(
@@ -1652,7 +926,7 @@ class _MaterialTransferFormState extends State<MaterialTransferForm> {
         ),
         const SizedBox(height: 12),
 
-        // From Site - Now shows site names
+        // From Site - Shows site names filtered by workspace
         DropdownButtonFormField<int>(
           value: _transfer.fromSiteId,
           decoration: const InputDecoration(
@@ -1689,7 +963,7 @@ class _MaterialTransferFormState extends State<MaterialTransferForm> {
         ),
         const SizedBox(height: 12),
 
-        // To Site - Now shows site names
+        // To Site - Shows site names filtered by workspace
         DropdownButtonFormField<int>(
           value: _transfer.toSiteId,
           decoration: const InputDecoration(
@@ -1811,20 +1085,21 @@ class _MaterialTransferFormState extends State<MaterialTransferForm> {
             const SizedBox(height: 8),
 
             // Material Dropdown with stock information
-            DropdownButtonFormField<Material>(
-              value: material,
+            DropdownButtonFormField<int>(
+              value: material?.id,
               decoration: const InputDecoration(
                 labelText: 'Material*',
                 border: OutlineInputBorder(),
               ),
-              items: _availableMaterials.map((material) {
-                return DropdownMenuItem<Material>(
-                  value: material,
-                  child: Text(material.displayNameWithStock),
+              items: _availableMaterials.map((mat) {
+                return DropdownMenuItem<int>(
+                  value: mat.id,
+                  child: Text('${mat.name ?? 'Unknown'} (₹${mat.price ?? '0.00'}) - Stock: ${mat.totalQty ?? 'N/A'}'),
                 );
               }).toList(),
-              onChanged: (selectedMaterial) {
-                if (selectedMaterial != null) {
+              onChanged: (selectedId) {
+                if (selectedId != null) {
+                  final selectedMaterial = _availableMaterials.firstWhere((m) => m.id == selectedId);
                   final updatedItem = TransferItem(
                     id: item.id,
                     materialTransferId: item.materialTransferId,
@@ -1839,13 +1114,13 @@ class _MaterialTransferFormState extends State<MaterialTransferForm> {
                     updatedAt: item.updatedAt,
                   );
                   _updateItem(index, updatedItem);
-                  
+
                   // Recalculate subtotal if quantity exists
                   if (item.quantity != null && item.quantity!.isNotEmpty) {
                     final quantity = double.tryParse(item.quantity!) ?? 0;
                     final price = double.tryParse(selectedMaterial.price ?? '0.00') ?? 0;
                     final subtotal = (quantity * price).toStringAsFixed(2);
-                    
+
                     final updatedItemWithSubtotal = TransferItem(
                       id: item.id,
                       materialTransferId: item.materialTransferId,
@@ -1968,18 +1243,18 @@ class _MaterialTransferFormState extends State<MaterialTransferForm> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.blue[50],
+                  color: Color.fromARGB(255, 44, 74, 184).withOpacity(0.1),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.inventory, size: 16, color: Colors.blue[700]),
+                    Icon(Icons.inventory, size: 16, color: Color.fromARGB(255, 47, 79, 192)),
                     const SizedBox(width: 8),
                     Text(
                       'Available Stock: ${material.totalQty} ${material.unit?.name ?? 'units'}',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.blue[700],
+                        color: Color.fromARGB(255, 44, 74, 180),
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -2055,7 +1330,7 @@ class _MaterialTransferFormState extends State<MaterialTransferForm> {
             child: ElevatedButton(
               onPressed: _isLoading ? null : _saveTransfer,
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
+                backgroundColor: Color(0xFF2a43a0),
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 12),
               ),

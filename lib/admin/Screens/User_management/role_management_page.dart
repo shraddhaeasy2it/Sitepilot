@@ -1,5 +1,5 @@
 import 'package:ecoteam_app/admin/models/role_model.dart';
-import 'package:ecoteam_app/admin/Screens/role_edit_page.dart';
+import 'package:ecoteam_app/admin/Screens/User_management/role_edit_page.dart';
 import 'package:ecoteam_app/admin/services/admin_role_provider.dart';
 import 'package:ecoteam_app/contractor/view/contractor_dashboard/dashboard_page.dart';
 import 'package:flutter/material.dart';

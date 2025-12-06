@@ -1,23 +1,24 @@
-import 'package:ecoteam_app/admin/Screens/HRM_dashboard.dart';
-import 'package:ecoteam_app/admin/Screens/all_material_page.dart'
+import 'package:ecoteam_app/admin/Screens/Dashboard/HRM_dashboard.dart';
+import 'package:ecoteam_app/admin/Screens/Master/Material/all_material_page.dart'
     hide AdminColors;
-import 'package:ecoteam_app/admin/Screens/Allmachinery_screen.dart';
-import 'package:ecoteam_app/admin/Screens/consumptionLog_screen.dart';
-import 'package:ecoteam_app/admin/Screens/employee_screen.dart';
-import 'package:ecoteam_app/admin/Screens/machineryCategory_screen.dart';
-import 'package:ecoteam_app/admin/Screens/Project-site_screen.dart';
-import 'package:ecoteam_app/admin/Screens/manpowerType_screen.dart';
-import 'package:ecoteam_app/admin/Screens/manpower_screen.dart';
-import 'package:ecoteam_app/admin/Screens/materialTransfer_screen.dart';
-import 'package:ecoteam_app/admin/Screens/purchase_invoice_screen.dart';
-import 'package:ecoteam_app/admin/Screens/role_management_page.dart'
+import 'package:ecoteam_app/admin/Screens/Master/Assets/Allmachinery_screen.dart';
+import 'package:ecoteam_app/admin/Screens/Payment/payment.dart';
+import 'package:ecoteam_app/admin/Screens/Transaction/consumptionLog_screen.dart';
+import 'package:ecoteam_app/admin/Screens/HRM/employee_screen.dart';
+import 'package:ecoteam_app/admin/Screens/Master/Assets/machineryCategory_screen.dart';
+import 'package:ecoteam_app/admin/Screens/project_sites/Project-site_screen.dart';
+import 'package:ecoteam_app/admin/Screens/Master/Supplier/manpowerType_screen.dart';
+import 'package:ecoteam_app/admin/Screens/Transaction/manpower_screen.dart';
+import 'package:ecoteam_app/admin/Screens/Transaction/materialTransfer_screen.dart';
+import 'package:ecoteam_app/admin/Screens/Transaction/purchase_invoice_screen.dart';
+import 'package:ecoteam_app/admin/Screens/User_management/role_management_page.dart'
     hide AdminColors;
-import 'package:ecoteam_app/admin/Screens/admin_user_management_page.dart';
-import 'package:ecoteam_app/admin/Screens/material_category_screen.dart';
-import 'package:ecoteam_app/admin/Screens/supplier_categary_screen.dart';
-import 'package:ecoteam_app/admin/Screens/tools_screen.dart';
-import 'package:ecoteam_app/admin/Screens/unit_management_page.dart';
-import 'package:ecoteam_app/admin/Screens/all_supplier_page.dart';
+import 'package:ecoteam_app/admin/Screens/User_management/admin_user_management_page.dart';
+import 'package:ecoteam_app/admin/Screens/Master/Material/material_category_screen.dart';
+import 'package:ecoteam_app/admin/Screens/Master/Supplier/supplier_categary_screen.dart';
+import 'package:ecoteam_app/admin/Screens/Master/Assets/tools_screen.dart';
+import 'package:ecoteam_app/admin/Screens/Master/Material/unit_management_page.dart';
+import 'package:ecoteam_app/admin/Screens/Master/Supplier/all_supplier_page.dart';
 import 'package:ecoteam_app/main.dart';
 import 'package:ecoteam_app/contractor/models/birthday_model.dart';
 import 'package:ecoteam_app/contractor/models/dashboard_model.dart';
@@ -212,6 +213,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   bool _isSupplierExpanded = false;
   bool _isAssetsExpanded = false;
   bool _isTransactionExpanded = false;
+  bool _isPaymentExpanded = false;
   bool _isProjectSitesExpanded = false;
   bool _isHRMExpanded = false;
   bool _isAttendanceExpanded = false;
@@ -1069,7 +1071,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       },
                     ),
                   ],
-
+                   _buildExpandableDrawerItem(
+                    icon: Icons.payment,
+                    title: 'Payment',
+                    isExpanded: _isPaymentExpanded,
+                    onTap: () {
+                      setState(() {
+                        _isPaymentExpanded = !_isPaymentExpanded;
+                      });
+                    },
+                  ),
+                  if (_isPaymentExpanded) ...[
+                    _buildSubDrawerItem(
+                      icon: Icons.radio_button_checked,
+                      title: 'All Payments',
+                      onTap: () {
+                        Navigator.push(context, MaterialPageRoute(builder: (context)=>PaymentScreen()));
+                      },
+                    ),
+                  ],
                   // Project/Sites Section
                   _buildExpandableDrawerItem(
                     icon: Icons.business,
@@ -1120,12 +1140,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                      icon: Icons.radio_button_checked,
                       title: 'Employee',
                       onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => EmployeePage(),
-                          ),
-                        );
+                        // Navigator.push(
+                        //   context,
+                        //   MaterialPageRoute(
+                        //     builder: (context) => EmployeePage(),
+                        //   ),
+                        // );
                       },
                     ),
                     _buildExpandableSubDrawerItem(

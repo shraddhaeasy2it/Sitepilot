@@ -782,7 +782,7 @@ class ApiServicePurchaseInvoice {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final responseData = json.decode(response.body);
-        
+
         // Handle different response structures
         Map<String, dynamic> invoiceData;
         if (responseData is Map && responseData.containsKey('data')) {
@@ -794,7 +794,7 @@ class ApiServicePurchaseInvoice {
         }
 
         print('Parsed invoice data: $invoiceData');
-        
+
         return PurchaseInvoice.fromJson(invoiceData);
       } else {
         throw Exception(
@@ -859,7 +859,7 @@ class ApiServicePurchaseInvoice {
 
       if (response.statusCode == 200) {
         final responseData = json.decode(response.body);
-        
+
         // Handle different response structures
         Map<String, dynamic> invoiceData;
         if (responseData is Map && responseData.containsKey('data')) {
@@ -869,7 +869,7 @@ class ApiServicePurchaseInvoice {
         } else {
           invoiceData = responseData;
         }
-        
+
         return PurchaseInvoice.fromJson(invoiceData);
       } else {
         throw Exception(
@@ -934,32 +934,34 @@ class _PurchaseInvoicesPageState extends State<PurchaseInvoicesPage> {
   }
 
   Future<void> _loadAllData() async {
-  setState(() {
-    _isLoading = true;
-    _errorMessage = '';
-  });
-
-  try {
-    final invoices = await ApiServicePurchaseInvoice.getInvoices();
-    final suppliers = await ApiServicePurchaseInvoice.getSuppliers();
-    final sites = await ApiServicePurchaseInvoice.getSites();
-
     setState(() {
-      _invoices = invoices;
-      _suppliers = suppliers;
-      _sites = sites;
-      _isLoading = false;
+      _isLoading = true;
+      _errorMessage = '';
     });
-    
-    print('Loaded ${_invoices.length} invoices, ${_suppliers.length} suppliers, ${_sites.length} sites');
-  } catch (e) {
-    setState(() {
-      _errorMessage = 'Failed to load data: $e';
-      _isLoading = false;
-    });
-    print('Error loading all data: $e');
+
+    try {
+      final invoices = await ApiServicePurchaseInvoice.getInvoices();
+      final suppliers = await ApiServicePurchaseInvoice.getSuppliers();
+      final sites = await ApiServicePurchaseInvoice.getSites();
+
+      setState(() {
+        _invoices = invoices;
+        _suppliers = suppliers;
+        _sites = sites;
+        _isLoading = false;
+      });
+
+      print(
+        'Loaded ${_invoices.length} invoices, ${_suppliers.length} suppliers, ${_sites.length} sites',
+      );
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Failed to load data: $e';
+        _isLoading = false;
+      });
+      print('Error loading all data: $e');
+    }
   }
-}
 
   List<PurchaseInvoice> get _filteredInvoices {
     if (_searchQuery.isEmpty) {
@@ -1121,12 +1123,12 @@ class _PurchaseInvoicesPageState extends State<PurchaseInvoicesPage> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.add),
+            icon: Icon(Icons.add, size: 28.sp),
             onPressed: _showAddInvoiceBottomSheet,
             tooltip: 'Add New Invoice',
           ),
           IconButton(
-            icon: const Icon(Icons.refresh),
+            icon: Icon(Icons.refresh, size: 28.sp),
             onPressed: _loadAllData,
             tooltip: 'Refresh',
           ),
@@ -1908,54 +1910,6 @@ class _AddEditInvoiceBottomSheetState extends State<AddEditInvoiceBottomSheet> {
                     ),
                   ),
                 ] else ...[
-                  // Materials Header
-                  const Row(
-                    children: [
-                      Expanded(
-                        flex: 3,
-                        child: Text(
-                          'MATERIAL',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey,
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        flex: 2,
-                        child: Text(
-                          'QTY | UNIT',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey,
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        flex: 2,
-                        child: Text(
-                          'PRICE',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey,
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        flex: 2,
-                        child: Text(
-                          'SUBTOTAL',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey,
-                          ),
-                        ),
-                      ),
-                      SizedBox(width: 40),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-
                   // Material Items List
                   if (_materialItems.isNotEmpty) ...[
                     ..._materialItems.asMap().entries.map((entry) {
@@ -2184,6 +2138,7 @@ class _AddEditInvoiceBottomSheetState extends State<AddEditInvoiceBottomSheet> {
   }
 }
 
+// Material Item Class
 class MaterialItem {
   int materialId;
   String materialName;
@@ -2200,6 +2155,25 @@ class MaterialItem {
     this.price = '',
     this.subtotal = '0.00',
   });
+
+  // Add copyWith method for easier updates
+  MaterialItem copyWith({
+    int? materialId,
+    String? materialName,
+    String? quantity,
+    String? unit,
+    String? price,
+    String? subtotal,
+  }) {
+    return MaterialItem(
+      materialId: materialId ?? this.materialId,
+      materialName: materialName ?? this.materialName,
+      quantity: quantity ?? this.quantity,
+      unit: unit ?? this.unit,
+      price: price ?? this.price,
+      subtotal: subtotal ?? this.subtotal,
+    );
+  }
 }
 
 class MaterialItemRow extends StatefulWidget {
@@ -2235,7 +2209,18 @@ class _MaterialItemRowState extends State<MaterialItemRow> {
   @override
   void initState() {
     super.initState();
+    _initializeControllers();
+  }
 
+  @override
+  void didUpdateWidget(MaterialItemRow oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.item != widget.item) {
+      _initializeControllers();
+    }
+  }
+
+  void _initializeControllers() {
     // Initialize with item data
     _quantityController.text = widget.item.quantity;
     _priceController.text = widget.item.price;
@@ -2255,6 +2240,8 @@ class _MaterialItemRowState extends State<MaterialItemRow> {
       } catch (e) {
         _selectedMaterial = null;
       }
+    } else {
+      _selectedMaterial = null;
     }
   }
 
@@ -2263,12 +2250,15 @@ class _MaterialItemRowState extends State<MaterialItemRow> {
     final price = double.tryParse(_priceController.text) ?? 0;
     final subtotal = quantity * price;
 
-    _subtotalController.text = subtotal.toStringAsFixed(2);
+    setState(() {
+      _subtotalController.text = subtotal.toStringAsFixed(2);
+    });
 
+    // Update the parent with new item data
     widget.onUpdate(
       MaterialItem(
-        materialId: _selectedMaterial?.id ?? widget.item.materialId,
-        materialName: _selectedMaterial?.name ?? widget.item.materialName,
+        materialId: _selectedMaterial?.id ?? 0,
+        materialName: _selectedMaterial?.name ?? '',
         quantity: _quantityController.text,
         unit: _unitController.text,
         price: _priceController.text,
@@ -2291,145 +2281,216 @@ class _MaterialItemRowState extends State<MaterialItemRow> {
     return uniqueMaterials;
   }
 
+  void _showMaterialSelectionDialog() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.8,
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            Text(
+              'Select Material',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 16),
+            Expanded(
+              child: ListView.builder(
+                itemCount: _uniqueMaterials.length,
+                itemBuilder: (context, index) {
+                  final material = _uniqueMaterials[index];
+                  return Card(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    child: ListTile(
+                      title: Text(material.name),
+                      subtitle: Text(
+                        'Price: \$${material.price.toStringAsFixed(2)}',
+                      ),
+                      trailing: _selectedMaterial?.id == material.id
+                          ? const Icon(Icons.check, color: Colors.green)
+                          : null,
+                      onTap: () {
+                        setState(() {
+                          _selectedMaterial = material;
+                          _priceController.text = material.price
+                              .toStringAsFixed(2);
+                          if (material.unit != null) {
+                            _unitController.text = material.unit!.symbol;
+                          } else {
+                            _unitController.text = '';
+                          }
+                          _calculateSubtotal();
+                        });
+                        Navigator.of(context).pop();
+                      },
+                    ),
+                  );
+                },
+              ),
+            ),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Cancel'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
+      padding: const EdgeInsets.all(11),
+      height: null,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color.fromARGB(255, 202, 202, 202)),
+      ),
       margin: const EdgeInsets.only(bottom: 12),
-      child: Row(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Material Dropdown
-          Expanded(
-            flex: 3,
-            child: DropdownButtonFormField<MaterialModel>(
-              value: _selectedMaterial,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                hintText: 'Select Material',
-                contentPadding: EdgeInsets.symmetric(
-                  horizontal: 6,
-                  vertical: 10,
+          Row(
+            children: [
+              /// Material Selection
+              Expanded(
+                flex: 2,
+                child: TextFormField(
+                  readOnly: true,
+                  controller: TextEditingController(
+                    text: _selectedMaterial?.name ?? 'Select Material',
+                  ),
+                  decoration: InputDecoration(
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 8,
+                    ),
+                    border: const OutlineInputBorder(
+                      borderRadius: BorderRadius.all(Radius.circular(10)),
+                    ),
+                    labelText: 'Material',
+                    suffixIcon: const Icon(Icons.arrow_drop_down),
+                  ),
+                  onTap: _showMaterialSelectionDialog,
                 ),
               ),
-              isExpanded: true,
-              items: _uniqueMaterials.map((material) {
-                return DropdownMenuItem<MaterialModel>(
-                  value: material,
-                  child: Text(
-                    material.name,
-                    style: const TextStyle(fontSize: 14),
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 2,
-                  ),
-                );
-              }).toList(),
-              onChanged: (MaterialModel? value) {
-                setState(() {
-                  _selectedMaterial = value;
-                  if (value != null) {
-                    // Set default price and unit from material
-                    _priceController.text = value.price.toStringAsFixed(2);
-                    if (value.unit != null) {
-                      _unitController.text = value.unit!.symbol;
-                    } else {
-                      _unitController.text = '';
-                    }
-                    _calculateSubtotal();
-                  }
-                });
-              },
-            ),
-          ),
-          const SizedBox(width: 4),
+              const SizedBox(width: 12),
 
-          // Quantity and Unit (Unit is now read-only)
-          Expanded(
-            flex: 2,
-            child: Row(
-              children: [
-                Expanded(
-                  flex: 3,
-                  child: TextFormField(
-                    controller: _quantityController,
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                      contentPadding: EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 10,
+              /// Qty | Unit
+              Expanded(
+                flex: 2,
+                child: Row(
+                  children: [
+                    // Qty Input
+                    Expanded(
+                      flex: 1,
+                      child: TextFormField(
+                        controller: _quantityController,
+                        decoration: const InputDecoration(
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(10)),
+                          ),
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 8,
+                          ),
+                          hintText: 'Quantity',
+                          labelText: 'QTY',
+                        ),
+                        keyboardType: TextInputType.number,
+                        onChanged: (value) => _calculateSubtotal(),
                       ),
                     ),
-                    keyboardType: TextInputType.number,
-                    onChanged: (value) => _calculateSubtotal(),
-                    style: const TextStyle(fontSize: 12),
+
+                    // Unit Display
+                    Expanded(
+                      flex: 1,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 15),
+                        child: Text(
+                          _unitController.text.isEmpty
+                              ? 'Unit'
+                              : _unitController.text,
+                          style: TextStyle(
+                            color: _unitController.text.isEmpty
+                                ? Colors.grey
+                                : Colors.black,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 12),
+
+          Row(
+            children: [
+              /// Price Input
+              Expanded(
+                flex: 1,
+                child: TextFormField(
+                  controller: _priceController,
+                  decoration: const InputDecoration(
+                    border: InputBorder.none,
+                    labelText: 'Price',
+                    hintText: '0.00',
+                  ),
+                  keyboardType: TextInputType.number,
+                  onChanged: (value) => _calculateSubtotal(),
+                ),
+              ),
+              const SizedBox(width: 12),
+
+              /// Subtotal Display
+              Expanded(
+                flex: 2,
+                child: TextFormField(
+                  controller: _subtotalController,
+                  readOnly: true,
+                  decoration: const InputDecoration(
+                    border: InputBorder.none,
+                    labelText: 'Subtotal',
+                    hintText: '0.00',
+                  ),
+                  style: const TextStyle(
+                    color: Colors.green,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(width: 2),
-                Expanded(
-                  flex: 2,
-                  child: TextFormField(
-                    controller: _unitController,
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                      contentPadding: EdgeInsets.symmetric(
-                        horizontal: 4,
-                        vertical: 10,
-                      ),
-                      hintText: 'Unit',
-                    ),
-                    readOnly: true,
-                    style: const TextStyle(fontSize: 12, color: Colors.grey),
-                  ),
+              ),
+
+              /// Delete button
+              if (widget.onRemove != null) ...[
+                const SizedBox(width: 8),
+                IconButton(
+                  icon: const Icon(Icons.delete_outline, color: Colors.red),
+                  onPressed: widget.onRemove,
                 ),
               ],
-            ),
+            ],
           ),
-          const SizedBox(width: 4),
-
-          // Price
-          Expanded(
-            flex: 2,
-            child: TextFormField(
-              controller: _priceController,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                contentPadding: EdgeInsets.symmetric(
-                  horizontal: 6,
-                  vertical: 10,
-                ),
-              ),
-              keyboardType: TextInputType.number,
-              onChanged: (value) => _calculateSubtotal(),
-              style: const TextStyle(fontSize: 12),
-            ),
-          ),
-          const SizedBox(width: 4),
-
-          // Subtotal
-          Expanded(
-            flex: 2,
-            child: TextFormField(
-              controller: _subtotalController,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                contentPadding: EdgeInsets.symmetric(
-                  horizontal: 6,
-                  vertical: 10,
-                ),
-              ),
-              readOnly: true,
-              style: const TextStyle(color: Colors.grey, fontSize: 12),
-            ),
-          ),
-          const SizedBox(width: 4),
-
-          // Delete Button
-          if (widget.onRemove != null)
-            IconButton(
-              icon: const Icon(Icons.delete, color: Colors.red, size: 18),
-              onPressed: widget.onRemove,
-            ),
         ],
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _quantityController.dispose();
+    _priceController.dispose();
+    _subtotalController.dispose();
+    _unitController.dispose();
+    super.dispose();
   }
 }

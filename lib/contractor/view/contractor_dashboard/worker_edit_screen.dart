@@ -1,6 +1,6 @@
-import 'dart:ui';
 import 'package:ecoteam_app/contractor/models/birthday_model.dart';
 import 'package:ecoteam_app/contractor/models/site_model.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -26,8 +26,17 @@ class _WorkerEditFormState extends State<WorkerEditForm> {
   late TextEditingController _roleController;
   late TextEditingController _phoneController;
   late TextEditingController _emailController;
+  late TextEditingController _permanentAddressController;
+  late TextEditingController _aadhaarNumberController;
+  late TextEditingController _pfNumberController;
+  late TextEditingController _bankAccountNumberController;
+  late TextEditingController _bankNameController;
+  late TextEditingController _bankIfscController;
   late String _selectedSiteId;
   DateTime? _birthdate;
+  DateTime? _dateOfJoining;
+  String? _pfDocumentPath;
+  String? _esicDocumentPath;
   final List<String> _roles = [
     'Welder',
     'Supervisor',
@@ -52,8 +61,17 @@ class _WorkerEditFormState extends State<WorkerEditForm> {
     _roleController = TextEditingController(text: _isNewWorker ? '' : widget.worker['role']);
     _phoneController = TextEditingController(text: _isNewWorker ? '' : widget.worker['phone']);
     _emailController = TextEditingController(text: _isNewWorker ? '' : widget.worker['email']);
+    _permanentAddressController = TextEditingController(text: _isNewWorker ? '' : widget.worker['permanentAddress'] ?? '');
+    _aadhaarNumberController = TextEditingController(text: _isNewWorker ? '' : widget.worker['aadhaarNumber'] ?? '');
+    _pfNumberController = TextEditingController(text: _isNewWorker ? '' : widget.worker['pfNumber'] ?? '');
+    _bankAccountNumberController = TextEditingController(text: _isNewWorker ? '' : widget.worker['bankAccountNumber'] ?? '');
+    _bankNameController = TextEditingController(text: _isNewWorker ? '' : widget.worker['bankName'] ?? '');
+    _bankIfscController = TextEditingController(text: _isNewWorker ? '' : widget.worker['bankIfsc'] ?? '');
     _selectedSiteId = widget.worker['siteId'];
     _birthdate = widget.worker['birthdate'];
+    _dateOfJoining = widget.worker['dateOfJoining'];
+    _pfDocumentPath = widget.worker['pfDocumentPath'];
+    _esicDocumentPath = widget.worker['esicDocumentPath'];
   }
 
   @override
@@ -62,6 +80,12 @@ class _WorkerEditFormState extends State<WorkerEditForm> {
     _roleController.dispose();
     _phoneController.dispose();
     _emailController.dispose();
+    _permanentAddressController.dispose();
+    _aadhaarNumberController.dispose();
+    _pfNumberController.dispose();
+    _bankAccountNumberController.dispose();
+    _bankNameController.dispose();
+    _bankIfscController.dispose();
     super.dispose();
   }
 
@@ -72,11 +96,20 @@ class _WorkerEditFormState extends State<WorkerEditForm> {
       updatedWorker['role'] = _roleController.text.trim();
       updatedWorker['phone'] = _phoneController.text.trim();
       updatedWorker['email'] = _emailController.text.trim();
+      updatedWorker['permanentAddress'] = _permanentAddressController.text.trim();
+      updatedWorker['aadhaarNumber'] = _aadhaarNumberController.text.trim();
+      updatedWorker['pfNumber'] = _pfNumberController.text.trim();
+      updatedWorker['bankAccountNumber'] = _bankAccountNumberController.text.trim();
+      updatedWorker['bankName'] = _bankNameController.text.trim();
+      updatedWorker['bankIfsc'] = _bankIfscController.text.trim();
       updatedWorker['siteId'] = _selectedSiteId;
       updatedWorker['site'] = widget.sites
           .firstWhere((site) => site.id == _selectedSiteId)
           .name;
       updatedWorker['birthdate'] = _birthdate;
+      updatedWorker['dateOfJoining'] = _dateOfJoining;
+      updatedWorker['pfDocumentPath'] = _pfDocumentPath;
+      updatedWorker['esicDocumentPath'] = _esicDocumentPath;
       updatedWorker['avatar'] = _generateAvatar(_nameController.text.trim());
 
       // Handle birthday
@@ -120,15 +153,33 @@ class _WorkerEditFormState extends State<WorkerEditForm> {
 
   String _generateAvatar(String name) {
     if (name.isEmpty) return '';
-    
+
     // Split the name and filter out empty parts
     final parts = name.split(' ').where((part) => part.isNotEmpty).toList();
-    
+
     if (parts.isEmpty) return '';
     if (parts.length >= 2) {
       return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
     }
     return parts[0][0].toUpperCase();
+  }
+
+  Future<void> _pickPfDocument() async {
+    FilePickerResult? result = await FilePicker.platform.pickFiles();
+    if (result != null) {
+      setState(() {
+        _pfDocumentPath = result.files.single.path;
+      });
+    }
+  }
+
+  Future<void> _pickEsicDocument() async {
+    FilePickerResult? result = await FilePicker.platform.pickFiles();
+    if (result != null) {
+      setState(() {
+        _esicDocumentPath = result.files.single.path;
+      });
+    }
   }
 
   @override
@@ -190,7 +241,7 @@ class _WorkerEditFormState extends State<WorkerEditForm> {
         children: [
           CircleAvatar(
             radius: 32,
-            backgroundColor: const Color(0xFF4a63c0).withOpacity(0.1),
+            backgroundColor: const Color(0xFF4a63c0).withValues(alpha: 0.1),
             child: Text(
               _nameController.text.isEmpty ? '?' : _generateAvatar(_nameController.text),
               style: const TextStyle(
@@ -384,6 +435,49 @@ class _WorkerEditFormState extends State<WorkerEditForm> {
             ),
           ),
         ),
+        const SizedBox(height: 10),
+        TextFormField(
+          controller: _permanentAddressController,
+          decoration: InputDecoration(
+            hintText: 'Permanent Address',
+            hintStyle: TextStyle(
+              color: Colors.grey.shade500,
+              fontSize: 12,
+            ),
+            enabledBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: Colors.grey.shade300, width: 1),
+            ),
+            focusedBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: const Color.fromARGB(255, 66, 93, 245), width: 1),
+            ),
+            prefixIcon: Icon(Icons.home,
+              size: 18,
+              color: Colors.grey.shade500),
+            contentPadding: const EdgeInsets.all(12),
+          ),
+        ),
+        const SizedBox(height: 10),
+        TextFormField(
+          controller: _aadhaarNumberController,
+          decoration: InputDecoration(
+            hintText: 'Aadhaar Card Number',
+            hintStyle: TextStyle(
+              color: Colors.grey.shade500,
+              fontSize: 12,
+            ),
+            enabledBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: Colors.grey.shade300, width: 1),
+            ),
+            focusedBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: const Color.fromARGB(255, 66, 93, 245), width: 1),
+            ),
+            prefixIcon: Icon(Icons.credit_card,
+              size: 18,
+              color: Colors.grey.shade500),
+            contentPadding: const EdgeInsets.all(12),
+          ),
+          keyboardType: TextInputType.number,
+        ),
       ],
     );
   }
@@ -410,7 +504,7 @@ class _WorkerEditFormState extends State<WorkerEditForm> {
         ),
         const SizedBox(height: 10),
         DropdownButtonFormField<String>(
-          value: _roleController.text.isEmpty ? null : _roleController.text,
+          initialValue: _roleController.text.isEmpty ? null : _roleController.text,
           decoration: InputDecoration(
             hintText: 'Role',
             hintStyle: TextStyle(
@@ -423,19 +517,19 @@ class _WorkerEditFormState extends State<WorkerEditForm> {
             focusedBorder: UnderlineInputBorder(
               borderSide: BorderSide(color: Color(0xFF3a53b0), width: 1),
             ),
-            prefixIcon: Icon(Icons.work, 
-              size: 18, 
+            prefixIcon: Icon(Icons.work,
+              size: 18,
               color: Colors.grey.shade500),
             contentPadding: const EdgeInsets.all(12),
           ),
           dropdownColor: Colors.white,
-          icon: Icon(Icons.keyboard_arrow_down, 
-            size: 24, 
+          icon: Icon(Icons.keyboard_arrow_down,
+            size: 24,
             color: Colors.grey.shade600),
           isDense: true,
           items: _roles.map((role) {
             return DropdownMenuItem<String>(
-              value: role, 
+              value: role,
               child: Text(role, style: const TextStyle(fontSize: 14))
             );
           }).toList(),
@@ -455,7 +549,7 @@ class _WorkerEditFormState extends State<WorkerEditForm> {
         ),
         const SizedBox(height: 10),
         DropdownButtonFormField<String>(
-          value: _selectedSiteId.isEmpty ? null : _selectedSiteId,
+          initialValue: _selectedSiteId.isEmpty ? null : _selectedSiteId,
           decoration: InputDecoration(
             hintText: 'Assigned Site',
             hintStyle: TextStyle(
@@ -468,14 +562,14 @@ class _WorkerEditFormState extends State<WorkerEditForm> {
             focusedBorder: UnderlineInputBorder(
               borderSide: BorderSide(color: Color(0xFF3a53b0), width: 1),
             ),
-            prefixIcon: Icon(Icons.location_on, 
-              size: 18, 
+            prefixIcon: Icon(Icons.location_on,
+              size: 18,
               color: Colors.grey.shade500),
             contentPadding: const EdgeInsets.all(12),
           ),
           dropdownColor: Colors.white,
-          icon: Icon(Icons.keyboard_arrow_down, 
-            size: 24, 
+          icon: Icon(Icons.keyboard_arrow_down,
+            size: 24,
             color: Colors.grey.shade600),
           isDense: true,
           items: widget.sites.map((site) {
@@ -497,6 +591,171 @@ class _WorkerEditFormState extends State<WorkerEditForm> {
             }
             return null;
           },
+        ),
+        const SizedBox(height: 10),
+        InkWell(
+          onTap: () async {
+            final pickedDate = await showDatePicker(
+              context: context,
+              initialDate: _dateOfJoining ?? DateTime.now(),
+              firstDate: DateTime(1900),
+              lastDate: DateTime(2100),
+            );
+            if (pickedDate != null) {
+              setState(() {
+                _dateOfJoining = pickedDate;
+              });
+            }
+          },
+          child: InputDecorator(
+            decoration: InputDecoration(
+              hintText: 'Date of Joining',
+              hintStyle: TextStyle(
+                color: Colors.grey.shade500,
+                fontSize: 12,
+              ),
+              enabledBorder: UnderlineInputBorder(
+                borderSide: BorderSide(color: Colors.grey.shade300, width: 1),
+              ),
+              focusedBorder: UnderlineInputBorder(
+                borderSide: BorderSide(color: Color(0xFF3a53b0), width: 1),
+              ),
+              prefixIcon: Icon(Icons.calendar_today,
+                size: 18,
+                color: Colors.grey.shade500),
+              contentPadding: const EdgeInsets.all(12),
+            ),
+            child: Text(
+              _dateOfJoining != null ? '${_dateOfJoining!.day}/${_dateOfJoining!.month}/${_dateOfJoining!.year}' : 'Select date of joining',
+              style: TextStyle(
+                color: _dateOfJoining != null ? Colors.black : Colors.grey.shade500,
+                fontSize: 14,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        TextFormField(
+          controller: _pfNumberController,
+          decoration: InputDecoration(
+            hintText: 'PF Number',
+            hintStyle: TextStyle(
+              color: Colors.grey.shade500,
+              fontSize: 12,
+            ),
+            enabledBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: Colors.grey.shade300, width: 1),
+            ),
+            focusedBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: Color(0xFF3a53b0), width: 1),
+            ),
+            prefixIcon: Icon(Icons.account_balance_wallet,
+              size: 18,
+              color: Colors.grey.shade500),
+            contentPadding: const EdgeInsets.all(12),
+          ),
+        ),
+        const SizedBox(height: 10),
+        TextFormField(
+          controller: _bankAccountNumberController,
+          decoration: InputDecoration(
+            hintText: 'Bank Account Number',
+            hintStyle: TextStyle(
+              color: Colors.grey.shade500,
+              fontSize: 12,
+            ),
+            enabledBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: Colors.grey.shade300, width: 1),
+            ),
+            focusedBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: Color(0xFF3a53b0), width: 1),
+            ),
+            prefixIcon: Icon(Icons.account_balance,
+              size: 18,
+              color: Colors.grey.shade500),
+            contentPadding: const EdgeInsets.all(12),
+          ),
+          keyboardType: TextInputType.number,
+        ),
+        const SizedBox(height: 10),
+        TextFormField(
+          controller: _bankNameController,
+          decoration: InputDecoration(
+            hintText: 'Bank Name',
+            hintStyle: TextStyle(
+              color: Colors.grey.shade500,
+              fontSize: 12,
+            ),
+            enabledBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: Colors.grey.shade300, width: 1),
+            ),
+            focusedBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: Color(0xFF3a53b0), width: 1),
+            ),
+            prefixIcon: Icon(Icons.business,
+              size: 18,
+              color: Colors.grey.shade500),
+            contentPadding: const EdgeInsets.all(12),
+          ),
+        ),
+        const SizedBox(height: 10),
+        TextFormField(
+          controller: _bankIfscController,
+          decoration: InputDecoration(
+            hintText: 'Bank IFSC Code',
+            hintStyle: TextStyle(
+              color: Colors.grey.shade500,
+              fontSize: 12,
+            ),
+            enabledBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: Colors.grey.shade300, width: 1),
+            ),
+            focusedBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: Color(0xFF3a53b0), width: 1),
+            ),
+            prefixIcon: Icon(Icons.code,
+              size: 18,
+              color: Colors.grey.shade500),
+            contentPadding: const EdgeInsets.all(12),
+          ),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              child: ElevatedButton(
+                onPressed: _pickPfDocument,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.grey.shade200,
+                  foregroundColor: Colors.black,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: Text(
+                  _pfDocumentPath != null ? 'PF Document Selected' : 'Upload PF Document',
+                  style: TextStyle(fontSize: 12),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: ElevatedButton(
+                onPressed: _pickEsicDocument,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.grey.shade200,
+                  foregroundColor: Colors.black,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: Text(
+                  _esicDocumentPath != null ? 'ESIC Document Selected' : 'Upload ESIC Document',
+                  style: TextStyle(fontSize: 12),
+                ),
+              ),
+            ),
+          ],
         ),
       ],
     );

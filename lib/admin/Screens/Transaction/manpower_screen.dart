@@ -98,6 +98,9 @@ class _ManpowerPageState extends State<ManpowerPage> {
     final result = await showModalBottomSheet<ManpowerRecord?>(
       context: context,
       isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+      ),
       builder: (context) => Container(
         height: MediaQuery.of(context).size.height * 0.85,
         child: ManpowerBottomSheet(
@@ -141,7 +144,9 @@ class _ManpowerPageState extends State<ManpowerPage> {
     final result = await showModalBottomSheet<ManpowerRecord?>(
       context: context,
       isScrollControlled: true,
-
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+      ),
       builder: (context) => Container(
         height:
             MediaQuery.of(context).size.height * 0.85, // 85% of screen height
@@ -189,10 +194,14 @@ class _ManpowerPageState extends State<ManpowerPage> {
 
     await showModalBottomSheet(
       context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+      ),
       isScrollControlled: true,
       builder: (context) => Container(
         height: MediaQuery.of(context).size.height * 0.85,
         child: ManpowerBottomSheet(
+          
           record: record,
           dropdownData: _dropdownData!,
           isViewMode: true,
@@ -259,6 +268,7 @@ class _ManpowerPageState extends State<ManpowerPage> {
       );
     }
   }
+  
 
   @override
   Widget build(BuildContext context) {
@@ -293,15 +303,16 @@ class _ManpowerPageState extends State<ManpowerPage> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _refreshData,
-            tooltip: 'Refresh',
-          ),
-          IconButton(
-            icon: const Icon(Icons.add),
+            icon: Icon(Icons.add, size: 28.sp),
             onPressed: _addNewRecord,
             tooltip: 'Add New Record',
           ),
+          IconButton(
+            icon: Icon(Icons.refresh, size: 28.sp),
+            onPressed: _refreshData,
+            tooltip: 'Refresh',
+          ),
+          
         ],
       ),
       body: _isLoading
@@ -534,62 +545,147 @@ class ManpowerBottomSheet extends StatefulWidget {
 
 class _ManpowerBottomSheetState extends State<ManpowerBottomSheet> {
   final _formKey = GlobalKey<FormState>();
-  final Map<String, TextEditingController> _controllers = {};
-  late TextEditingController _dateController;
 
-  late int? _selectedSupplierId;
-  late int? _selectedSiteId;
+  late TextEditingController _dateController;
+  late TextEditingController _manpowerTypeController;
+
+  int? _selectedSupplierId;
+  int? _selectedSiteId;
+
+  /// Selected manpower type IDs
+  final List<int> _selectedTypes = [];
+
+  /// type name -> count
   final Map<String, int> _manpowerCounts = {};
 
   @override
   void initState() {
     super.initState();
 
-    // Initialize with existing record or default values
     final record = widget.record;
 
-    // Initialize date controller
     _dateController = TextEditingController(
       text: record?.workDate ?? DateTime.now().toString().split(' ')[0],
     );
 
-    // Initialize supplier and site selections
-    _selectedSupplierId =
-        (record?.supplierId != null &&
-            widget.dropdownData.suppliers.containsKey(record!.supplierId))
-        ? record!.supplierId
-        : null;
-    _selectedSiteId =
-        (record?.siteId != null &&
-            widget.dropdownData.sites.containsKey(record!.siteId))
-        ? record!.siteId
-        : null;
+    _manpowerTypeController = TextEditingController();
 
-    // Initialize all manpower counts from API data
-    for (var typeEntry in widget.dropdownData.manpowerTypes.entries) {
-      final typeName = typeEntry.value;
-      _controllers[typeName] = TextEditingController(
-        text: (record?.manpowerCounts[typeName] ?? 0).toString(),
-      );
-      _manpowerCounts[typeName] = record?.manpowerCounts[typeName] ?? 0;
+    _selectedSupplierId = record?.supplierId;
+    _selectedSiteId = record?.siteId;
+
+    // Edit Mode – pre-fill manpower types and counts
+    if (record != null) {
+      for (var entry in record.manpowerCounts.entries) {
+        if (entry.value > 0) {
+          final id = widget.dropdownData.manpowerTypes.entries
+              .firstWhere(
+                (e) => e.value == entry.key,
+                orElse: () => const MapEntry(-1, ''),
+              )
+              .key;
+
+          if (id != -1) {
+            _selectedTypes.add(id);
+            _manpowerCounts[entry.key] = entry.value;
+          }
+        }
+      }
+
+      _updateSelectedText();
     }
   }
 
-  @override
-  void dispose() {
-    _dateController.dispose();
-    _controllers.values.forEach((controller) => controller.dispose());
-    super.dispose();
+  /// Update the text shown in the manpower type field
+  void _updateSelectedText() {
+    final types = widget.dropdownData.manpowerTypes;
+    _manpowerTypeController.text =
+        _selectedTypes.map((id) => types[id]!).join(", ");
   }
+
+  /// Open multiple select bottom sheet
+  void _selectManpowerTypes() async {
+    final manpowerTypes = widget.dropdownData.manpowerTypes;
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return Container(
+              height: MediaQuery.of(context).size.height * 0.7,
+              child: Scaffold(
+                appBar: AppBar(
+                  title: const Text("Select Manpower Types"),
+                  leading: IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text("Done", style: TextStyle(color: Colors.white)),
+                    ),
+                  ],
+                ),
+                body: ListView(
+                  padding: const EdgeInsets.all(16),
+                  children: manpowerTypes.entries.map((e) {
+                    return Row(
+                      children: [
+                        Checkbox(
+                          value: _selectedTypes.contains(e.key),
+                          onChanged: (v) {
+                            setState(() {
+                              if (v == true) {
+                                _selectedTypes.add(e.key);
+                                _manpowerCounts[e.value] = _manpowerCounts[e.value] ?? 0;
+                              } else {
+                                _selectedTypes.remove(e.key);
+                                _manpowerCounts.remove(e.value);
+                              }
+                            });
+                            _updateSelectedText();
+                          },
+                        ),
+                        Expanded(child: Text(e.value)),
+                        SizedBox(
+                          width: 60,
+                          child: TextField(
+                            keyboardType: TextInputType.number,
+                            enabled: _selectedTypes.contains(e.key),
+                            decoration: const InputDecoration(hintText: 'Count'),
+                            controller: TextEditingController(
+                              text: _manpowerCounts[e.value]?.toString() ?? '',
+                            ),
+                            onChanged: (v) {
+                              setState(() {
+                                _manpowerCounts[e.value] = int.tryParse(v) ?? 0;
+                              });
+                            },
+                          ),
+                        ),
+                      ],
+                    );
+                  }).toList(),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  int _calculateTotalCount() =>
+      _manpowerCounts.values.fold(0, (sum, c) => sum + c);
 
   void _saveRecord() {
     if (_formKey.currentState!.validate()) {
-      // Update manpower counts from controllers
-      _controllers.forEach((role, controller) {
-        _manpowerCounts[role] = int.tryParse(controller.text) ?? 0;
-      });
-
-      final record = ManpowerRecord(
+      final rec = ManpowerRecord(
         id: widget.record?.id,
         workDate: _dateController.text,
         supplier: widget.dropdownData.suppliers[_selectedSupplierId] ?? '',
@@ -602,410 +698,106 @@ class _ManpowerBottomSheetState extends State<ManpowerBottomSheet> {
         totalCount: _calculateTotalCount(),
       );
 
-      widget.onSave?.call(record);
-      Navigator.of(context).pop(record);
+      widget.onSave?.call(rec);
+      Navigator.pop(context, rec);
     }
-  }
-
-  int _calculateTotalCount() {
-    return _manpowerCounts.values.fold(0, (sum, count) => sum + count);
-  }
-
-  Widget _buildManpowerField(String title) {
-    return Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              title,
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          const SizedBox(width: 8),
-          SizedBox(
-            width: 80,
-            child: TextFormField(
-              controller: _controllers[title],
-              keyboardType: TextInputType.number,
-              textAlign: TextAlign.center,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                contentPadding: EdgeInsets.symmetric(
-                  horizontal: 8,
-                  vertical: 4,
-                ),
-                isDense: true,
-              ),
-              validator: (value) {
-                if (value != null &&
-                    value.isNotEmpty &&
-                    int.tryParse(value) == null) {
-                  return 'Invalid number';
-                }
-                return null;
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInfoRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 120,
-            child: Text(
-              '$label:',
-              style: const TextStyle(
-                fontWeight: FontWeight.w600,
-                color: Colors.grey,
-              ),
-            ),
-          ),
-          Expanded(child: Text(value, style: const TextStyle(fontSize: 16))),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildViewContent() {
-    final record = widget.record!;
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Manpower Details'),
-        backgroundColor: const Color.fromARGB(255, 229, 233, 250),
-        leading: IconButton(
-          icon: const Icon(Icons.close, color: Color.fromARGB(255, 8, 8, 8)),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          // Basic Info Section
-          _buildSectionHeader('Basic Information'),
-          _buildInfoCard(record),
-
-          const SizedBox(height: 20),
-
-          // Manpower Section
-          _buildSectionHeader('Team Composition'),
-          _buildManpowerCard(record),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSectionHeader(String title) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Text(
-        title,
-        style: const TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-          color: Colors.black87,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildInfoCard(ManpowerRecord record) {
-    return Card(
-      elevation: 1,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            _buildSimpleInfoRow('Date', record.workDate),
-            const Divider(height: 20),
-            _buildSimpleInfoRow('Supplier', record.supplier),
-            const Divider(height: 20),
-            _buildSimpleInfoRow('Site', record.site),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSimpleInfoRow(String label, String value) {
-    return Row(
-      children: [
-        Text(
-          '$label:',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: Colors.grey[700],
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            value,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: Colors.black87,
-            ),
-            textAlign: TextAlign.right,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildManpowerCard(ManpowerRecord record) {
-    return Card(
-      elevation: 1,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            // Manpower Items
-            ...record.manpowerCounts.entries
-                .where((e) => e.value > 0)
-                .map(
-                  (entry) => Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: _buildSimpleManpowerRow(entry.key, entry.value),
-                  ),
-                )
-                .toList(),
-
-            // Total
-            const Divider(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Total Workforce',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                  ),
-                ),
-                Text(
-                  '${record.totalCount ?? 0}',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF2a43a0),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSimpleManpowerRow(String role, int count) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Expanded(
-          child: Text(
-            role,
-            style: const TextStyle(fontSize: 14, color: Colors.black87),
-          ),
-        ),
-        SizedBox(width: 5),
-        Text(
-          count.toString(),
-          style: const TextStyle(
-            fontSize: 17,
-            fontWeight: FontWeight.w700,
-            color: Color(0xFF2a43a0),
-          ),
-        ),
-      ],
-    );
   }
 
   @override
   Widget build(BuildContext context) {
-    if (widget.isViewMode) {
-      return _buildViewContent();
-    }
-
-    final manpowerTypes = widget.dropdownData.manpowerTypes;
     final suppliers = widget.dropdownData.suppliers;
     final sites = widget.dropdownData.sites;
+    final manpowerTypes = widget.dropdownData.manpowerTypes;
 
-    // Group manpower types into chunks of 4 for grid layout
-    final typeEntries = manpowerTypes.entries.toList();
-    final List<List<MapEntry<int, String>>> typeChunks = [];
-    for (int i = 0; i < typeEntries.length; i += 4) {
-      typeChunks.add(
-        typeEntries.sublist(
-          i,
-          i + 4 > typeEntries.length ? typeEntries.length : i + 4,
+    if (widget.isViewMode) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text("View Manpower"),
+          leading: IconButton(
+            icon: const Icon(Icons.close),
+            onPressed: () => Navigator.pop(context),
+          ),
         ),
-      );
-    }
+        body: ListView(
+          padding: const EdgeInsets.all(14),
+          children: [
+           
+            // Work Date
+            ListTile(
+              leading: const Icon(Icons.calendar_today, color: Color(0xFF2a43a0)),
+              title: const Text("Work Date"),
+              subtitle: Text(_dateController.text),
+            ),
+            const SizedBox(height: 2),
 
-    return Scaffold(
-      appBar: AppBar(
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(25.0)),
-        ),
-        title: Text(
-          widget.record == null
-              ? 'Create Manpower Record'
-              : 'Edit Manpower Record',
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.close),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const SizedBox(height: 16),
+            // Supplier
+            ListTile(
+              leading: const Icon(Icons.business, color: Color(0xFF2a43a0)),
+              title: const Text("Supplier"),
+              subtitle: Text(suppliers[_selectedSupplierId] ?? 'N/A'),
+            ),
+            const SizedBox(height: 2),
 
-              // Work Date
-              TextFormField(
-                controller: _dateController,
-                decoration: const InputDecoration(
-                  labelText: 'Work Date*',
-                  border: OutlineInputBorder(),
-                  hintText: 'YYYY-MM-DD',
-                  prefixIcon: Icon(Icons.calendar_today),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Work Date is required';
-                  }
-                  try {
-                    DateTime.parse(value);
-                  } catch (e) {
-                    return 'Please use YYYY-MM-DD format';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 12),
-
-              // Supplier Dropdown
-              DropdownButtonFormField<int>(
-                value: _selectedSupplierId,
-                decoration: const InputDecoration(
-                  labelText: 'Supplier*',
-                  border: OutlineInputBorder(),
-                ),
-                items: suppliers.entries.map((entry) {
-                  return DropdownMenuItem<int>(
-                    value: entry.key,
-                    child: Text(entry.value),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _selectedSupplierId = value!;
-                  });
-                },
-                validator: (value) {
-                  if (value == null) {
-                    return 'Please select a supplier';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 12),
-
-              // Site Dropdown
-              DropdownButtonFormField<int>(
-                value: _selectedSiteId,
-                decoration: const InputDecoration(
-                  labelText: 'Site*',
-                  border: OutlineInputBorder(),
-                ),
-                items: sites.entries.map((entry) {
-                  return DropdownMenuItem<int>(
-                    value: entry.key,
-                    child: Text(entry.value),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _selectedSiteId = value!;
-                  });
-                },
-                validator: (value) {
-                  if (value == null) {
-                    return 'Please select a site';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-
-              const Text(
-                'Manpower Counts',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 12),
-
-              // Manpower Counts Grid
-              ...typeChunks.map((chunk) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: GridView.count(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 8,
-                    mainAxisSpacing: 8,
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    childAspectRatio: 3,
-                    children: chunk.map((entry) {
-                      return _buildManpowerField(entry.value);
-                    }).toList(),
+            // Site
+            ListTile(
+              leading: const Icon(Icons.location_on, color: Color(0xFF2a43a0)),
+              title: const Text("Site"),
+              subtitle: Text(sites[_selectedSiteId] ?? 'N/A'),
+            ),
+            const SizedBox(height: 6),
+            Container(
+              height: 1,
+              color: const Color.fromARGB(255, 184, 184, 184),
+            ),
+            const SizedBox(height: 8),
+            // Manpower Types
+            const Text(
+              "Manpower Types",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 10),
+            ..._selectedTypes.map((typeId) {
+              final typeName = manpowerTypes[typeId]!;
+              final count = _manpowerCounts[typeName] ?? 0;
+              return ListTile(
+                leading: const Icon(Icons.people, color: Color(0xFF2a43a0)),
+                title: Text(typeName),
+                trailing: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF2a43a0).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
                   ),
-                );
-              }),
-
-              const SizedBox(height: 20),
-
-              // Total Count Display
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.grey[100],
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey[300]!),
+                  child: Text(
+                    'Count: $count',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF2a43a0),
+                    ),
+                  ),
                 ),
+              );
+            }).toList(),
+
+            const SizedBox(height: 20),
+
+            // Total
+            Card(
+              elevation: 2,
+              color: Colors.grey.shade50,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text(
-                      'Total Manpower:',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      "Total Manpower:",
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
                     Text(
                       _calculateTotalCount().toString(),
                       style: const TextStyle(
-                        fontSize: 18,
+                        fontSize: 20,
                         fontWeight: FontWeight.bold,
                         color: Color(0xFF2a43a0),
                       ),
@@ -1013,33 +805,147 @@ class _ManpowerBottomSheetState extends State<ManpowerBottomSheet> {
                   ],
                 ),
               ),
+            ),
 
-              const SizedBox(height: 20),
+            const SizedBox(height: 20),
+          ],
+        ),
+      );
+    }
 
-              // Save Button
-              ElevatedButton(
-                onPressed: _saveRecord,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2a43a0),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                child: Text(
-                  widget.record == null ? 'Create Record' : 'Update Record',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(widget.record == null ? "Create Manpower" : "Edit Manpower"),
+        leading: IconButton(
+          icon: const Icon(Icons.close),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+      body: Form(
+        key: _formKey,
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            // Date
+            TextFormField(
+              controller: _dateController,
+              decoration: const InputDecoration(
+                labelText: "Work Date",
+                prefixIcon: Icon(Icons.calendar_month),
+                border: OutlineInputBorder(),
               ),
-              const SizedBox(height: 16),
-            ],
-          ),
+              validator: (v) {
+                if (v == null || v.isEmpty) return "Date required";
+                try {
+                  DateTime.parse(v);
+                } catch (_) {
+                  return "Invalid date format (YYYY-MM-DD)";
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 12),
+
+            // Supplier
+            DropdownButtonFormField<int>(
+              value: _selectedSupplierId,
+              decoration: const InputDecoration(
+                labelText: "Supplier",
+                border: OutlineInputBorder(),
+              ),
+              items: suppliers.entries
+                  .map(
+                    (e) =>
+                        DropdownMenuItem(value: e.key, child: Text(e.value)),
+                  )
+                  .toList(),
+              onChanged: (v) => setState(() => _selectedSupplierId = v),
+              validator: (v) => v == null ? "Select supplier" : null,
+            ),
+            const SizedBox(height: 12),
+
+            // Site
+            DropdownButtonFormField<int>(
+              value: _selectedSiteId,
+              decoration: const InputDecoration(
+                labelText: "Site",
+                border: OutlineInputBorder(),
+              ),
+              items: sites.entries
+                  .map(
+                    (e) =>
+                        DropdownMenuItem(value: e.key, child: Text(e.value)),
+                  )
+                  .toList(),
+              onChanged: (v) => setState(() => _selectedSiteId = v),
+              validator: (v) => v == null ? "Select site" : null,
+            ),
+
+            const SizedBox(height: 20),
+
+            // ------------------ MANPOWER TYPE FIELD (Tap to multi-select) ------------------
+            TextFormField(
+              controller: _manpowerTypeController,
+              readOnly: true,
+              decoration: const InputDecoration(
+                labelText: "Manpower Types",
+                border: OutlineInputBorder(),
+                suffixIcon: Icon(Icons.arrow_drop_down),
+              ),
+              onTap: _selectManpowerTypes,
+              validator: (_) =>
+                  _selectedTypes.isEmpty ? "Select at least one type" : null,
+            ),
+
+            const SizedBox(height: 20),
+
+            // Total
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey.shade300),
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text("Total Manpower:",
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  Text(
+                    _calculateTotalCount().toString(),
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF2a43a0),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 25),
+
+            ElevatedButton(
+              onPressed: _saveRecord,
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.all(12),
+                backgroundColor: const Color(0xFF2a43a0),
+                foregroundColor: Colors.white,
+              ),
+              child: Text(
+                widget.record == null ? "Create Record" : "Update Record",
+                style:
+                    const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+            ),
+
+            const SizedBox(height: 20),
+          ],
         ),
       ),
     );
   }
 }
+

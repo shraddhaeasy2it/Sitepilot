@@ -187,7 +187,7 @@ class _ManpowerTypesScreenState extends State<ManpowerTypesScreen> {
         await _service.createManpowerType(newType);
         _showSuccessSnackBar('Added successfully');
       }
-      
+
       await _loadManpowerTypes();
     } catch (e) {
       _showErrorSnackBar(
@@ -209,9 +209,7 @@ class _ManpowerTypesScreenState extends State<ManpowerTypesScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.red,
-            ),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('Delete'),
           ),
         ],
@@ -225,7 +223,7 @@ class _ManpowerTypesScreenState extends State<ManpowerTypesScreen> {
         });
 
         final success = await _service.deleteManpowerType(id);
-        
+
         if (success) {
           _showSuccessSnackBar('"$name" deleted successfully');
           await _loadManpowerTypes();
@@ -258,9 +256,7 @@ class _ManpowerTypesScreenState extends State<ManpowerTypesScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.red,
-            ),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('Delete'),
           ),
         ],
@@ -277,7 +273,7 @@ class _ManpowerTypesScreenState extends State<ManpowerTypesScreen> {
 
         // Then call API
         final success = await _service.deleteManpowerType(id);
-        
+
         if (!success) {
           // If API call fails, reload the list to restore the item
           await _loadManpowerTypes();
@@ -297,34 +293,31 @@ class _ManpowerTypesScreenState extends State<ManpowerTypesScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Manpower Types', style: TextStyle(color: Colors.white)),
+        title: const Text(
+          'Manpower Types',
+          style: TextStyle(color: Colors.white),
+        ),
         iconTheme: const IconThemeData(color: Colors.white),
-              toolbarHeight: 80.h,
-              elevation: 0,
-              backgroundColor: Colors.transparent,
-              flexibleSpace: Container(
-                decoration: const BoxDecoration(
-                  borderRadius: BorderRadius.vertical(
-                    bottom: Radius.circular(25),
-                  ),
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Color(0xFF4a63c0),
-                      Color(0xFF3a53b0),
-                      Color(0xFF2a43a0),
-                    ],
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black12,
-                      blurRadius: 10,
-                      offset: Offset(0, 4),
-                    ),
-                  ],
-                ),
+        toolbarHeight: 80.h,
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            borderRadius: BorderRadius.vertical(bottom: Radius.circular(25)),
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color(0xFF4a63c0), Color(0xFF3a53b0), Color(0xFF2a43a0)],
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black12,
+                blurRadius: 10,
+                offset: Offset(0, 4),
               ),
+            ],
+          ),
+        ),
         actions: [
           IconButton(
             onPressed: _loadManpowerTypes,
@@ -353,7 +346,9 @@ class _ManpowerTypesScreenState extends State<ManpowerTypesScreen> {
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                      ),
                     ),
                   ),
                 ),
@@ -364,7 +359,11 @@ class _ManpowerTypesScreenState extends State<ManpowerTypesScreen> {
                     padding: const EdgeInsets.all(10),
                     child: Row(
                       children: [
-                        const Icon(Icons.people, color: Color(0xFF2a43a0), size: 24),
+                        const Icon(
+                          Icons.people,
+                          color: Color(0xFF2a43a0),
+                          size: 24,
+                        ),
                         const SizedBox(width: 12),
                         Text(
                           'Total Types: ${_filteredManpowerTypes.length}',
@@ -386,7 +385,11 @@ class _ManpowerTypesScreenState extends State<ManpowerTypesScreen> {
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Icon(Icons.people_outline, size: 64, color: Colors.grey),
+                              const Icon(
+                                Icons.people_outline,
+                                size: 64,
+                                color: Colors.grey,
+                              ),
                               const SizedBox(height: 16),
                               Text(
                                 _manpowerTypes.isEmpty
@@ -402,7 +405,9 @@ class _ManpowerTypesScreenState extends State<ManpowerTypesScreen> {
                                   padding: const EdgeInsets.only(top: 16),
                                   child: ElevatedButton(
                                     onPressed: () => _showAddEditBottomSheet(),
-                                    child: const Text('Add First Manpower Type'),
+                                    child: const Text(
+                                      'Add First Manpower Type',
+                                    ),
                                   ),
                                 ),
                             ],
@@ -414,7 +419,8 @@ class _ManpowerTypesScreenState extends State<ManpowerTypesScreen> {
                             padding: const EdgeInsets.symmetric(horizontal: 16),
                             itemCount: _filteredManpowerTypes.length,
                             itemBuilder: (context, index) {
-                              final manpowerType = _filteredManpowerTypes[index];
+                              final manpowerType =
+                                  _filteredManpowerTypes[index];
                               return Card(
                                 elevation: 2,
                                 margin: const EdgeInsets.only(bottom: 12),
@@ -443,47 +449,63 @@ class _ManpowerTypesScreenState extends State<ManpowerTypesScreen> {
                                       fontSize: 16,
                                     ),
                                   ),
-                                  subtitle: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                  subtitle: Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        'ID: ${manpowerType.id}',
-                                        style: const TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.grey,
-                                        ),
+                                      Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            'ID: ${manpowerType.id}',
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.grey,
+                                            ),
+                                          ),
+                                          Text(
+                                            'Site ID: ${manpowerType.siteId}',
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.grey,
+                                            ),
+                                          ),
+                                        ],
                                       ),
-                                      Text(
-                                        'Site ID: ${manpowerType.siteId}',
-                                        style: const TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.grey,
-                                        ),
+                                      Row(
+                                        children: [
+                                          IconButton(
+                                            onPressed: () =>
+                                                _showAddEditBottomSheet(
+                                                  manpowerType: manpowerType,
+                                                ),
+                                            icon: const Icon(
+                                              Icons.edit,
+                                              color: Color(0xFF2a43a0),
+                                              size: 20,
+                                            ),
+                                            padding: EdgeInsets.zero,
+                                            constraints: const BoxConstraints(),
+                                          ),
+
+                                          IconButton(
+                                            onPressed: () =>
+                                                _deleteManpowerType(
+                                                  manpowerType.id,
+                                                  manpowerType.name,
+                                                ),
+                                            icon: const Icon(
+                                              Icons.delete,
+                                              color: Colors.red,
+                                              size: 20,
+                                            ),
+                                            padding: EdgeInsets.zero,
+                                            constraints: const BoxConstraints(),
+                                          ),
+                                        ],
                                       ),
                                     ],
-                                  ),
-                                  trailing: SizedBox(
-                                    width: 100.w,
-                                    child: Row(
-                                      children: [
-                                        IconButton(
-                                          onPressed: () => _showAddEditBottomSheet(
-                                            manpowerType: manpowerType,
-                                          ),
-                                          icon: const Icon(Icons.edit, color: Color(0xFF2a43a0), size: 20),
-                                          padding: EdgeInsets.zero,
-                                          constraints: const BoxConstraints(),
-                                        ),
-                                        
-                                        IconButton(
-                                          onPressed: () => _deleteManpowerType(manpowerType.id, manpowerType.name),
-                                          icon: const Icon(Icons.delete, color: Colors.red, size: 20),
-                                          padding: EdgeInsets.zero,
-                                          constraints: const BoxConstraints(),
-                                        ),
-                                      ],
-                                    ),
                                   ),
                                 ),
                               );

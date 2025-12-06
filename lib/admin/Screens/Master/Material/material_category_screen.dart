@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
-import '../../admin/models/material_category_model.dart';
-import '../../admin/provider/material_category_provider.dart';
+import '../../../models/material_category_model.dart';
+import '../../../provider/material_category_provider.dart';
 
 class MaterialCategoryScreen extends StatefulWidget {
   const MaterialCategoryScreen({super.key});

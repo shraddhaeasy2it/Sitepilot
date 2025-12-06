@@ -81,16 +81,19 @@ class _MachineryScreenState extends State<AdminAllMachineryScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) => Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-          left: 16,
-          right: 16,
-          top: 16,
-        ),
-        child: MachineryFormSheet(
-          categories: _categories,
-          onSave: _addMachinery,
+      builder: (context) => SizedBox(
+        height: MediaQuery.of(context).size.height * 0.85,
+        child: Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+            left: 16,
+            right: 16,
+            top: 20,
+          ),
+          child: MachineryFormSheet(
+            categories: _categories,
+            onSave: _addMachinery,
+          ),
         ),
       ),
     );
@@ -103,17 +106,20 @@ class _MachineryScreenState extends State<AdminAllMachineryScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) => Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-          left: 16,
-          right: 16,
-          top: 16,
-        ),
-        child: MachineryFormSheet(
-          machinery: machinery,
-          categories: _categories,
-          onSave: _updateMachinery,
+      builder: (context) => SizedBox(
+        height: MediaQuery.of(context).size.height * 0.85,
+        child: Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+            left: 16,
+            right: 16,
+            top: 20,
+          ),
+          child: MachineryFormSheet(
+            machinery: machinery,
+            categories: _categories,
+            onSave: _updateMachinery,
+          ),
         ),
       ),
     );
@@ -709,16 +715,9 @@ class _MachineryFormSheetState extends State<MachineryFormSheet> {
   @override
   Widget build(BuildContext context) {
     return Column(
-      mainAxisSize: MainAxisSize.min,
+     
       children: [
-        Container(
-          width: 30,
-          height: 4,
-          decoration: BoxDecoration(
-            color: Colors.grey[300],
-            borderRadius: BorderRadius.circular(2),
-          ),
-        ),
+        
         const SizedBox(height: 12),
         Text(
           widget.machinery == null ? 'Add Machinery' : 'Edit Machinery',
@@ -741,7 +740,7 @@ class _MachineryFormSheetState extends State<MachineryFormSheet> {
                     decoration: const InputDecoration(
                       labelText: 'Machinery Name',
                       border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.build, size: 18),
+                      prefixIcon: Icon(Icons.build, size: 15),
                       contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                     ),
                     style: const TextStyle(fontSize: 14),
@@ -767,7 +766,7 @@ class _MachineryFormSheetState extends State<MachineryFormSheet> {
                     items: widget.categories.map((category) {
                       return DropdownMenuItem<String>(
                         value: category.id.toString(),
-                        child: Text(category.name),
+                        child: Text(category.name,style: TextStyle(color: Colors.black),),
                       );
                     }).toList(),
                     onChanged: (value) {
@@ -904,7 +903,7 @@ class _MachineryFormSheetState extends State<MachineryFormSheet> {
                       prefixIcon: Icon(Icons.info, size: 18),
                       contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                     ),
-                    style: const TextStyle(fontSize: 14),
+                    style: const TextStyle(fontSize: 14,color: Colors.black),
                     items: operationalStatuses.map((status) {
                       return DropdownMenuItem<String>(
                         value: status['value'],

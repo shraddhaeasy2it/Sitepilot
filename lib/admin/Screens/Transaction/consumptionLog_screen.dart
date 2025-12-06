@@ -668,13 +668,14 @@ class _ConsumptionLogPageState extends State<ConsumptionLogPage> {
         centerTitle: false,
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.white),
-            onPressed: _loadConsumptions,
+            onPressed: _addConsumption,
+            icon:Icon(Icons.add, color: Colors.white,size: 28.sp,),
           ),
           IconButton(
-            onPressed: _addConsumption,
-            icon: const Icon(Icons.add, color: Colors.white),
+            icon: Icon(Icons.refresh, color: Colors.white,size: 28.sp,),
+            onPressed: _loadConsumptions,
           ),
+          
         ],
       ),
       body: Column(

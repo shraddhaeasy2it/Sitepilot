@@ -29,9 +29,9 @@ class _EmployeePageState extends State<EmployeePage> {
         filteredEmployees = employees;
       });
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to load employees: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to load employees: $e')));
     } finally {
       setState(() => isLoading = false);
     }
@@ -61,12 +61,12 @@ class _EmployeePageState extends State<EmployeePage> {
       searchController.clear();
       isLoading = true;
     });
-    
+
     await _loadEmployees();
-    
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Data refreshed')),
-    );
+
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('Data refreshed')));
   }
 
   Future<void> _addEmployee() async {
@@ -93,9 +93,9 @@ class _EmployeePageState extends State<EmployeePage> {
         employees.add(result);
         filteredEmployees = employees;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Employee added successfully')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Employee added successfully')));
     }
   }
 
@@ -107,7 +107,9 @@ class _EmployeePageState extends State<EmployeePage> {
         employee: employee,
         onSave: (updatedEmployee) async {
           try {
-            final savedEmployee = await ApiService.updateEmployee(updatedEmployee);
+            final savedEmployee = await ApiService.updateEmployee(
+              updatedEmployee,
+            );
             return savedEmployee;
           } catch (e) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -127,9 +129,9 @@ class _EmployeePageState extends State<EmployeePage> {
           filteredEmployees = employees;
         }
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Employee updated successfully')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Employee updated successfully')));
     }
   }
 
@@ -222,10 +224,7 @@ class _EmployeePageState extends State<EmployeePage> {
                       ),
                       Text(
                         'Active: ${employees.where((e) => e.isActive == 1).length}',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.green,
-                        ),
+                        style: TextStyle(fontSize: 14, color: Colors.green),
                       ),
                     ],
                   ),
@@ -303,14 +302,18 @@ class EmployeeCard extends StatelessWidget {
                     Container(
                       padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: (employee.isActive == 1) ? Colors.green[100] : Colors.red[100],
+                        color: (employee.isActive == 1)
+                            ? Colors.green[100]
+                            : Colors.red[100],
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
                         (employee.isActive == 1) ? 'Active' : 'Inactive',
                         style: TextStyle(
                           fontSize: 10,
-                          color: (employee.isActive == 1) ? Colors.green[800] : Colors.red[800],
+                          color: (employee.isActive == 1)
+                              ? Colors.green[800]
+                              : Colors.red[800],
                         ),
                       ),
                     ),
@@ -340,18 +343,12 @@ class EmployeeCard extends StatelessWidget {
             SizedBox(height: 8),
             Text(
               employee.name,
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 4),
             Text(
               employee.email,
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[600],
-              ),
+              style: TextStyle(fontSize: 14, color: Colors.grey[600]),
             ),
             SizedBox(height: 8),
             Wrap(
@@ -362,9 +359,11 @@ class EmployeeCard extends StatelessWidget {
                   _buildInfoChip('Phone', employee.phone!),
                 if (employee.branch != null && employee.branch!.isNotEmpty)
                   _buildInfoChip('Branch', employee.branch!),
-                if (employee.department != null && employee.department!.isNotEmpty)
+                if (employee.department != null &&
+                    employee.department!.isNotEmpty)
                   _buildInfoChip('Dept', employee.department!),
-                if (employee.designation != null && employee.designation!.isNotEmpty)
+                if (employee.designation != null &&
+                    employee.designation!.isNotEmpty)
                   _buildInfoChip('Role', employee.designation!),
                 if (employee.locationType != null)
                   _buildInfoChip('Location', employee.locationType!),
@@ -374,18 +373,12 @@ class EmployeeCard extends StatelessWidget {
             if (employee.createdAt != null)
               Text(
                 'Created: ${_formatDate(employee.createdAt!)} | Updated: ${_formatDate(employee.updatedAt ?? employee.createdAt!)}',
-                style: TextStyle(
-                  fontSize: 10,
-                  color: Colors.grey[500],
-                ),
+                style: TextStyle(fontSize: 10, color: Colors.grey[500]),
               ),
             if (employee.dateOfJoining != null)
               Text(
                 'Joined: ${_formatDate(employee.dateOfJoining)}',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[600],
-                ),
+                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
               ),
           ],
         ),
@@ -402,10 +395,7 @@ class EmployeeCard extends StatelessWidget {
       ),
       child: Text(
         '$label: $value',
-        style: TextStyle(
-          fontSize: 11,
-          color: Colors.grey[700],
-        ),
+        style: TextStyle(fontSize: 11, color: Colors.grey[700]),
       ),
     );
   }
@@ -419,17 +409,15 @@ class EmployeeBottomSheet extends StatefulWidget {
   final Employee? employee;
   final Future<Employee?> Function(Employee) onSave;
 
-  const EmployeeBottomSheet({
-    Key? key,
-    this.employee,
-    required this.onSave,
-  }) : super(key: key);
+  const EmployeeBottomSheet({Key? key, this.employee, required this.onSave})
+    : super(key: key);
 
   @override
   _EmployeeBottomSheetState createState() => _EmployeeBottomSheetState();
 }
 
-class _EmployeeBottomSheetState extends State<EmployeeBottomSheet> with TickerProviderStateMixin {
+class _EmployeeBottomSheetState extends State<EmployeeBottomSheet>
+    with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   late Employee _employee;
   late TabController _tabController;
@@ -438,7 +426,8 @@ class _EmployeeBottomSheetState extends State<EmployeeBottomSheet> with TickerPr
   @override
   void initState() {
     super.initState();
-    _employee = widget.employee ??
+    _employee =
+        widget.employee ??
         Employee(
           id: DateTime.now().millisecondsSinceEpoch.toString(),
           name: '',
@@ -457,57 +446,112 @@ class _EmployeeBottomSheetState extends State<EmployeeBottomSheet> with TickerPr
     _tabController = TabController(length: 4, vsync: this);
   }
 
-  List<Widget> _buildTabs() {
-    return [
-      Tab(text: 'Personal'),
-      Tab(text: 'Company'),
-      Tab(text: 'Bank'),
-      Tab(text: 'Salary'),
-    ];
-  }
-
-  List<Widget> _buildTabViews() {
-    return [
-      _PersonalDetailsStep(
-        employee: _employee,
-        onSaved: (employee) {
-          setState(() {
-            _employee = employee;
-          });
-        },
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      
+      height: MediaQuery.of(context).size.height * 0.85, // Fixed height
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(
+            widget.employee == null ? 'Add Employee' : 'Edit Employee',
+          ),
+          bottom: TabBar(
+            controller: _tabController,
+            isScrollable: true,
+            tabs: [
+              Tab(text: 'Personal'),
+              Tab(text: 'Company'),
+              Tab(text: 'Bank'),
+              Tab(text: 'Salary'),
+            ],
+          ),
+        ),
+        body: Form(
+          key: _formKey,
+          child: TabBarView(
+            controller: _tabController,
+            children: [
+              _PersonalDetailsStep(
+                employee: _employee,
+                onSaved: (employee) {
+                  setState(() {
+                    _employee = employee;
+                  });
+                },
+              ),
+              _CompanyDetailsStep(
+                employee: _employee,
+                onSaved: (employee) {
+                  setState(() {
+                    _employee = employee;
+                  });
+                },
+              ),
+              _BankDetailsStep(
+                employee: _employee,
+                onSaved: (employee) {
+                  setState(() {
+                    _employee = employee;
+                  });
+                },
+              ),
+              _SalaryDetailsStep(
+                employee: _employee,
+                onSaved: (employee) {
+                  setState(() {
+                    _employee = employee;
+                  });
+                },
+              ),
+            ],
+          ),
+        ),
+        bottomNavigationBar: BottomAppBar(
+          child: Padding(
+            padding: const EdgeInsets.all(2.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: Text('Cancel'),
+                    style: OutlinedButton.styleFrom(
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
+                SizedBox(width: 16),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: _isSaving ? null : _saveEmployee,
+                    child: _isSaving
+                        ? SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Text('Save'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue,
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
-      _CompanyDetailsStep(
-        employee: _employee,
-        onSaved: (employee) {
-          setState(() {
-            _employee = employee;
-          });
-        },
-      ),
-      _BankDetailsStep(
-        employee: _employee,
-        onSaved: (employee) {
-          setState(() {
-            _employee = employee;
-          });
-        },
-      ),
-      _SalaryDetailsStep(
-        employee: _employee,
-        onSaved: (employee) {
-          setState(() {
-            _employee = employee;
-          });
-        },
-      ),
-    ];
+    );
   }
 
   Future<void> _saveEmployee() async {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
       setState(() => _isSaving = true);
-      
+
       try {
         final savedEmployee = await widget.onSave(_employee);
         if (savedEmployee != null && context.mounted) {
@@ -515,9 +559,9 @@ class _EmployeeBottomSheetState extends State<EmployeeBottomSheet> with TickerPr
         }
       } catch (e) {
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error saving: $e')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Error saving: $e')));
         }
       } finally {
         if (mounted) {
@@ -525,63 +569,6 @@ class _EmployeeBottomSheetState extends State<EmployeeBottomSheet> with TickerPr
         }
       }
     }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.employee == null ? 'Add Employee' : 'Edit Employee'),
-        bottom: TabBar(
-          controller: _tabController,
-          isScrollable: true,
-          tabs: _buildTabs(),
-        ),
-      ),
-      body: Form(
-        key: _formKey,
-        child: TabBarView(
-          controller: _tabController,
-          children: _buildTabViews(),
-        ),
-      ),
-      bottomNavigationBar: BottomAppBar(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text('Cancel'),
-                  style: OutlinedButton.styleFrom(
-                    padding: EdgeInsets.symmetric(vertical: 12),
-                  ),
-                ),
-              ),
-              SizedBox(width: 16),
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: _isSaving ? null : _saveEmployee,
-                  child: _isSaving
-                      ? SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Text('Save'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    padding: EdgeInsets.symmetric(vertical: 12),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 }
 
@@ -621,13 +608,23 @@ class __PersonalDetailsStepState extends State<_PersonalDetailsStep> {
     _nameController = TextEditingController(text: widget.employee.name);
     _emailController = TextEditingController(text: widget.employee.email);
     _phoneController = TextEditingController(text: widget.employee.phone);
-    _addressController = TextEditingController(text: widget.employee.address ?? '');
+    _addressController = TextEditingController(
+      text: widget.employee.address ?? '',
+    );
     _stateController = TextEditingController(text: widget.employee.state ?? '');
-    _countryController = TextEditingController(text: widget.employee.country ?? 'India');
+    _countryController = TextEditingController(
+      text: widget.employee.country ?? 'India',
+    );
     _cityController = TextEditingController(text: widget.employee.city ?? '');
-    _passportCountryController = TextEditingController(text: widget.employee.passportCountry ?? '');
-    _passportController = TextEditingController(text: widget.employee.passport ?? '');
-    _zipCodeController = TextEditingController(text: widget.employee.zipCode ?? '');
+    _passportCountryController = TextEditingController(
+      text: widget.employee.passportCountry ?? '',
+    );
+    _passportController = TextEditingController(
+      text: widget.employee.passport ?? '',
+    );
+    _zipCodeController = TextEditingController(
+      text: widget.employee.zipCode ?? '',
+    );
 
     _gender = widget.employee.gender;
     _dateOfBirth = widget.employee.dob;
@@ -640,31 +637,61 @@ class __PersonalDetailsStepState extends State<_PersonalDetailsStep> {
       padding: EdgeInsets.all(16),
       child: Column(
         children: [
-          _buildTextField('Full Name*', _nameController, isRequired: true),
-          _buildTextField('Email*', _emailController, isRequired: true, keyboardType: TextInputType.emailAddress),
+          _buildTextField('Full Name', _nameController, isRequired: true),
+          _buildTextField(
+            'Email',
+            _emailController,
+            isRequired: true,
+            keyboardType: TextInputType.emailAddress,
+          ),
           _buildDateField('Date of Birth', _dateOfBirth, (date) {
             setState(() => _dateOfBirth = date);
             _updateEmployee();
           }),
-          _buildTextField('Phone*', _phoneController,
+          _buildTextField(
+            'Phone',
+            _phoneController,
             hint: '+91 1234567890',
             isRequired: true,
             keyboardType: TextInputType.phone,
           ),
           _buildGenderField(),
-          _buildDropdownField('Location Type', ['residential', 'office', 'remote', 'hybrid'], _locationType, (value) {
-            setState(() => _locationType = value!);
-            _updateEmployee();
-          }),
+          _buildDropdownField(
+            'Location Type',
+            ['residential', 'office', 'remote', 'hybrid'],
+            _locationType,
+            (value) {
+              setState(() => _locationType = value!);
+              _updateEmployee();
+            },
+          ),
           _buildTextField('Country', _countryController, hint: 'Enter Country'),
           _buildTextField('State', _stateController, hint: 'Enter State'),
           _buildTextField('City', _cityController, hint: 'Enter City'),
-          _buildTextField('Zip Code', _zipCodeController, hint: 'Enter Zip Code', keyboardType: TextInputType.number),
-          _buildTextField('Address', _addressController, hint: 'Enter complete address', maxLines: 3),
+          _buildTextField(
+            'Zip Code',
+            _zipCodeController,
+            hint: 'Enter Zip Code',
+            keyboardType: TextInputType.number,
+          ),
+          _buildTextField(
+            'Address',
+            _addressController,
+            hint: 'Enter complete address',
+            maxLines: 3,
+          ),
           SizedBox(height: 10),
           _buildSectionHeader('Passport Details'),
-          _buildTextField('Passport Country', _passportCountryController, hint: 'Enter Passport Country'),
-          _buildTextField('Passport Number', _passportController, hint: 'Enter Passport Number'),
+          _buildTextField(
+            'Passport Country',
+            _passportCountryController,
+            hint: 'Enter Passport Country',
+          ),
+          _buildTextField(
+            'Passport Number',
+            _passportController,
+            hint: 'Enter Passport Number',
+          ),
           SizedBox(height: 20),
         ],
       ),
@@ -686,7 +713,9 @@ class __PersonalDetailsStepState extends State<_PersonalDetailsStep> {
     );
   }
 
-  Widget _buildTextField(String label, TextEditingController controller, {
+  Widget _buildTextField(
+    String label,
+    TextEditingController controller, {
     String? hint,
     bool isRequired = false,
     TextInputType keyboardType = TextInputType.text,
@@ -700,22 +729,30 @@ class __PersonalDetailsStepState extends State<_PersonalDetailsStep> {
           labelText: label + (isRequired ? '*' : ''),
           hintText: hint,
           border: OutlineInputBorder(),
-          suffixIcon: isRequired ? Icon(Icons.star, color: Colors.red, size: 10) : null,
+          suffixIcon: isRequired
+              ? Icon(Icons.star, color: Colors.red, size: 10)
+              : null,
         ),
         keyboardType: keyboardType,
         maxLines: maxLines,
-        validator: isRequired ? (value) {
-          if (value == null || value.isEmpty) {
-            return 'This field is required';
-          }
-          return null;
-        } : null,
+        validator: isRequired
+            ? (value) {
+                if (value == null || value.isEmpty) {
+                  return 'This field is required';
+                }
+                return null;
+              }
+            : null,
         onChanged: (value) => _updateEmployee(),
       ),
     );
   }
 
-  Widget _buildDateField(String label, DateTime? date, Function(DateTime?) onDateSelected) {
+  Widget _buildDateField(
+    String label,
+    DateTime? date,
+    Function(DateTime?) onDateSelected,
+  ) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12.0),
       child: InkWell(
@@ -739,7 +776,9 @@ class __PersonalDetailsStepState extends State<_PersonalDetailsStep> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                date != null ? '${date.day}/${date.month}/${date.year}' : 'Select date',
+                date != null
+                    ? '${date.day}/${date.month}/${date.year}'
+                    : 'Select date',
                 style: TextStyle(
                   color: date != null ? Colors.black : Colors.grey,
                 ),
@@ -758,7 +797,10 @@ class __PersonalDetailsStepState extends State<_PersonalDetailsStep> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Gender*', style: TextStyle(fontSize: 16, color: Colors.grey[700])),
+          Text(
+            'Gender',
+            style: TextStyle(fontSize: 16, color: Colors.grey[700]),
+          ),
           Row(
             children: [
               Expanded(
@@ -790,7 +832,12 @@ class __PersonalDetailsStepState extends State<_PersonalDetailsStep> {
     );
   }
 
-  Widget _buildDropdownField(String label, List<String> options, String value, Function(String?) onChanged) {
+  Widget _buildDropdownField(
+    String label,
+    List<String> options,
+    String value,
+    Function(String?) onChanged,
+  ) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12.0),
       child: DropdownButtonFormField<String>(
@@ -800,10 +847,7 @@ class __PersonalDetailsStepState extends State<_PersonalDetailsStep> {
         ),
         value: value,
         items: options.map((String value) {
-          return DropdownMenuItem<String>(
-            value: value,
-            child: Text(value),
-          );
+          return DropdownMenuItem<String>(value: value, child: Text(value));
         }).toList(),
         onChanged: onChanged,
       ),
@@ -811,21 +855,23 @@ class __PersonalDetailsStepState extends State<_PersonalDetailsStep> {
   }
 
   void _updateEmployee() {
-    widget.onSaved(widget.employee.copyWith(
-      name: _nameController.text,
-      email: _emailController.text,
-      phone: _phoneController.text,
-      gender: _gender,
-      dob: _dateOfBirth,
-      address: _addressController.text,
-      state: _stateController.text,
-      country: _countryController.text,
-      city: _cityController.text,
-      passportCountry: _passportCountryController.text,
-      passport: _passportController.text,
-      zipCode: _zipCodeController.text,
-      locationType: _locationType,
-    ));
+    widget.onSaved(
+      widget.employee.copyWith(
+        name: _nameController.text,
+        email: _emailController.text,
+        phone: _phoneController.text,
+        gender: _gender,
+        dob: _dateOfBirth,
+        address: _addressController.text,
+        state: _stateController.text,
+        country: _countryController.text,
+        city: _cityController.text,
+        passportCountry: _passportCountryController.text,
+        passport: _passportController.text,
+        zipCode: _zipCodeController.text,
+        locationType: _locationType,
+      ),
+    );
   }
 
   @override
@@ -870,13 +916,46 @@ class __CompanyDetailsStepState extends State<_CompanyDetailsStep> {
   @override
   void initState() {
     super.initState();
-    _employeeIdController = TextEditingController(text: widget.employee.employeeId ?? '');
-    _documentController = TextEditingController(text: widget.employee.document ?? '');
-    
-    _selectedBranch = widget.employee.branch.isNotEmpty ? widget.employee.branch : 'Main Branch';
-    _selectedDesignation = widget.employee.designation.isNotEmpty ? widget.employee.designation : 'Software Developer';
-    _selectedDepartment = widget.employee.department.isNotEmpty ? widget.employee.department : 'IT';
-    _dateOfJoining = widget.employee.companyDof ?? widget.employee.dateOfJoining;
+    _employeeIdController = TextEditingController(
+      text: widget.employee.employeeId ?? '',
+    );
+    _documentController = TextEditingController(
+      text: widget.employee.document ?? '',
+    );
+
+    // Define valid options
+    final validBranches = [
+      'Main Branch',
+      'North Branch',
+      'South Branch',
+      'East Branch',
+    ];
+    final validDepartments = ['IT', 'HR', 'Finance', 'Marketing', 'Operations'];
+    final validDesignations = [
+      'Software Developer',
+      'HR Manager',
+      'Project Manager',
+      'Designer',
+      'QA Engineer',
+    ];
+
+    _selectedBranch =
+        (widget.employee.branch.isNotEmpty &&
+            validBranches.contains(widget.employee.branch))
+        ? widget.employee.branch
+        : 'Main Branch';
+    _selectedDesignation =
+        (widget.employee.designation.isNotEmpty &&
+            validDesignations.contains(widget.employee.designation))
+        ? widget.employee.designation
+        : 'Software Developer';
+    _selectedDepartment =
+        (widget.employee.department.isNotEmpty &&
+            validDepartments.contains(widget.employee.department))
+        ? widget.employee.department
+        : 'IT';
+    _dateOfJoining =
+        widget.employee.companyDof ?? widget.employee.dateOfJoining;
   }
 
   @override
@@ -886,33 +965,71 @@ class __CompanyDetailsStepState extends State<_CompanyDetailsStep> {
       child: Column(
         children: [
           _buildTextField('Employee ID', _employeeIdController, hint: 'EMP001'),
-          _buildDropdownField('Branch*', ['Main Branch', 'North Branch', 'South Branch', 'East Branch'], _selectedBranch, (value) {
-            setState(() => _selectedBranch = value!);
-            _updateEmployee();
-          }, isRequired: true),
-          _buildDropdownField('Department*', ['IT', 'HR', 'Finance', 'Marketing', 'Operations'], _selectedDepartment, (value) {
-            setState(() => _selectedDepartment = value!);
-            _updateEmployee();
-          }, isRequired: true),
-          _buildDropdownField('Designation*', ['Software Developer', 'HR Manager', 'Project Manager', 'Designer', 'QA Engineer'], _selectedDesignation, (value) {
-            setState(() => _selectedDesignation = value!);
-            _updateEmployee();
-          }, isRequired: true),
+          _buildDropdownField(
+            'Branch*',
+            ['Main Branch', 'North Branch', 'South Branch', 'East Branch'],
+            _selectedBranch,
+            (value) {
+              setState(() => _selectedBranch = value!);
+              _updateEmployee();
+            },
+            isRequired: true,
+          ),
+          _buildDropdownField(
+            'Department*',
+            ['IT', 'HR', 'Finance', 'Marketing', 'Operations'],
+            _selectedDepartment,
+            (value) {
+              setState(() => _selectedDepartment = value!);
+              _updateEmployee();
+            },
+            isRequired: true,
+          ),
+          _buildDropdownField(
+            'Designation*',
+            [
+              'Software Developer',
+              'HR Manager',
+              'Project Manager',
+              'Designer',
+              'QA Engineer',
+            ],
+            _selectedDesignation,
+            (value) {
+              setState(() => _selectedDesignation = value!);
+              _updateEmployee();
+            },
+            isRequired: true,
+          ),
           _buildDateField('Date of Joining*', _dateOfJoining, (date) {
             setState(() => _dateOfJoining = date);
             _updateEmployee();
           }, isRequired: true),
-          _buildTextField('Documents', _documentController, hint: 'Comma separated document IDs'),
-          _buildDropdownField('Status', ['Active', 'Inactive'], widget.employee.isActive == 1 ? 'Active' : 'Inactive', (value) {
-            _updateEmployee();
-          }),
+          _buildTextField(
+            'Documents',
+            _documentController,
+            hint: 'Comma separated document IDs',
+          ),
+          _buildDropdownField(
+            'Status',
+            ['Active', 'Inactive'],
+            widget.employee.isActive == 1 ? 'Active' : 'Inactive',
+            (value) {
+              _updateEmployee();
+            },
+          ),
           SizedBox(height: 20),
         ],
       ),
     );
   }
 
-  Widget _buildTextField(String label, TextEditingController controller, {String? hint, bool isRequired = false}) {
+  Widget _buildTextField(
+    String label,
+    TextEditingController controller, {
+    String? hint,
+    bool isRequired = false,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12.0),
       child: TextFormField(
@@ -927,7 +1044,12 @@ class __CompanyDetailsStepState extends State<_CompanyDetailsStep> {
     );
   }
 
-  Widget _buildDateField(String label, DateTime? date, Function(DateTime?) onDateSelected, {bool isRequired = false}) {
+  Widget _buildDateField(
+    String label,
+    DateTime? date,
+    Function(DateTime?) onDateSelected, {
+    bool isRequired = false,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12.0),
       child: InkWell(
@@ -951,7 +1073,9 @@ class __CompanyDetailsStepState extends State<_CompanyDetailsStep> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                date != null ? '${date.day}/${date.month}/${date.year}' : 'Select date',
+                date != null
+                    ? '${date.day}/${date.month}/${date.year}'
+                    : 'Select date',
                 style: TextStyle(
                   color: date != null ? Colors.black : Colors.grey,
                 ),
@@ -964,7 +1088,13 @@ class __CompanyDetailsStepState extends State<_CompanyDetailsStep> {
     );
   }
 
-  Widget _buildDropdownField(String label, List<String> options, String value, Function(String?) onChanged, {bool isRequired = false}) {
+  Widget _buildDropdownField(
+    String label,
+    List<String> options,
+    String value,
+    Function(String?) onChanged, {
+    bool isRequired = false,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12.0),
       child: DropdownButtonFormField<String>(
@@ -974,10 +1104,7 @@ class __CompanyDetailsStepState extends State<_CompanyDetailsStep> {
         ),
         value: value,
         items: options.map((String option) {
-          return DropdownMenuItem<String>(
-            value: option,
-            child: Text(option),
-          );
+          return DropdownMenuItem<String>(value: option, child: Text(option));
         }).toList(),
         onChanged: (value) {
           onChanged(value);
@@ -988,15 +1115,17 @@ class __CompanyDetailsStepState extends State<_CompanyDetailsStep> {
   }
 
   void _updateEmployee() {
-    widget.onSaved(widget.employee.copyWith(
-      employeeId: _employeeIdController.text,
-      branch: _selectedBranch,
-      department: _selectedDepartment,
-      designation: _selectedDesignation,
-      companyDof: _dateOfJoining,
-      document: _documentController.text,
-      isActive: _selectedBranch.contains('Active') ? 1 : 0,
-    ));
+    widget.onSaved(
+      widget.employee.copyWith(
+        employeeId: _employeeIdController.text,
+        branch: _selectedBranch,
+        department: _selectedDepartment,
+        designation: _selectedDesignation,
+        companyDof: _dateOfJoining,
+        document: _documentController.text,
+        isActive: _selectedBranch.contains('Active') ? 1 : 0,
+      ),
+    );
   }
 
   @override
@@ -1034,13 +1163,25 @@ class __BankDetailsStepState extends State<_BankDetailsStep> {
   @override
   void initState() {
     super.initState();
-    _accountHolderNameController = TextEditingController(text: widget.employee.accountHolderName ?? '');
-    _accountNumberController = TextEditingController(text: widget.employee.accountNumber ?? '');
-    _bankNameController = TextEditingController(text: widget.employee.bankName ?? '');
-    _bankIdentifierCodeController = TextEditingController(text: widget.employee.bankIdentifierCode ?? '');
-    _branchLocationController = TextEditingController(text: widget.employee.branchLocation ?? '');
-    _taxPayerIdController = TextEditingController(text: widget.employee.taxPayerId ?? '');
-    
+    _accountHolderNameController = TextEditingController(
+      text: widget.employee.accountHolderName ?? '',
+    );
+    _accountNumberController = TextEditingController(
+      text: widget.employee.accountNumber ?? '',
+    );
+    _bankNameController = TextEditingController(
+      text: widget.employee.bankName ?? '',
+    );
+    _bankIdentifierCodeController = TextEditingController(
+      text: widget.employee.bankIdentifierCode ?? '',
+    );
+    _branchLocationController = TextEditingController(
+      text: widget.employee.branchLocation ?? '',
+    );
+    _taxPayerIdController = TextEditingController(
+      text: widget.employee.taxPayerId ?? '',
+    );
+
     _accountType = widget.employee.accountType ?? 'Savings';
   }
 
@@ -1050,14 +1191,31 @@ class __BankDetailsStepState extends State<_BankDetailsStep> {
       padding: EdgeInsets.all(16),
       child: Column(
         children: [
-          _buildTextField('Account Holder Name*', _accountHolderNameController, isRequired: true),
-          _buildTextField('Account Number*', _accountNumberController, isRequired: true, keyboardType: TextInputType.number),
+          _buildTextField(
+            'Account Holder Name*',
+            _accountHolderNameController,
+            isRequired: true,
+          ),
+          _buildTextField(
+            'Account Number*',
+            _accountNumberController,
+            isRequired: true,
+            keyboardType: TextInputType.number,
+          ),
           _buildTextField('Bank Name*', _bankNameController, isRequired: true),
-          _buildDropdownField('Account Type', ['Savings', 'Current', 'Salary'], _accountType, (value) {
-            setState(() => _accountType = value!);
-            _updateEmployee();
-          }),
-          _buildTextField('Bank Identifier Code (BIC)', _bankIdentifierCodeController),
+          _buildDropdownField(
+            'Account Type',
+            ['Savings', 'Current', 'Salary'],
+            _accountType,
+            (value) {
+              setState(() => _accountType = value!);
+              _updateEmployee();
+            },
+          ),
+          _buildTextField(
+            'Bank Identifier Code (BIC)',
+            _bankIdentifierCodeController,
+          ),
           _buildTextField('Branch Location', _branchLocationController),
           _buildTextField('Tax Payer ID', _taxPayerIdController),
           SizedBox(height: 20),
@@ -1066,7 +1224,9 @@ class __BankDetailsStepState extends State<_BankDetailsStep> {
     );
   }
 
-  Widget _buildTextField(String label, TextEditingController controller, {
+  Widget _buildTextField(
+    String label,
+    TextEditingController controller, {
     bool isRequired = false,
     TextInputType keyboardType = TextInputType.text,
   }) {
@@ -1084,7 +1244,12 @@ class __BankDetailsStepState extends State<_BankDetailsStep> {
     );
   }
 
-  Widget _buildDropdownField(String label, List<String> options, String value, Function(String?) onChanged) {
+  Widget _buildDropdownField(
+    String label,
+    List<String> options,
+    String value,
+    Function(String?) onChanged,
+  ) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12.0),
       child: DropdownButtonFormField<String>(
@@ -1094,10 +1259,7 @@ class __BankDetailsStepState extends State<_BankDetailsStep> {
         ),
         value: value,
         items: options.map((String value) {
-          return DropdownMenuItem<String>(
-            value: value,
-            child: Text(value),
-          );
+          return DropdownMenuItem<String>(value: value, child: Text(value));
         }).toList(),
         onChanged: onChanged,
       ),
@@ -1105,15 +1267,17 @@ class __BankDetailsStepState extends State<_BankDetailsStep> {
   }
 
   void _updateEmployee() {
-    widget.onSaved(widget.employee.copyWith(
-      accountHolderName: _accountHolderNameController.text,
-      accountNumber: _accountNumberController.text,
-      bankName: _bankNameController.text,
-      accountType: _accountType,
-      bankIdentifierCode: _bankIdentifierCodeController.text,
-      branchLocation: _branchLocationController.text,
-      taxPayerId: _taxPayerIdController.text,
-    ));
+    widget.onSaved(
+      widget.employee.copyWith(
+        accountHolderName: _accountHolderNameController.text,
+        accountNumber: _accountNumberController.text,
+        bankName: _bankNameController.text,
+        accountType: _accountType,
+        bankIdentifierCode: _bankIdentifierCodeController.text,
+        branchLocation: _branchLocationController.text,
+        taxPayerId: _taxPayerIdController.text,
+      ),
+    );
   }
 
   @override
@@ -1160,19 +1324,40 @@ class __SalaryDetailsStepState extends State<_SalaryDetailsStep> {
   @override
   void initState() {
     super.initState();
-    _hoursPerDayController = TextEditingController(text: widget.employee.hoursPerDay ?? '');
-    _annualSalaryController = TextEditingController(text: widget.employee.annualSalary ?? '');
-    _daysPerWeekController = TextEditingController(text: widget.employee.daysPerWeek ?? '');
-    _fixedSalaryController = TextEditingController(text: widget.employee.fixedSalary ?? '');
-    _hoursPerMonthController = TextEditingController(text: widget.employee.hoursPerMonth ?? '');
-    _ratePerDayController = TextEditingController(text: widget.employee.ratePerDay ?? '');
-    _daysPerMonthController = TextEditingController(text: widget.employee.daysPerMonth ?? '');
-    _ratePerHourController = TextEditingController(text: widget.employee.ratePerHour ?? '');
-    _salaryController = TextEditingController(text: widget.employee.salary ?? '');
-    _providentFundNoController = TextEditingController(text: widget.employee.providentFundNo ?? '');
-    
+    _hoursPerDayController = TextEditingController(
+      text: widget.employee.hoursPerDay ?? '',
+    );
+    _annualSalaryController = TextEditingController(
+      text: widget.employee.annualSalary ?? '',
+    );
+    _daysPerWeekController = TextEditingController(
+      text: widget.employee.daysPerWeek ?? '',
+    );
+    _fixedSalaryController = TextEditingController(
+      text: widget.employee.fixedSalary ?? '',
+    );
+    _hoursPerMonthController = TextEditingController(
+      text: widget.employee.hoursPerMonth ?? '',
+    );
+    _ratePerDayController = TextEditingController(
+      text: widget.employee.ratePerDay ?? '',
+    );
+    _daysPerMonthController = TextEditingController(
+      text: widget.employee.daysPerMonth ?? '',
+    );
+    _ratePerHourController = TextEditingController(
+      text: widget.employee.ratePerHour ?? '',
+    );
+    _salaryController = TextEditingController(
+      text: widget.employee.salary ?? '',
+    );
+    _providentFundNoController = TextEditingController(
+      text: widget.employee.providentFundNo ?? '',
+    );
+
     _salaryType = widget.employee.salaryType ?? 'Monthly';
-    _paymentRequiresWorkAdvice = widget.employee.paymentRequiresWorkAdvice == 'on';
+    _paymentRequiresWorkAdvice =
+        widget.employee.paymentRequiresWorkAdvice == 'on';
   }
 
   @override
@@ -1181,33 +1366,50 @@ class __SalaryDetailsStepState extends State<_SalaryDetailsStep> {
       padding: EdgeInsets.all(16),
       child: Column(
         children: [
-          _buildDropdownField('Salary Type', ['Monthly', 'Hourly', 'Weekly', 'Bi-weekly', 'Annual'], _salaryType, (value) {
-            setState(() => _salaryType = value!);
-            _updateEmployee();
-          }),
+          _buildDropdownField(
+            'Salary Type',
+            ['Monthly', 'Hourly', 'Weekly', 'Bi-weekly', 'Annual'],
+            _salaryType,
+            (value) {
+              setState(() => _salaryType = value!);
+              _updateEmployee();
+            },
+          ),
           SizedBox(height: 20),
-          
+
           _buildSectionHeader('Working Hours'),
           _buildNumberField('Hours Per Day', _hoursPerDayController),
           _buildNumberField('Days Per Week', _daysPerWeekController),
           _buildNumberField('Hours Per Month', _hoursPerMonthController),
           _buildNumberField('Days Per Month', _daysPerMonthController),
-          
+
           SizedBox(height: 20),
           _buildSectionHeader('Salary Details'),
           _buildNumberField('Salary', _salaryController, prefix: '₹'),
-          _buildNumberField('Annual Salary', _annualSalaryController, prefix: '₹'),
-          _buildNumberField('Fixed Salary', _fixedSalaryController, prefix: '₹'),
-          
+          _buildNumberField(
+            'Annual Salary',
+            _annualSalaryController,
+            prefix: '₹',
+          ),
+          _buildNumberField(
+            'Fixed Salary',
+            _fixedSalaryController,
+            prefix: '₹',
+          ),
+
           SizedBox(height: 20),
           _buildSectionHeader('Rate Details'),
-          _buildNumberField('Rate Per Hour', _ratePerHourController, prefix: '₹'),
+          _buildNumberField(
+            'Rate Per Hour',
+            _ratePerHourController,
+            prefix: '₹',
+          ),
           _buildNumberField('Rate Per Day', _ratePerDayController, prefix: '₹'),
-          
+
           SizedBox(height: 20),
           _buildSectionHeader('Additional Details'),
           _buildTextField('Provident Fund No.', _providentFundNoController),
-          
+
           CheckboxListTile(
             title: Text('Payment requires work advice'),
             value: _paymentRequiresWorkAdvice,
@@ -1216,7 +1418,7 @@ class __SalaryDetailsStepState extends State<_SalaryDetailsStep> {
               _updateEmployee();
             },
           ),
-          
+
           SizedBox(height: 20),
         ],
       ),
@@ -1252,7 +1454,11 @@ class __SalaryDetailsStepState extends State<_SalaryDetailsStep> {
     );
   }
 
-  Widget _buildNumberField(String label, TextEditingController controller, {String? prefix}) {
+  Widget _buildNumberField(
+    String label,
+    TextEditingController controller, {
+    String? prefix,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12.0),
       child: TextFormField(
@@ -1268,7 +1474,12 @@ class __SalaryDetailsStepState extends State<_SalaryDetailsStep> {
     );
   }
 
-  Widget _buildDropdownField(String label, List<String> options, String value, Function(String?) onChanged) {
+  Widget _buildDropdownField(
+    String label,
+    List<String> options,
+    String value,
+    Function(String?) onChanged,
+  ) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12.0),
       child: DropdownButtonFormField<String>(
@@ -1278,10 +1489,7 @@ class __SalaryDetailsStepState extends State<_SalaryDetailsStep> {
         ),
         value: value,
         items: options.map((String value) {
-          return DropdownMenuItem<String>(
-            value: value,
-            child: Text(value),
-          );
+          return DropdownMenuItem<String>(value: value, child: Text(value));
         }).toList(),
         onChanged: onChanged,
       ),
@@ -1289,20 +1497,22 @@ class __SalaryDetailsStepState extends State<_SalaryDetailsStep> {
   }
 
   void _updateEmployee() {
-    widget.onSaved(widget.employee.copyWith(
-      hoursPerDay: _hoursPerDayController.text,
-      annualSalary: _annualSalaryController.text,
-      daysPerWeek: _daysPerWeekController.text,
-      fixedSalary: _fixedSalaryController.text,
-      hoursPerMonth: _hoursPerMonthController.text,
-      ratePerDay: _ratePerDayController.text,
-      daysPerMonth: _daysPerMonthController.text,
-      ratePerHour: _ratePerHourController.text,
-      salary: _salaryController.text,
-      salaryType: _salaryType,
-      providentFundNo: _providentFundNoController.text,
-      paymentRequiresWorkAdvice: _paymentRequiresWorkAdvice ? 'on' : 'off',
-    ));
+    widget.onSaved(
+      widget.employee.copyWith(
+        hoursPerDay: _hoursPerDayController.text,
+        annualSalary: _annualSalaryController.text,
+        daysPerWeek: _daysPerWeekController.text,
+        fixedSalary: _fixedSalaryController.text,
+        hoursPerMonth: _hoursPerMonthController.text,
+        ratePerDay: _ratePerDayController.text,
+        daysPerMonth: _daysPerMonthController.text,
+        ratePerHour: _ratePerHourController.text,
+        salary: _salaryController.text,
+        salaryType: _salaryType,
+        providentFundNo: _providentFundNoController.text,
+        paymentRequiresWorkAdvice: _paymentRequiresWorkAdvice ? 'on' : 'off',
+      ),
+    );
   }
 
   @override

@@ -10,7 +10,6 @@ import 'package:flutter/material.dart';
 import 'mancount.dart';
 import 'paymentreq.dart';
 
-
 class MoreScreen extends StatefulWidget {
   final String? selectedSiteId;
   final Function(String) onSiteChanged;
@@ -70,6 +69,17 @@ class _MoreScreenState extends State<MoreScreen> {
       ),
     },
     {
+      'title': 'All Suppliers',
+      'icon': FontAwesomeIcons.handshake,
+      'color': Colors.brown[50]!,
+      'accentColor': const Color.fromARGB(255, 187, 74, 54),
+      'builder': () => SupplierLedger(
+        selectedSiteId: _selectedSiteId,
+        onSiteChanged: widget.onSiteChanged,
+        sites: widget.sites,
+      ),
+    },
+    {
       'title': 'Attendance',
       'icon': Icons.check_circle_rounded,
       'color': Colors.green[50]!,
@@ -92,16 +102,24 @@ class _MoreScreenState extends State<MoreScreen> {
       'icon': FontAwesomeIcons.creditCard,
       'color': Colors.lightBlue[50]!,
       'accentColor': Colors.lightBlue[700]!,
-      'builder': () => PaymentsDetailScreen(selectedSiteId: _selectedSiteId, onSiteChanged: widget.onSiteChanged, sites: widget.sites)
+      'builder': () => PaymentsDetailScreen(
+        selectedSiteId: _selectedSiteId,
+        onSiteChanged: widget.onSiteChanged,
+        sites: widget.sites,
+      ),
     },
     {
       'title': 'Manpower',
       'icon': Icons.groups_rounded,
       'color': const Color.fromARGB(255, 253, 231, 255)!,
       'accentColor': const Color.fromARGB(255, 177, 73, 190),
-      'builder': () => ManpowerCountScreen(selectedSiteId: _selectedSiteId, onSiteChanged: widget.onSiteChanged, sites: widget.sites)
+      'builder': () => ManpowerCountScreen(
+        selectedSiteId: _selectedSiteId,
+        onSiteChanged: widget.onSiteChanged,
+        sites: widget.sites,
+      ),
     },
-    // 
+    //
     //   'title': 'Inspection',
     //   'icon': Icons.insert_page_break_rounded,
     //   'color': Colors.pink[50]!,
@@ -128,23 +146,23 @@ class _MoreScreenState extends State<MoreScreen> {
       'builder': () => DocumentStorageScreen(
         selectedSiteId: _selectedSiteId,
         onSiteChanged: widget.onSiteChanged,
-        sites: widget.sites, 
-        siteId: '', 
+        sites: widget.sites,
+        siteId: '',
         siteName: '',
       ),
     },
-    {
-      'title': 'Supplier Ledger',
-      'icon': FontAwesomeIcons.handshake,
-      'color': Colors.brown[50]!,
-      'accentColor': const Color.fromARGB(255, 187, 74, 54),
-      'builder': () => SupplierLedger(
-        selectedSiteId: _selectedSiteId,
-        onSiteChanged: widget.onSiteChanged,
-        sites: widget.sites,
-      ),
-    }
+    
   ];
+  String _getCurrentSiteName() {
+    if (widget.selectedSiteId == null) {
+      return 'All Sites';
+    }
+    final site = widget.sites.firstWhere(
+      (site) => site.id == widget.selectedSiteId,
+      orElse: () => Site(id: '', name: 'Unknown Site', companyId: ''),
+    );
+    return site.name;
+  }
 
   void _showSiteSelectorBottomSheet() {
     setState(() {
@@ -214,8 +232,8 @@ class _MoreScreenState extends State<MoreScreen> {
                         if (_searchQueryForSites != null &&
                             _searchQueryForSites!.isNotEmpty &&
                             !site.name.toLowerCase().contains(
-                                  _searchQueryForSites!.toLowerCase(),
-                                )) {
+                              _searchQueryForSites!.toLowerCase(),
+                            )) {
                           return const SizedBox.shrink();
                         }
                         return ListTile(
@@ -258,45 +276,21 @@ class _MoreScreenState extends State<MoreScreen> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            GestureDetector(
-              onTap: widget.sites.isEmpty ? null : _showSiteSelectorBottomSheet,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    widget.sites.isEmpty
-                        ? 'No Sites'
-                        : (_selectedSiteId.isEmpty
-                            ? 'All Sites'
-                            : widget.sites
-                                .firstWhere(
-                                  (site) => site.id == _selectedSiteId,
-                                  orElse: () => Site(
-                                    id: '',
-                                    name: 'Unknown Site',
-                                    companyId: '',
-                                  ),
-                                )
-                                .name),
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w500,
-                      fontSize: 22.sp,
-                    ),
-                  ),
-                  if (widget.sites.isNotEmpty) SizedBox(width: 8),
-                  if (widget.sites.isNotEmpty)
-                    Icon(Icons.keyboard_arrow_down, color: Colors.white),
-                ],
-              ),
-            ),
-            SizedBox(height: 4),
             Text(
               'Construction Hub',
               style: TextStyle(
-                color: Colors.white70,
+                color: Colors.white,
+                fontSize: 19,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            SizedBox(height: 3),
+            Text(
+              _getCurrentSiteName(),
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.9),
+                fontSize: 16,
                 fontWeight: FontWeight.w400,
-                fontSize: 16.sp,
               ),
             ),
           ],
@@ -308,14 +302,14 @@ class _MoreScreenState extends State<MoreScreen> {
         flexibleSpace: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Color(0xFF4a63c0),
-                    Color(0xFF3a53b0),
-                    Color.fromARGB(255, 42, 67, 160),
-                  ],
-                ),
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Color(0xFF4a63c0),
+                Color(0xFF3a53b0),
+                Color.fromARGB(255, 42, 67, 160),
+              ],
+            ),
             borderRadius: BorderRadius.vertical(bottom: Radius.circular(25)),
           ),
         ),
@@ -326,7 +320,7 @@ class _MoreScreenState extends State<MoreScreen> {
           final screenWidth = constraints.maxWidth;
           int crossAxisCount;
           double childAspectRatio;
-          
+
           if (screenWidth < 600) {
             // Small screens (phones)
             crossAxisCount = 3;
@@ -340,11 +334,10 @@ class _MoreScreenState extends State<MoreScreen> {
             crossAxisCount = 5;
             childAspectRatio = 0.95;
           }
-          
+
           return ListView(
             padding: EdgeInsets.all(16),
             children: [
-              
               Text(
                 'Management Modules',
                 style: TextStyle(
@@ -375,14 +368,12 @@ class _MoreScreenState extends State<MoreScreen> {
     );
   }
 
- 
-
   Widget _buildModuleCard(Map<String, dynamic> module) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final iconSize = constraints.maxWidth * 0.3;
         final fontSize = constraints.maxWidth * 0.09;
-        
+
         return GestureDetector(
           onTap: () {
             Navigator.push(
@@ -392,8 +383,8 @@ class _MoreScreenState extends State<MoreScreen> {
           },
           child: Container(
             padding: EdgeInsets.symmetric(
-              horizontal: constraints.maxWidth * 0.05, 
-              vertical: constraints.maxHeight * 0.05
+              horizontal: constraints.maxWidth * 0.05,
+              vertical: constraints.maxHeight * 0.05,
             ),
             decoration: BoxDecoration(
               color: Colors.white,
@@ -437,7 +428,10 @@ class _MoreScreenState extends State<MoreScreen> {
                 ),
                 SizedBox(height: constraints.maxHeight * 0.03),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: module['color'],
                     borderRadius: BorderRadius.circular(12),
@@ -459,8 +453,6 @@ class _MoreScreenState extends State<MoreScreen> {
     );
   }
 }
-
-
 
 // Extension to clamp values
 extension Clamp on double {

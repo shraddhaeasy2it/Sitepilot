@@ -969,27 +969,27 @@ class _ToolsScreenState extends State<ToolsScreen> {
         elevation: 0,
         toolbarHeight: 80.h,
         backgroundColor: Colors.transparent,
-        title: RichText(
-          text: TextSpan(
-            children: [
-              const TextSpan(
-                text: 'Assets/Tools - ',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                ),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Assets Management',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 19,
+                fontWeight: FontWeight.w600,
               ),
-              TextSpan(
-                text: _getCurrentSiteName(),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w400,
-                ),
+            ),
+            SizedBox(height: 3),
+            Text(
+              _getCurrentSiteName(),
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.9),
+                fontSize: 16,
+                fontWeight: FontWeight.w400,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
         iconTheme: const IconThemeData(color: Colors.white),
         flexibleSpace: ClipRRect(

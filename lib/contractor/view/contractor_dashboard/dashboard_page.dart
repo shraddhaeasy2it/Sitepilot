@@ -1,7 +1,7 @@
 import 'package:ecoteam_app/admin/Screens/Dashboard/HRM_dashboard.dart';
 import 'package:ecoteam_app/admin/Screens/Master/Material/all_material_page.dart'
     hide AdminColors;
-import 'package:ecoteam_app/admin/Screens/Master/Assets/Allmachinery_screen.dart';
+import 'package:ecoteam_app/admin/Screens/Master/Assets/Allmachinery_screen.dart' hide Site;
 import 'package:ecoteam_app/admin/Screens/Payment/payment.dart';
 import 'package:ecoteam_app/admin/Screens/Transaction/consumptionLog_screen.dart';
 import 'package:ecoteam_app/admin/Screens/HRM/employee_screen.dart';
@@ -572,6 +572,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       backgroundColor: Colors.white,
       appBar: _currentIndex == 0
           ? AppBar(
+            
               iconTheme: const IconThemeData(color: Colors.white),
               toolbarHeight: 80.h,
               elevation: 0,
@@ -607,47 +608,39 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     Text(
                       widget.companyName!,
                       style: TextStyle(
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.w500,
+                        fontSize: 19.sp,
+                        fontWeight: FontWeight.w600,
                         color: Color.fromARGB(239, 255, 255, 255),
                       ),
                     ),
                   const SizedBox(height: 3),
-                  GestureDetector(
-                    onTap: _sites.isEmpty ? null : _showSiteSelectorBottomSheet,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          _sites.isEmpty
-                              ? 'No Sites'
-                              : (_selectedSiteId == null
-                                    ? 'Select Site'
-                                    : _sites
-                                          .firstWhere(
-                                            (site) =>
-                                                site.id == _selectedSiteId,
-                                            orElse: () => Site(
-                                              id: '',
-                                              name: 'Unknown Site',
-                                              companyId: '',
-                                            ),
-                                          )
-                                          .name),
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 20.sp,
-                            fontWeight: FontWeight.w400,
-                          ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        _sites.isEmpty
+                            ? 'No Sites'
+                            : (_selectedSiteId == null
+                                  ? 'Select Site'
+                                  : _sites
+                                        .firstWhere(
+                                          (site) =>
+                                              site.id == _selectedSiteId,
+                                          orElse: () => Site(
+                                            id: '',
+                                            name: 'Unknown Site',
+                                            companyId: '',
+                                          ),
+                                        )
+                                        .name),
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.w400,
                         ),
-                        if (_sites.isNotEmpty) const SizedBox(width: 8),
-                        if (_sites.isNotEmpty)
-                          const Icon(
-                            Icons.keyboard_arrow_down_outlined,
-                            color: Colors.white,
-                          ),
-                      ],
-                    ),
+                      ),
+                      
+                    ],
                   ),
                 ],
               ),
@@ -1140,12 +1133,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                      icon: Icons.radio_button_checked,
                       title: 'Employee',
                       onTap: () {
-                        // Navigator.push(
-                        //   context,
-                        //   MaterialPageRoute(
-                        //     builder: (context) => EmployeePage(),
-                        //   ),
-                        // );
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => EmployeePage(),
+                          ),
+                        );
                       },
                     ),
                     _buildExpandableSubDrawerItem(

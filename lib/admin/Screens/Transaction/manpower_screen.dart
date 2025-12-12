@@ -18,12 +18,11 @@ class _ManpowerPageState extends State<ManpowerPage> {
   bool _isLoading = true;
   String _errorMessage = '';
   DropdownData? _dropdownData;
-
+ 
   @override
   void initState() {
     super.initState();
     _loadInitialData();
-    _filteredRecords = _records;
     _searchController.addListener(_filterRecords);
   }
 
@@ -34,8 +33,20 @@ class _ManpowerPageState extends State<ManpowerPage> {
     });
 
     try {
+      print('Loading dropdown data...');
+      
       // Load dropdown data first
       _dropdownData = await _manpowerService.getDropdownData();
+      
+      // Check if we got any data
+      if (_dropdownData!.manpowerTypes.isEmpty && 
+          _dropdownData!.suppliers.isEmpty && 
+          _dropdownData!.sites.isEmpty) {
+        print('Warning: Empty dropdown data received');
+        _showErrorSnackbar('No dropdown data available. Using default values.');
+      } else {
+        print('Dropdown data loaded successfully');
+      }
 
       // Then load manpower records
       await _loadManpowerRecords();
@@ -44,8 +55,9 @@ class _ManpowerPageState extends State<ManpowerPage> {
         _isLoading = false;
       });
     } catch (e) {
+      print('Error in _loadInitialData: $e');
       setState(() {
-        _errorMessage = e.toString();
+        _errorMessage = 'Failed to load data: $e';
         _isLoading = false;
       });
       _showErrorSnackbar('Failed to load data: $e');
@@ -58,10 +70,27 @@ class _ManpowerPageState extends State<ManpowerPage> {
       setState(() {
         _records.clear();
         _records.addAll(records);
-        _filteredRecords = _records;
+        _filteredRecords = List.from(_records);
       });
     } catch (e) {
-      throw Exception('Failed to load records: $e');
+      print('Error loading main records: $e');
+      // Try with specific site and workspace if available
+      try {
+        final records = await _manpowerService.getManpowerRecordsBySiteAndWorkspace(2, 3);
+        setState(() {
+          _records.clear();
+          _records.addAll(records);
+          _filteredRecords = List.from(_records);
+        });
+      } catch (e2) {
+        print('Error loading fallback records: $e2');
+        // If both fail, show empty state but don't crash
+        setState(() {
+          _records.clear();
+          _filteredRecords = [];
+        });
+        _showErrorSnackbar('Could not load records. Please try again.');
+      }
     }
   }
 
@@ -69,7 +98,7 @@ class _ManpowerPageState extends State<ManpowerPage> {
     final query = _searchController.text.toLowerCase();
     setState(() {
       if (query.isEmpty) {
-        _filteredRecords = _records;
+        _filteredRecords = List.from(_records);
       } else {
         _filteredRecords = _records.where((record) {
           return record.workDate.toLowerCase().contains(query) ||
@@ -81,6 +110,7 @@ class _ManpowerPageState extends State<ManpowerPage> {
       }
     });
   }
+
 
   Future<void> _refreshData() async {
     await _loadInitialData();
@@ -524,7 +554,6 @@ class _ManpowerCard extends StatelessWidget {
     }
   }
 }
-
 class ManpowerBottomSheet extends StatefulWidget {
   final ManpowerRecord? record;
   final DropdownData dropdownData;
@@ -570,8 +599,15 @@ class _ManpowerBottomSheetState extends State<ManpowerBottomSheet> {
 
     _manpowerTypeController = TextEditingController();
 
-    _selectedSupplierId = record?.supplierId;
-    _selectedSiteId = record?.siteId;
+    // Validate and set supplier ID
+    if (record?.supplierId != null) {
+      _selectedSupplierId = _validateAndGetSupplierId(record!.supplierId!);
+    }
+
+    // Validate and set site ID
+    if (record?.siteId != null) {
+      _selectedSiteId = _validateAndGetSiteId(record!.siteId!);
+    }
 
     // Edit Mode – pre-fill manpower types and counts
     if (record != null) {
@@ -593,13 +629,63 @@ class _ManpowerBottomSheetState extends State<ManpowerBottomSheet> {
 
       _updateSelectedText();
     }
+    
+    // Debug print
+    _debugDropdownValues();
+  }
+
+  void _debugDropdownValues() {
+    print('=== DEBUG DROPDOWN VALUES ===');
+    print('Supplier ID from record: ${widget.record?.supplierId}');
+    print('Site ID from record: ${widget.record?.siteId}');
+    print('Selected Supplier ID: $_selectedSupplierId');
+    print('Selected Site ID: $_selectedSiteId');
+    
+    print('Available Supplier IDs: ${widget.dropdownData.suppliers.keys.toList()}');
+    print('Available Site IDs: ${widget.dropdownData.sites.keys.toList()}');
+    
+    print('Is supplier ID valid: ${widget.dropdownData.suppliers.containsKey(_selectedSupplierId)}');
+    print('Is site ID valid: ${widget.dropdownData.sites.containsKey(_selectedSiteId)}');
+    print('=== END DEBUG ===');
+  }
+
+  /// Validate supplier ID and return a valid one
+  int? _validateAndGetSupplierId(int originalId) {
+    if (widget.dropdownData.suppliers.containsKey(originalId)) {
+      return originalId;
+    } else {
+      print('Warning: Supplier ID $originalId not found in dropdown data');
+      // Return the first available supplier ID or null
+      if (widget.dropdownData.suppliers.isNotEmpty) {
+        final firstId = widget.dropdownData.suppliers.keys.first;
+        print('Falling back to first supplier ID: $firstId');
+        return firstId;
+      }
+      return null;
+    }
+  }
+
+  /// Validate site ID and return a valid one
+  int? _validateAndGetSiteId(int originalId) {
+    if (widget.dropdownData.sites.containsKey(originalId)) {
+      return originalId;
+    } else {
+      print('Warning: Site ID $originalId not found in dropdown data');
+      // Return the first available site ID or null
+      if (widget.dropdownData.sites.isNotEmpty) {
+        final firstId = widget.dropdownData.sites.keys.first;
+        print('Falling back to first site ID: $firstId');
+        return firstId;
+      }
+      return null;
+    }
   }
 
   /// Update the text shown in the manpower type field
   void _updateSelectedText() {
     final types = widget.dropdownData.manpowerTypes;
     _manpowerTypeController.text =
-        _selectedTypes.map((id) => types[id]!).join(", ");
+        _selectedTypes.map((id) => types[id] ?? 'Unknown').join(", ");
   }
 
   /// Open multiple select bottom sheet
@@ -846,37 +932,27 @@ class _ManpowerBottomSheetState extends State<ManpowerBottomSheet> {
             ),
             const SizedBox(height: 12),
 
-            // Supplier
+            // Supplier - UPDATED with null safety
             DropdownButtonFormField<int>(
               value: _selectedSupplierId,
               decoration: const InputDecoration(
                 labelText: "Supplier",
                 border: OutlineInputBorder(),
               ),
-              items: suppliers.entries
-                  .map(
-                    (e) =>
-                        DropdownMenuItem(value: e.key, child: Text(e.value)),
-                  )
-                  .toList(),
+              items: _buildSupplierItems(),
               onChanged: (v) => setState(() => _selectedSupplierId = v),
               validator: (v) => v == null ? "Select supplier" : null,
             ),
             const SizedBox(height: 12),
 
-            // Site
+            // Site - UPDATED with null safety
             DropdownButtonFormField<int>(
               value: _selectedSiteId,
               decoration: const InputDecoration(
                 labelText: "Site",
                 border: OutlineInputBorder(),
               ),
-              items: sites.entries
-                  .map(
-                    (e) =>
-                        DropdownMenuItem(value: e.key, child: Text(e.value)),
-                  )
-                  .toList(),
+              items: _buildSiteItems(),
               onChanged: (v) => setState(() => _selectedSiteId = v),
               validator: (v) => v == null ? "Select site" : null,
             ),
@@ -947,5 +1023,84 @@ class _ManpowerBottomSheetState extends State<ManpowerBottomSheet> {
       ),
     );
   }
-}
 
+  // Build supplier dropdown items with validation
+  List<DropdownMenuItem<int>> _buildSupplierItems() {
+    final suppliers = widget.dropdownData.suppliers;
+    final items = <DropdownMenuItem<int>>[];
+    
+    // Add a null item first for "Select"
+    items.add(
+      const DropdownMenuItem<int>(
+        value: null,
+        child: Text('Select Supplier', style: TextStyle(color: Colors.grey)),
+      ),
+    );
+    
+    // Add all valid supplier items
+    suppliers.entries.forEach((entry) {
+      items.add(
+        DropdownMenuItem<int>(
+          value: entry.key,
+          child: Text(entry.value),
+        ),
+      );
+    });
+    
+    // If the current selected value is not in the list (invalid), 
+    // we need to handle it specially
+    if (_selectedSupplierId != null && !suppliers.containsKey(_selectedSupplierId)) {
+      print('Current supplier ID $_selectedSupplierId is not in dropdown, adding as disabled option');
+      items.add(
+        DropdownMenuItem<int>(
+          value: _selectedSupplierId,
+          enabled: false,
+          child: Text('Invalid Supplier (ID: $_selectedSupplierId)', 
+              style: const TextStyle(color: Colors.red, fontStyle: FontStyle.italic)),
+        ),
+      );
+    }
+    
+    return items;
+  }
+
+  // Build site dropdown items with validation
+  List<DropdownMenuItem<int>> _buildSiteItems() {
+    final sites = widget.dropdownData.sites;
+    final items = <DropdownMenuItem<int>>[];
+    
+    // Add a null item first for "Select"
+    items.add(
+      const DropdownMenuItem<int>(
+        value: null,
+        child: Text('Select Site', style: TextStyle(color: Colors.grey)),
+      ),
+    );
+    
+    // Add all valid site items
+    sites.entries.forEach((entry) {
+      items.add(
+        DropdownMenuItem<int>(
+          value: entry.key,
+          child: Text(entry.value),
+        ),
+      );
+    });
+    
+    // If the current selected value is not in the list (invalid), 
+    // we need to handle it specially
+    if (_selectedSiteId != null && !sites.containsKey(_selectedSiteId)) {
+      print('Current site ID $_selectedSiteId is not in dropdown, adding as disabled option');
+      items.add(
+        DropdownMenuItem<int>(
+          value: _selectedSiteId,
+          enabled: false,
+          child: Text('Invalid Site (ID: $_selectedSiteId)', 
+              style: const TextStyle(color: Colors.red, fontStyle: FontStyle.italic)),
+        ),
+      );
+    }
+    
+    return items;
+  }
+}

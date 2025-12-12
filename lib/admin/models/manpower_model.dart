@@ -1,5 +1,72 @@
 import 'package:ecoteam_app/admin/services/manpower_services.dart';
 
+class DropdownData {
+  final Map<int, String> manpowerTypes;
+  final Map<int, String> suppliers;
+  final Map<int, String> sites;
+
+  DropdownData({
+    required this.manpowerTypes,
+    required this.suppliers,
+    required this.sites,
+  });
+
+  factory DropdownData.fromJson(Map<String, dynamic> json) {
+    try {
+      print('Parsing dropdown JSON...');
+      
+      Map<int, String> parseMap(Map<dynamic, dynamic>? data) {
+        final Map<int, String> result = {};
+        
+        if (data == null) {
+          print('Data is null');
+          return result;
+        }
+        
+        data.forEach((key, value) {
+          if (key != null && value != null) {
+            try {
+              final id = int.tryParse(key.toString());
+              if (id != null && value.toString().isNotEmpty) {
+                result[id] = value.toString();
+              }
+            } catch (e) {
+              print('Skipping invalid entry: $key -> $value');
+            }
+          }
+        });
+        
+        return result;
+      }
+
+      // Directly parse the maps from the JSON
+      final manpowerTypes = parseMap(json['manpowerTypes']);
+      final suppliers = parseMap(json['suppliers']);
+      final sites = parseMap(json['sites']);
+      
+      print('Parsed: ${manpowerTypes.length} types, ${suppliers.length} suppliers, ${sites.length} sites');
+      
+      return DropdownData(
+        manpowerTypes: manpowerTypes,
+        suppliers: suppliers,
+        sites: sites,
+      );
+      
+    } catch (e) {
+      print('Error parsing DropdownData: $e');
+      print('Full JSON data: $json');
+      
+      // Return empty data instead of throwing to allow app to continue
+      return DropdownData(
+        manpowerTypes: {},
+        suppliers: {},
+        sites: {},
+      );
+    }
+  }
+}
+
+// Rest of your model classes remain the same...
 class ManpowerRecord {
   int? id;
   String workDate;
@@ -32,39 +99,60 @@ class ManpowerRecord {
   });
 
   factory ManpowerRecord.fromJson(Map<String, dynamic> json) {
-    Map<String, int> counts = {};
-    List<ManpowerDetail> details = [];
+    try {
+      Map<String, int> counts = {};
+      List<ManpowerDetail> details = [];
 
-    if (json['details'] != null) {
-      details = (json['details'] as List)
-          .map((detail) => ManpowerDetail.fromJson(detail))
-          .toList();
+      if (json['details'] != null && json['details'] is List) {
+        details = (json['details'] as List)
+            .map((detail) => ManpowerDetail.fromJson(detail))
+            .toList();
 
-      for (var detail in details) {
-        if (detail.type != null) {
-          counts[detail.type!.name] = detail.count;
+        for (var detail in details) {
+          if (detail.type != null && detail.type!.name.isNotEmpty) {
+            counts[detail.type!.name] = detail.count;
+          }
         }
       }
+
+      // Calculate total count from details
+      int total = details.fold(0, (sum, detail) => sum + detail.count);
+
+      // Get supplier and site names from the maps if not provided in JSON
+      String supplierName = '';
+      if (json['supplier'] != null && json['supplier'] is Map) {
+        supplierName = json['supplier']['name']?.toString() ?? '';
+      } else if (json['supplier_id'] != null) {
+        supplierName = ManpowerService.getSupplierNameById(json['supplier_id']);
+      }
+
+      String siteName = '';
+      if (json['site'] != null && json['site'] is Map) {
+        siteName = json['site']['name']?.toString() ?? '';
+      } else if (json['site_id'] != null) {
+        siteName = ManpowerService.getSiteNameById(json['site_id']);
+      }
+
+      return ManpowerRecord(
+        id: json['id'] is int ? json['id'] : int.tryParse(json['id']?.toString() ?? '0'),
+        workDate: json['work_date']?.toString() ?? '',
+        siteId: json['site_id'] is int ? json['site_id'] : int.tryParse(json['site_id']?.toString() ?? '0'),
+        supplierId: json['supplier_id'] is int ? json['supplier_id'] : int.tryParse(json['supplier_id']?.toString() ?? '0'),
+        workspaceId: json['workspace_id'] is int ? json['workspace_id'] : int.tryParse(json['workspace_id']?.toString() ?? '0'),
+        createdBy: json['created_by'] is int ? json['created_by'] : int.tryParse(json['created_by']?.toString() ?? '0'),
+        totalCount: total,
+        createdAt: json['created_at']?.toString(),
+        updatedAt: json['updated_at']?.toString(),
+        supplier: supplierName,
+        site: siteName,
+        manpowerCounts: counts,
+        details: details,
+      );
+    } catch (e) {
+      print('Error parsing ManpowerRecord: $e');
+      print('JSON data: $json');
+      rethrow;
     }
-
-    // Calculate total count
-    int total = counts.values.fold(0, (sum, count) => sum + count);
-
-    return ManpowerRecord(
-      id: json['id'],
-      workDate: json['work_date'] ?? '',
-      siteId: json['site_id'],
-      supplierId: json['supplier_id'],
-      workspaceId: json['workspace_id'],
-      createdBy: json['created_by'],
-      totalCount: json['total_count'] ?? total,
-      createdAt: json['created_at'],
-      updatedAt: json['updated_at'],
-      supplier: json['supplier'] != null ? json['supplier']['name'] ?? '' : '',
-      site: json['site'] != null ? json['site']['name'] ?? '' : '',
-      manpowerCounts: counts,
-      details: details,
-    );
   }
 
   Map<String, dynamic> toJson() {
@@ -124,12 +212,12 @@ class ManpowerDetail {
 
   factory ManpowerDetail.fromJson(Map<String, dynamic> json) {
     return ManpowerDetail(
-      id: json['id'],
-      manPowerMasterId: json['man_power_master_id'],
-      manPowerTypeId: json['man_power_type_id'],
-      count: json['count'] ?? 0,
-      createdAt: json['created_at'],
-      updatedAt: json['updated_at'],
+      id: json['id'] is int ? json['id'] : int.tryParse(json['id']?.toString() ?? '0'),
+      manPowerMasterId: json['man_power_master_id'] is int ? json['man_power_master_id'] : int.tryParse(json['man_power_master_id']?.toString() ?? '0'),
+      manPowerTypeId: json['man_power_type_id'] is int ? json['man_power_type_id'] : int.tryParse(json['man_power_type_id']?.toString() ?? '0'),
+      count: json['count'] is int ? json['count'] : int.tryParse(json['count']?.toString() ?? '0') ?? 0,
+      createdAt: json['created_at']?.toString(),
+      updatedAt: json['updated_at']?.toString(),
       type: json['type'] != null ? ManpowerType.fromJson(json['type']) : null,
     );
   }
@@ -158,50 +246,14 @@ class ManpowerType {
 
   factory ManpowerType.fromJson(Map<String, dynamic> json) {
     return ManpowerType(
-      id: json['id'],
-      name: json['name'] ?? '',
-      status: json['status'],
-      siteId: json['site_id'],
-      createdBy: json['created_by'],
-      workspaceId: json['workspace_id'],
-      createdAt: json['created_at'],
-      updatedAt: json['updated_at'],
-    );
-  }
-}
-
-class DropdownData {
-  final Map<int, String> manpowerTypes;
-  final Map<int, String> suppliers;
-  final Map<int, String> sites;
-
-  DropdownData({
-    required this.manpowerTypes,
-    required this.suppliers,
-    required this.sites,
-  });
-
-  factory DropdownData.fromJson(Map<String, dynamic> json) {
-    Map<int, String> parseMap(dynamic data) {
-      final Map<int, String> result = {};
-      if (data is Map) {
-        data.forEach((key, value) {
-          if (key != null && value != null) {
-            try {
-              result[int.parse(key.toString())] = value.toString();
-            } catch (e) {
-              // Skip invalid entries
-            }
-          }
-        });
-      }
-      return result;
-    }
-
-    return DropdownData(
-      manpowerTypes: parseMap(json['manpowerTypes'] ?? json['manpower_types'] ?? json['manpowerType'] ?? {}),
-      suppliers: parseMap(json['suppliers'] ?? {}),
-      sites: parseMap(json['sites'] ?? {}),
+      id: json['id'] is int ? json['id'] : int.tryParse(json['id']?.toString() ?? '0'),
+      name: json['name']?.toString() ?? '',
+      status: json['status'] is int ? json['status'] : int.tryParse(json['status']?.toString() ?? '0'),
+      siteId: json['site_id'] is int ? json['site_id'] : int.tryParse(json['site_id']?.toString() ?? '0'),
+      createdBy: json['created_by'] is int ? json['created_by'] : int.tryParse(json['created_by']?.toString() ?? '0'),
+      workspaceId: json['workspace_id'] is int ? json['workspace_id'] : int.tryParse(json['workspace_id']?.toString() ?? '0'),
+      createdAt: json['created_at']?.toString(),
+      updatedAt: json['updated_at']?.toString(),
     );
   }
 }

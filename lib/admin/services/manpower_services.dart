@@ -15,9 +15,46 @@ class ManpowerService {
     'Accept': 'application/json',
   };
 
-  // GET dropdown data (manpower types, suppliers, sites)
+  // Helper method to handle API response - UPDATED
+  Map<String, dynamic> _handleResponse(http.Response response, {bool isDropdownRequest = false}) {
+    print('Response Status: ${response.statusCode}');
+    print('Response Body: ${response.body}');
+    
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      try {
+        final Map<String, dynamic> responseData = json.decode(response.body);
+        
+        // For dropdown request, the API returns data directly without status field
+        if (isDropdownRequest) {
+          return responseData; // Return the data directly
+        }
+        
+        // For other requests, check for status field
+        if (responseData.containsKey('status')) {
+          if (responseData['status'] == 'success') {
+            return responseData;
+          } else {
+            throw Exception('API Error: ${responseData['message'] ?? 'Unknown error'}');
+          }
+        } else {
+          // If no status field but response is 200, assume success
+          print('Warning: No status field in response, assuming success');
+          return responseData;
+        }
+      } catch (e) {
+        print('Error parsing JSON: $e');
+        throw Exception('Failed to parse API response: $e');
+      }
+    } else {
+      throw Exception('HTTP Error: ${response.statusCode} - ${response.reasonPhrase}');
+    }
+  }
+
+  // GET dropdown data (manpower types, suppliers, sites) - FIXED
   Future<DropdownData> getDropdownData() async {
     try {
+      print('Fetching dropdown data from: $baseUrl/manpower/create-data');
+      
       final response = await http.post(
         Uri.parse('$baseUrl/manpower/create-data'),
         headers: headers,
@@ -27,44 +64,92 @@ class ManpowerService {
         }),
       );
 
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> data = json.decode(response.body);
-        final dropdownData = DropdownData.fromJson(data);
-        
-        // Update static maps
-        typeMap = dropdownData.manpowerTypes;
-        supplierMap = dropdownData.suppliers;
-        siteMap = dropdownData.sites;
-        
-        return dropdownData;
-      } else {
-        throw Exception('Failed to load dropdown data: ${response.statusCode}');
+      print('Dropdown API Response Status: ${response.statusCode}');
+      
+      // Use isDropdownRequest = true to skip status check
+      final responseData = _handleResponse(response, isDropdownRequest: true);
+      
+      print('Parsed response data: $responseData');
+      
+      // Check if we have the expected data
+      if (responseData.isEmpty) {
+        throw Exception('Empty dropdown data received from API');
       }
+      
+      final dropdownData = DropdownData.fromJson(responseData);
+      
+      // Update static maps
+      typeMap = dropdownData.manpowerTypes;
+      supplierMap = dropdownData.suppliers;
+      siteMap = dropdownData.sites;
+      
+      print('Dropdown data loaded successfully:');
+      print('  Types: ${typeMap.length} items');
+      print('  Suppliers: ${supplierMap.length} items');
+      print('  Sites: ${siteMap.length} items');
+      
+      return dropdownData;
     } catch (e) {
+      print('Error loading dropdown data: $e');
       throw Exception('Failed to load dropdown data: $e');
     }
   }
 
-  // GET all manpower records
+  // GET all manpower records - UPDATED
   Future<List<ManpowerRecord>> getManpowerRecords() async {
     try {
+      print('Fetching manpower records from: $baseUrl/manpower');
+      
       final response = await http.get(
         Uri.parse('$baseUrl/manpower'),
         headers: headers,
       );
 
-      if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
-        return data.map((json) => ManpowerRecord.fromJson(json)).toList();
-      } else {
-        throw Exception('Failed to load manpower records: ${response.statusCode}');
-      }
+      final responseData = _handleResponse(response);
+      
+      // Extract data array from response
+      // Try different possible keys
+      final List<dynamic> dataList = responseData['data'] ?? 
+                                   responseData['records'] ?? 
+                                   responseData['list'] ?? 
+                                   [];
+      
+      print('Found ${dataList.length} records');
+      
+      return dataList.map((json) => ManpowerRecord.fromJson(json)).toList();
     } catch (e) {
+      print('Error loading manpower records: $e');
       throw Exception('Failed to load manpower records: $e');
     }
   }
 
-  // GET single manpower record
+  // GET manpower records by site and workspace - UPDATED
+  Future<List<ManpowerRecord>> getManpowerRecordsBySiteAndWorkspace(int siteId, int workspaceId) async {
+    try {
+      final url = '$baseUrl/manpower?site_id=$siteId&workspace_id=$workspaceId';
+      print('Fetching records from: $url');
+      
+      final response = await http.get(
+        Uri.parse(url),
+        headers: headers,
+      );
+
+      final responseData = _handleResponse(response);
+      
+      // Extract data array from response
+      final List<dynamic> dataList = responseData['data'] ?? 
+                                   responseData['records'] ?? 
+                                   responseData['list'] ?? 
+                                   [];
+      
+      return dataList.map((json) => ManpowerRecord.fromJson(json)).toList();
+    } catch (e) {
+      print('Error loading records by site/workspace: $e');
+      throw Exception('Failed to load manpower records: $e');
+    }
+  }
+
+  // GET single manpower record - UPDATED
   Future<ManpowerRecord> getManpowerRecord(int id) async {
     try {
       final response = await http.get(
@@ -72,18 +157,20 @@ class ManpowerService {
         headers: headers,
       );
 
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> data = json.decode(response.body);
-        return ManpowerRecord.fromJson(data);
-      } else {
-        throw Exception('Failed to load manpower record: ${response.statusCode}');
-      }
+      final responseData = _handleResponse(response);
+      
+      // Try different possible keys for the data
+      final Map<String, dynamic> recordData = responseData['data'] ?? 
+                                            responseData['record'] ?? 
+                                            responseData;
+      
+      return ManpowerRecord.fromJson(recordData);
     } catch (e) {
       throw Exception('Failed to load manpower record: $e');
     }
   }
 
-  // POST new manpower record
+  // POST new manpower record - UPDATED
   Future<ManpowerRecord> createManpowerRecord(ManpowerRecord record) async {
     try {
       final response = await http.post(
@@ -92,19 +179,20 @@ class ManpowerService {
         body: json.encode(record.toJson()),
       );
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final Map<String, dynamic> data = json.decode(response.body);
-        return ManpowerRecord.fromJson(data);
-      } else {
-        final errorBody = json.decode(response.body);
-        throw Exception('Failed to create manpower record: ${errorBody['message'] ?? response.statusCode}');
-      }
+      final responseData = _handleResponse(response);
+      
+      // Try different possible keys for the data
+      final Map<String, dynamic> createdData = responseData['data'] ?? 
+                                              responseData['record'] ?? 
+                                              responseData;
+      
+      return ManpowerRecord.fromJson(createdData);
     } catch (e) {
       throw Exception('Failed to create manpower record: $e');
     }
   }
 
-  // PUT update manpower record
+  // PUT update manpower record - UPDATED
   Future<ManpowerRecord> updateManpowerRecord(ManpowerRecord record) async {
     try {
       final response = await http.put(
@@ -113,19 +201,20 @@ class ManpowerService {
         body: json.encode(record.toJson()),
       );
 
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> data = json.decode(response.body);
-        return ManpowerRecord.fromJson(data);
-      } else {
-        final errorBody = json.decode(response.body);
-        throw Exception('Failed to update manpower record: ${errorBody['message'] ?? response.statusCode}');
-      }
+      final responseData = _handleResponse(response);
+      
+      // Try different possible keys for the data
+      final Map<String, dynamic> updatedData = responseData['data'] ?? 
+                                              responseData['record'] ?? 
+                                              responseData;
+      
+      return ManpowerRecord.fromJson(updatedData);
     } catch (e) {
       throw Exception('Failed to update manpower record: $e');
     }
   }
 
-  // DELETE manpower record
+  // DELETE manpower record - UPDATED
   Future<void> deleteManpowerRecord(int id) async {
     try {
       final response = await http.delete(
@@ -133,10 +222,7 @@ class ManpowerService {
         headers: headers,
       );
 
-      if (response.statusCode != 200 && response.statusCode != 204) {
-        final errorBody = json.decode(response.body);
-        throw Exception('Failed to delete manpower record: ${errorBody['message'] ?? response.statusCode}');
-      }
+      _handleResponse(response);
     } catch (e) {
       throw Exception('Failed to delete manpower record: $e');
     }

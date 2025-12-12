@@ -1,914 +1,13 @@
+import 'package:ecoteam_app/admin/models/Allsupplier_model.dart';
+import 'package:ecoteam_app/admin/models/purchase_model.dart';
+import 'package:ecoteam_app/admin/services/Allsupplier_service.dart';
+import 'package:ecoteam_app/admin/services/purchase_services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-
-class PurchaseInvoice {
-  final int id;
-  final String invoiceNumber;
-  final String invoiceDate;
-  final String supplierInvoiceNumber;
-  final int supplierId;
-  final double totalAmount;
-  final String status;
-  final String? invoiceFile;
-  final int siteId;
-  final int createdBy;
-  final int workspaceId;
-  final String createdAt;
-  final String updatedAt;
-  final List<InvoiceItem>? items;
-  final dynamic supplier;
-  final dynamic site;
-
-  PurchaseInvoice({
-    required this.id,
-    required this.invoiceNumber,
-    required this.invoiceDate,
-    required this.supplierInvoiceNumber,
-    required this.supplierId,
-    required this.totalAmount,
-    required this.status,
-    this.invoiceFile,
-    required this.siteId,
-    required this.createdBy,
-    required this.workspaceId,
-    required this.createdAt,
-    required this.updatedAt,
-    this.items,
-    this.supplier,
-    this.site,
-  });
-
-  factory PurchaseInvoice.fromJson(Map<String, dynamic> json) {
-    return PurchaseInvoice(
-      id: json['id'] ?? 0,
-      invoiceNumber: json['invoice_number'] ?? '',
-      invoiceDate: json['invoice_date'] ?? '',
-      supplierInvoiceNumber: json['supplier_invoice_number'] ?? '',
-      supplierId: json['supplier_id'] is int
-          ? json['supplier_id']
-          : int.tryParse(json['supplier_id']?.toString() ?? '0') ?? 0,
-      totalAmount:
-          double.tryParse(json['total_amount']?.toString() ?? '0') ?? 0.0,
-      status: json['status'] ?? '',
-      invoiceFile: json['invoice_file'],
-      siteId: json['site_id'] is int
-          ? json['site_id']
-          : int.tryParse(json['site_id']?.toString() ?? '0') ?? 0,
-      createdBy: json['created_by'] is int
-          ? json['created_by']
-          : int.tryParse(json['created_by']?.toString() ?? '0') ?? 0,
-      workspaceId: json['workspace_id'] is int
-          ? json['workspace_id']
-          : int.tryParse(json['workspace_id']?.toString() ?? '0') ?? 0,
-      createdAt: json['created_at'] ?? '',
-      updatedAt: json['updated_at'] ?? '',
-      items: json['items'] != null
-          ? (json['items'] as List)
-                .map((item) => InvoiceItem.fromJson(item))
-                .toList()
-          : null,
-      supplier: json['supplier'],
-      site: json['site'],
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'invoice_number': invoiceNumber,
-      'invoice_date': invoiceDate,
-      'supplier_invoice_number': supplierInvoiceNumber,
-      'supplier_id': supplierId.toString(),
-      'total_amount': totalAmount.toStringAsFixed(2),
-      'site_id': siteId.toString(),
-      'created_by': createdBy.toString(),
-      'workspace_id': workspaceId.toString(),
-    };
-  }
-}
-
-class InvoiceItem {
-  final int id;
-  final int purchaseInvoiceId;
-  final int materialId;
-  final double quantity;
-  final String unit;
-  final double price;
-  final double subtotal;
-  final String createdAt;
-  final String updatedAt;
-  final dynamic material;
-
-  InvoiceItem({
-    required this.id,
-    required this.purchaseInvoiceId,
-    required this.materialId,
-    required this.quantity,
-    required this.unit,
-    required this.price,
-    required this.subtotal,
-    required this.createdAt,
-    required this.updatedAt,
-    this.material,
-  });
-
-  factory InvoiceItem.fromJson(Map<String, dynamic> json) {
-    return InvoiceItem(
-      id: json['id'] ?? 0,
-      purchaseInvoiceId: json['purchase_invoice_id'] ?? 0,
-      materialId: json['material_id'] ?? 0,
-      quantity: double.tryParse(json['quantity']?.toString() ?? '0') ?? 0.0,
-      unit: json['unit'] ?? '',
-      price: double.tryParse(json['price']?.toString() ?? '0') ?? 0.0,
-      subtotal: double.tryParse(json['subtotal']?.toString() ?? '0') ?? 0.0,
-      createdAt: json['created_at'] ?? '',
-      updatedAt: json['updated_at'] ?? '',
-      material: json['material'],
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'material_id': materialId.toString(),
-      'quantity': quantity.toString(),
-      'unit': unit,
-      'price': price.toStringAsFixed(2),
-      'subtotal': subtotal.toStringAsFixed(2),
-    };
-  }
-}
-
-class MaterialModel {
-  final int id;
-  final String name;
-  final String sku;
-  final int categoryId;
-  final int unitId;
-  final String description;
-  final double price;
-  final int reorderLevel;
-  final String status;
-  final String? image;
-  final int? siteId;
-  final int createdBy;
-  final int workspaceId;
-  final String createdAt;
-  final String updatedAt;
-  final UnitModel? unit;
-
-  MaterialModel({
-    required this.id,
-    required this.name,
-    required this.sku,
-    required this.categoryId,
-    required this.unitId,
-    required this.description,
-    required this.price,
-    required this.reorderLevel,
-    required this.status,
-    this.image,
-    this.siteId,
-    required this.createdBy,
-    required this.workspaceId,
-    required this.createdAt,
-    required this.updatedAt,
-    this.unit,
-  });
-
-  factory MaterialModel.fromJson(Map<String, dynamic> json) {
-    return MaterialModel(
-      id: json['id'] ?? 0,
-      name: json['name'] ?? '',
-      sku: json['sku'] ?? '',
-      categoryId: json['category_id'] ?? 0,
-      unitId: json['unit_id'] ?? 0,
-      description: json['description'] ?? '',
-      price: double.tryParse(json['price']?.toString() ?? '0') ?? 0.0,
-      reorderLevel: json['reorder_level'] ?? 0,
-      status: json['status'] ?? '',
-      image: json['image'],
-      siteId: json['site_id'],
-      createdBy: json['created_by'] ?? 0,
-      workspaceId: json['workspace_id'] ?? 0,
-      createdAt: json['created_at'] ?? '',
-      updatedAt: json['updated_at'] ?? '',
-      unit: json['unit'] != null ? UnitModel.fromJson(json['unit']) : null,
-    );
-  }
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is MaterialModel &&
-          runtimeType == other.runtimeType &&
-          id == other.id;
-
-  @override
-  int get hashCode => id.hashCode;
-}
-
-class UnitModel {
-  final int id;
-  final String name;
-  final String symbol;
-  final String? description;
-  final int isActive;
-  final int? siteId;
-  final int createdBy;
-  final int workspaceId;
-  final String status;
-  final String createdAt;
-  final String updatedAt;
-
-  UnitModel({
-    required this.id,
-    required this.name,
-    required this.symbol,
-    this.description,
-    required this.isActive,
-    this.siteId,
-    required this.createdBy,
-    required this.workspaceId,
-    required this.status,
-    required this.createdAt,
-    required this.updatedAt,
-  });
-
-  factory UnitModel.fromJson(Map<String, dynamic> json) {
-    return UnitModel(
-      id: json['id'] ?? 0,
-      name: json['name'] ?? '',
-      symbol: json['symbol'] ?? '',
-      description: json['description'],
-      isActive: json['is_active'] ?? 0,
-      siteId: json['site_id'],
-      createdBy: json['created_by'] ?? 0,
-      workspaceId: json['workspace_id'] ?? 0,
-      status: json['status'] ?? '',
-      createdAt: json['created_at'] ?? '',
-      updatedAt: json['updated_at'] ?? '',
-    );
-  }
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is UnitModel && runtimeType == other.runtimeType && id == other.id;
-
-  @override
-  int get hashCode => id.hashCode;
-}
-
-class SupplierModel {
-  final int id;
-  final String name;
-  final int categoryId;
-  final String type;
-  final String contactPerson;
-  final String phone;
-  final String email;
-  final String address;
-  final String city;
-  final String state;
-  final String pinCode;
-  final String country;
-  final String? upiScreenshot1;
-  final String? upiScreenshot2;
-  final String gstNumber;
-  final String panNumber;
-  final String registrationNumber;
-  final String bankName;
-  final String accountNumber;
-  final String ifscCode;
-  final String paymentTerms;
-  final int? siteId;
-  final int workspaceId;
-  final int createdBy;
-  final int isActive;
-  final String status;
-  final String createdAt;
-  final String updatedAt;
-
-  SupplierModel({
-    required this.id,
-    required this.name,
-    required this.categoryId,
-    required this.type,
-    required this.contactPerson,
-    required this.phone,
-    required this.email,
-    required this.address,
-    required this.city,
-    required this.state,
-    required this.pinCode,
-    required this.country,
-    this.upiScreenshot1,
-    this.upiScreenshot2,
-    required this.gstNumber,
-    required this.panNumber,
-    required this.registrationNumber,
-    required this.bankName,
-    required this.accountNumber,
-    required this.ifscCode,
-    required this.paymentTerms,
-    this.siteId,
-    required this.workspaceId,
-    required this.createdBy,
-    required this.isActive,
-    required this.status,
-    required this.createdAt,
-    required this.updatedAt,
-  });
-
-  factory SupplierModel.fromJson(Map<String, dynamic> json) {
-    return SupplierModel(
-      id: json['id'] ?? 0,
-      name: json['name'] ?? '',
-      categoryId: json['category_id'] ?? 0,
-      type: json['type'] ?? '',
-      contactPerson: json['contact_person'] ?? '',
-      phone: json['phone'] ?? '',
-      email: json['email'] ?? '',
-      address: json['address'] ?? '',
-      city: json['city'] ?? '',
-      state: json['state'] ?? '',
-      pinCode: json['pin_code'] ?? '',
-      country: json['country'] ?? '',
-      upiScreenshot1: json['upi_screenshot_1'],
-      upiScreenshot2: json['upi_screenshot_2'],
-      gstNumber: json['gst_number'] ?? '',
-      panNumber: json['pan_number'] ?? '',
-      registrationNumber: json['registration_number'] ?? '',
-      bankName: json['bank_name'] ?? '',
-      accountNumber: json['account_number'] ?? '',
-      ifscCode: json['ifsc_code'] ?? '',
-      paymentTerms: json['payment_terms'] ?? '',
-      siteId: json['site_id'],
-      workspaceId: json['workspace_id'] ?? 0,
-      createdBy: json['created_by'] ?? 0,
-      isActive: json['is_active'] ?? 0,
-      status: json['status'] ?? '',
-      createdAt: json['created_at'] ?? '',
-      updatedAt: json['updated_at'] ?? '',
-    );
-  }
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is SupplierModel &&
-          runtimeType == other.runtimeType &&
-          id == other.id;
-
-  @override
-  int get hashCode => id.hashCode;
-}
-
-class SiteModel {
-  final int id;
-  final String name;
-  final String status;
-  final String? range;
-  final String description;
-  final String startDate;
-  final String endDate;
-  final double budget;
-  final int isActive;
-  final String type;
-  final String currency;
-  final String profileProgress;
-  final String progress;
-  final String taskProgress;
-  final String? test;
-  final double estimateSize;
-  final String copylinksetting;
-  final String? password;
-  final int workspaceId;
-  final int createdBy;
-  final String createdAt;
-  final String updatedAt;
-
-  SiteModel({
-    required this.id,
-    required this.name,
-    required this.status,
-    this.range,
-    required this.description,
-    required this.startDate,
-    required this.endDate,
-    required this.budget,
-    required this.isActive,
-    required this.type,
-    required this.currency,
-    required this.profileProgress,
-    required this.progress,
-    required this.taskProgress,
-    this.test,
-    required this.estimateSize,
-    required this.copylinksetting,
-    this.password,
-    required this.workspaceId,
-    required this.createdBy,
-    required this.createdAt,
-    required this.updatedAt,
-  });
-
-  factory SiteModel.fromJson(Map<String, dynamic> json) {
-    return SiteModel(
-      id: json['id'] ?? 0,
-      name: json['name'] ?? '',
-      status: json['status'] ?? '',
-      range: json['range'],
-      description: json['description'] ?? '',
-      startDate: json['start_date'] ?? '',
-      endDate: json['end_date'] ?? '',
-      budget: double.tryParse(json['budget']?.toString() ?? '0') ?? 0.0,
-      isActive: json['is_active'] ?? 0,
-      type: json['type'] ?? '',
-      currency: json['currency'] ?? '',
-      profileProgress: json['profile_progress'] ?? '',
-      progress: json['progress'] ?? '',
-      taskProgress: json['task_progress'] ?? '',
-      test: json['test'],
-      estimateSize:
-          double.tryParse(json['estimate_size']?.toString() ?? '0') ?? 0.0,
-      copylinksetting: json['copylinksetting'] ?? '',
-      password: json['password'],
-      workspaceId: json['workspace_id'] ?? 0,
-      createdBy: json['created_by'] ?? 0,
-      createdAt: json['created_at'] ?? '',
-      updatedAt: json['updated_at'] ?? '',
-    );
-  }
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is SiteModel && runtimeType == other.runtimeType && id == other.id;
-
-  @override
-  int get hashCode => id.hashCode;
-}
-
-class ApiServicePurchaseInvoice {
-  static const String baseUrl = 'http://sitepilot.easy2it.in/api';
-
-  // Updated endpoints based on your API structure
-  static const String getInvoicesEndpoint = '$baseUrl/purchase-invoice';
-  static const String createInvoiceEndpoint = '$baseUrl/purchase-invoice';
-  static const String updateInvoiceEndpoint = '$baseUrl/purchase-invoice';
-  static const String getSuppliersEndpoint = '$baseUrl/suppliers';
-  static const String getSitesEndpoint = '$baseUrl/projects';
-  static const String getMaterialsEndpoint =
-      '$baseUrl/purchase-invoice/create-data';
-  static const String getUnitsEndpoint = '$baseUrl/units';
-
-  static Future<List<PurchaseInvoice>> getInvoices() async {
-    try {
-      print('Fetching invoices from: $getInvoicesEndpoint');
-      final response = await http.get(
-        Uri.parse(getInvoicesEndpoint),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-      );
-
-      print('Response status: ${response.statusCode}');
-      print('Response body: ${response.body}');
-
-      if (response.statusCode == 200) {
-        final responseData = json.decode(response.body);
-
-        List<dynamic> invoicesList;
-        if (responseData is List) {
-          invoicesList = responseData;
-        } else if (responseData is Map && responseData.containsKey('data')) {
-          invoicesList = responseData['data'];
-        } else if (responseData is Map &&
-            responseData.containsKey('invoices')) {
-          invoicesList = responseData['invoices'];
-        } else {
-          invoicesList = [responseData];
-        }
-
-        return invoicesList
-            .map((json) => PurchaseInvoice.fromJson(json))
-            .toList();
-      } else {
-        throw Exception(
-          'Failed to load invoices: ${response.statusCode} - ${response.body}',
-        );
-      }
-    } catch (e) {
-      print('Error loading invoices: $e');
-      throw Exception('Failed to load invoices: $e');
-    }
-  }
-
-  static Future<List<SupplierModel>> getSuppliers() async {
-    try {
-      print('Fetching suppliers from: $getSuppliersEndpoint');
-      final response = await http.get(
-        Uri.parse(getSuppliersEndpoint),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-      );
-
-      print('Suppliers response status: ${response.statusCode}');
-      print('Suppliers response body: ${response.body}');
-
-      if (response.statusCode == 200) {
-        final responseData = json.decode(response.body);
-
-        List<dynamic> suppliersList;
-        if (responseData is List) {
-          suppliersList = responseData;
-        } else if (responseData is Map && responseData.containsKey('data')) {
-          suppliersList = responseData['data'];
-        } else if (responseData is Map &&
-            responseData.containsKey('suppliers')) {
-          suppliersList = responseData['suppliers'];
-        } else {
-          suppliersList = [responseData];
-        }
-
-        // Remove duplicates by converting to set and back to list
-        final uniqueSuppliers = suppliersList
-            .map((json) => SupplierModel.fromJson(json))
-            .toSet()
-            .toList();
-        return uniqueSuppliers;
-      } else {
-        throw Exception('Failed to load suppliers: ${response.statusCode}');
-      }
-    } catch (e) {
-      print('Error loading suppliers: $e');
-      throw Exception('Failed to load suppliers: $e');
-    }
-  }
-
-  static Future<List<SiteModel>> getSites() async {
-    try {
-      print('Fetching sites from: $getSitesEndpoint');
-      final response = await http.get(
-        Uri.parse(getSitesEndpoint),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-      );
-
-      print('Sites response status: ${response.statusCode}');
-      print('Sites response body: ${response.body}');
-
-      if (response.statusCode == 200) {
-        final responseData = json.decode(response.body);
-
-        List<dynamic> sitesList;
-        if (responseData is List) {
-          sitesList = responseData;
-        } else if (responseData is Map && responseData.containsKey('data')) {
-          sitesList = responseData['data'];
-        } else if (responseData is Map && responseData.containsKey('sites')) {
-          sitesList = responseData['sites'];
-        } else if (responseData is Map &&
-            responseData.containsKey('projects')) {
-          sitesList = responseData['projects'];
-        } else {
-          sitesList = [responseData];
-        }
-
-        // Remove duplicates
-        final uniqueSites = sitesList
-            .map((json) => SiteModel.fromJson(json))
-            .toSet()
-            .toList();
-        return uniqueSites;
-      } else {
-        throw Exception('Failed to load sites: ${response.statusCode}');
-      }
-    } catch (e) {
-      print('Error loading sites: $e');
-      throw Exception('Failed to load sites: $e');
-    }
-  }
-
-  static Future<List<MaterialModel>> getMaterials() async {
-    try {
-      print('Fetching materials from: $getMaterialsEndpoint');
-      final response = await http.post(
-        Uri.parse(getMaterialsEndpoint),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: json.encode({'site_id': 0, 'workspace_id': 0}),
-      );
-
-      print('Materials response status: ${response.statusCode}');
-      print('Materials response body: ${response.body}');
-
-      if (response.statusCode == 200) {
-        final responseData = json.decode(response.body);
-        print('Materials API Response: $responseData');
-
-        List<MaterialModel> materialsList = [];
-
-        // Handle the nested materials structure from your API
-        if (responseData is Map && responseData.containsKey('materials')) {
-          final materialsMap = responseData['materials'];
-
-          if (materialsMap is Map) {
-            // Convert the map of materials to a list
-            materialsMap.forEach((key, materialData) {
-              if (materialData is Map) {
-                try {
-                  // Create a proper material object from the nested data
-                  final material = MaterialModel(
-                    id: int.tryParse(key) ?? 0,
-                    name: materialData['name'] ?? '',
-                    sku: materialData['sku'] ?? '',
-                    categoryId: materialData['category_id'] ?? 0,
-                    unitId: materialData['unit_id'] ?? 0,
-                    description: materialData['description'] ?? '',
-                    price:
-                        double.tryParse(
-                          materialData['price']?.toString() ?? '0',
-                        ) ??
-                        0.0,
-                    reorderLevel: materialData['reorder_level'] ?? 0,
-                    status: materialData['status'] ?? 'active',
-                    image: materialData['image'],
-                    siteId: materialData['site_id'],
-                    createdBy: materialData['created_by'] ?? 0,
-                    workspaceId: materialData['workspace_id'] ?? 0,
-                    createdAt: materialData['created_at'] ?? '',
-                    updatedAt: materialData['updated_at'] ?? '',
-                    unit: materialData['unit'] != null
-                        ? UnitModel.fromJson(materialData['unit'])
-                        : null,
-                  );
-                  materialsList.add(material);
-                } catch (e) {
-                  print('Error parsing material $key: $e');
-                }
-              }
-            });
-          }
-        }
-
-        print('Extracted materials list length: ${materialsList.length}');
-
-        if (materialsList.isEmpty) {
-          print('No materials found in response');
-          return [];
-        }
-
-        // Remove duplicates by ID
-        final uniqueMaterials = materialsList.toSet().toList();
-
-        print('Successfully parsed ${uniqueMaterials.length} materials');
-        return uniqueMaterials;
-      } else {
-        throw Exception(
-          'Failed to load materials: ${response.statusCode} - ${response.body}',
-        );
-      }
-    } catch (e) {
-      print('Error loading materials: $e');
-      throw Exception('Failed to load materials: $e');
-    }
-  }
-
-  static Future<List<UnitModel>> getUnits() async {
-    try {
-      print('Fetching units from: $getUnitsEndpoint');
-      final response = await http.get(
-        Uri.parse(getUnitsEndpoint),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-      );
-
-      print('Units response status: ${response.statusCode}');
-      print('Units response body: ${response.body}');
-
-      if (response.statusCode == 200) {
-        final responseData = json.decode(response.body);
-
-        List<dynamic> unitsList = [];
-
-        if (responseData is Map && responseData.containsKey('data')) {
-          unitsList = responseData['data'] ?? [];
-        } else if (responseData is List) {
-          unitsList = responseData;
-        } else if (responseData is Map && responseData.containsKey('units')) {
-          unitsList = responseData['units'] ?? [];
-        }
-
-        // Remove duplicates
-        final uniqueUnits = unitsList
-            .map((json) => UnitModel.fromJson(json))
-            .toSet()
-            .toList();
-        return uniqueUnits;
-      } else {
-        throw Exception(
-          'Failed to load units: ${response.statusCode} - ${response.body}',
-        );
-      }
-    } catch (e) {
-      print('Error loading units: $e');
-      throw Exception('Failed to load units: $e');
-    }
-  }
-
-  static Future<PurchaseInvoice> createInvoice(
-    Map<String, dynamic> data,
-  ) async {
-    try {
-      print('Creating invoice at: $createInvoiceEndpoint');
-      print('Request data: $data');
-
-      var request = http.MultipartRequest(
-        'POST',
-        Uri.parse(createInvoiceEndpoint),
-      );
-
-      // Add text fields based on your API structure
-      request.fields['supplier_invoice_number'] =
-          data['supplier_invoice_number'];
-      request.fields['supplier_id'] = data['supplier_id'];
-      request.fields['invoice_number'] = data['invoice_number'];
-      request.fields['invoice_date'] = data['invoice_date'];
-      request.fields['total_amount'] = data['total_amount'];
-      request.fields['site_id'] = data['site_id'];
-      request.fields['created_by'] = data['created_by'];
-      request.fields['workspace_id'] = data['workspace_id'];
-      request.fields['method'] = 'PJT'; // Based on your API example
-
-      // Add items
-      for (int i = 0; i < (data['items'] as List).length; i++) {
-        final item = data['items'][i];
-        request.fields['items[$i][material_id]'] = item['material_id'];
-        request.fields['items[$i][quantity]'] = item['quantity'];
-        request.fields['items[$i][unit]'] = item['unit'];
-        request.fields['items[$i][price]'] = item['price'];
-        request.fields['items[$i][subtotal]'] = item['subtotal'];
-      }
-
-      // Add file if exists
-      if (data['invoice_file'] != null && data['invoice_file'] is File) {
-        request.files.add(
-          await http.MultipartFile.fromPath(
-            'invoice_file',
-            data['invoice_file'].path,
-          ),
-        );
-      }
-
-      final streamedResponse = await request.send();
-      final response = await http.Response.fromStream(streamedResponse);
-
-      print('Create response status: ${response.statusCode}');
-      print('Create response body: ${response.body}');
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final responseData = json.decode(response.body);
-
-        // Handle different response structures
-        Map<String, dynamic> invoiceData;
-        if (responseData is Map && responseData.containsKey('data')) {
-          invoiceData = responseData['data'];
-        } else if (responseData is Map && responseData.containsKey('invoice')) {
-          invoiceData = responseData['invoice'];
-        } else {
-          invoiceData = responseData;
-        }
-
-        print('Parsed invoice data: $invoiceData');
-
-        return PurchaseInvoice.fromJson(invoiceData);
-      } else {
-        throw Exception(
-          'Failed to create invoice: ${response.statusCode} - ${response.body}',
-        );
-      }
-    } catch (e) {
-      print('Error creating invoice: $e');
-      throw Exception('Failed to create invoice: $e');
-    }
-  }
-
-  static Future<PurchaseInvoice> updateInvoice(
-    int id,
-    Map<String, dynamic> data,
-  ) async {
-    try {
-      final endpoint = '$updateInvoiceEndpoint/$id';
-      print('Updating invoice at: $endpoint');
-      print('Update data: $data');
-
-      var request = http.MultipartRequest('POST', Uri.parse(endpoint));
-
-      // Add text fields
-      request.fields['supplier_invoice_number'] =
-          data['supplier_invoice_number'];
-      request.fields['supplier_id'] = data['supplier_id'];
-      request.fields['invoice_number'] = data['invoice_number'];
-      request.fields['invoice_date'] = data['invoice_date'];
-      request.fields['total_amount'] = data['total_amount'];
-      request.fields['site_id'] = data['site_id'];
-      request.fields['created_by'] = data['created_by'];
-      request.fields['workspace_id'] = data['workspace_id'];
-      request.fields['method'] = 'PJT';
-      request.fields['_method'] = 'PUT'; // For Laravel PUT method
-
-      // Add items
-      for (int i = 0; i < (data['items'] as List).length; i++) {
-        final item = data['items'][i];
-        request.fields['items[$i][material_id]'] = item['material_id'];
-        request.fields['items[$i][quantity]'] = item['quantity'];
-        request.fields['items[$i][unit]'] = item['unit'];
-        request.fields['items[$i][price]'] = item['price'];
-        request.fields['items[$i][subtotal]'] = item['subtotal'];
-      }
-
-      // Add file if exists
-      if (data['invoice_file'] != null && data['invoice_file'] is File) {
-        request.files.add(
-          await http.MultipartFile.fromPath(
-            'invoice_file',
-            data['invoice_file'].path,
-          ),
-        );
-      }
-
-      final streamedResponse = await request.send();
-      final response = await http.Response.fromStream(streamedResponse);
-
-      print('Update response status: ${response.statusCode}');
-      print('Update response body: ${response.body}');
-
-      if (response.statusCode == 200) {
-        final responseData = json.decode(response.body);
-
-        // Handle different response structures
-        Map<String, dynamic> invoiceData;
-        if (responseData is Map && responseData.containsKey('data')) {
-          invoiceData = responseData['data'];
-        } else if (responseData is Map && responseData.containsKey('invoice')) {
-          invoiceData = responseData['invoice'];
-        } else {
-          invoiceData = responseData;
-        }
-
-        return PurchaseInvoice.fromJson(invoiceData);
-      } else {
-        throw Exception(
-          'Failed to update invoice: ${response.statusCode} - ${response.body}',
-        );
-      }
-    } catch (e) {
-      print('Error updating invoice: $e');
-      throw Exception('Failed to update invoice: $e');
-    }
-  }
-
-  static Future<void> deleteInvoice(int id) async {
-    try {
-      final endpoint = '$getInvoicesEndpoint/$id';
-      print('Deleting invoice at: $endpoint');
-
-      final response = await http.delete(
-        Uri.parse(endpoint),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-      );
-
-      print('Delete response status: ${response.statusCode}');
-      print('Delete response body: ${response.body}');
-
-      if (response.statusCode != 200 && response.statusCode != 204) {
-        throw Exception(
-          'Failed to delete invoice: ${response.statusCode} - ${response.body}',
-        );
-      }
-    } catch (e) {
-      print('Error deleting invoice: $e');
-      throw Exception('Failed to delete invoice: $e');
-    }
-  }
-}
 
 class PurchaseInvoicesPage extends StatefulWidget {
   const PurchaseInvoicesPage({super.key});
@@ -919,7 +18,7 @@ class PurchaseInvoicesPage extends StatefulWidget {
 
 class _PurchaseInvoicesPageState extends State<PurchaseInvoicesPage> {
   List<PurchaseInvoice> _invoices = [];
-  List<SupplierModel> _suppliers = [];
+  List<Supplier> _suppliers = [];
   List<SiteModel> _sites = [];
   bool _isLoading = true;
   String _errorMessage = '';
@@ -994,6 +93,7 @@ class _PurchaseInvoicesPageState extends State<PurchaseInvoicesPage> {
           // Refresh the data immediately after successful creation
           _loadAllData();
         },
+        onSupplierCreated: _loadSuppliers, // Callback to refresh suppliers
       ),
     );
   }
@@ -1007,8 +107,20 @@ class _PurchaseInvoicesPageState extends State<PurchaseInvoicesPage> {
         suppliers: _suppliers,
         sites: _sites,
         onInvoiceSaved: _loadAllData,
+        onSupplierCreated: _loadSuppliers, // Callback to refresh suppliers
       ),
     );
+  }
+
+  Future<void> _loadSuppliers() async {
+    try {
+      final suppliers = await ApiServicePurchaseInvoice.getSuppliers();
+      setState(() {
+        _suppliers = suppliers;
+      });
+    } catch (e) {
+      print('Error loading suppliers: $e');
+    }
   }
 
   void _showDeleteInvoiceDialog(PurchaseInvoice invoice) {
@@ -1279,6 +391,17 @@ class InvoiceCard extends StatelessWidget {
     }
   }
 
+  String _getInvoiceTypeDisplay(String invoiceType) {
+    switch (invoiceType) {
+      case 'general_po':
+        return 'General PO';
+      case 'minor_misc_service':
+        return 'Minor Miscellaneous Service';
+      default:
+        return invoiceType.replaceAll('_', ' ').toTitleCase();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Card(
@@ -1292,13 +415,26 @@ class InvoiceCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  invoice.invoiceNumber,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF2a43a0),
-                  ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      invoice.invoiceNumber,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF2a43a0),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _getInvoiceTypeDisplay(invoice.invoiceType),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ],
                 ),
                 Container(
                   padding: const EdgeInsets.symmetric(
@@ -1418,12 +554,12 @@ class InvoiceCard extends StatelessWidget {
     );
   }
 }
-
 class AddEditInvoiceBottomSheet extends StatefulWidget {
   final PurchaseInvoice? invoice;
-  final List<SupplierModel> suppliers;
+  final List<Supplier> suppliers;
   final List<SiteModel> sites;
   final VoidCallback? onInvoiceSaved;
+  final VoidCallback? onSupplierCreated;
 
   const AddEditInvoiceBottomSheet({
     super.key,
@@ -1431,6 +567,7 @@ class AddEditInvoiceBottomSheet extends StatefulWidget {
     required this.suppliers,
     required this.sites,
     this.onInvoiceSaved,
+    this.onSupplierCreated,
   });
 
   @override
@@ -1456,10 +593,22 @@ class _AddEditInvoiceBottomSheetState extends State<AddEditInvoiceBottomSheet> {
   List<MaterialModel> _materials = [];
   List<UnitModel> _units = [];
   bool _isLoadingMaterials = false;
+  
+  // Invoice type dropdown value
+  String _selectedInvoiceType = 'general_po';
+  final List<Map<String, String>> _invoiceTypeOptions = [
+    {'value': 'general_po', 'label': 'General PO'},
+    {'value': 'minor_misc_service', 'label': 'Minor Miscellaneous Service Bills'},
+  ];
+
+  // Local suppliers list that can be updated
+  List<Supplier> _localSuppliers = [];
 
   @override
   void initState() {
     super.initState();
+    // Initialize with passed suppliers
+    _localSuppliers = widget.suppliers;
     _loadMaterialsAndUnits();
 
     if (widget.invoice != null) {
@@ -1469,14 +618,15 @@ class _AddEditInvoiceBottomSheetState extends State<AddEditInvoiceBottomSheet> {
 
       _selectedSiteId = widget.invoice!.siteId;
       _selectedSupplierId = widget.invoice!.supplierId;
+      _selectedInvoiceType = widget.invoice!.invoiceType;
 
       _invoiceDateController.text = _formatDateForDisplay(
         DateTime.parse(widget.invoice!.invoiceDate),
       );
       _selectedDate = DateTime.parse(widget.invoice!.invoiceDate);
 
-      // Populate materials for edit mode
-      if (widget.invoice!.items != null) {
+      // Populate materials only if invoice type is general_po
+      if (_selectedInvoiceType == 'general_po' && widget.invoice!.items != null) {
         for (var item in widget.invoice!.items!) {
           String materialName = 'Material ${item.materialId}';
           String unitSymbol = item.unit;
@@ -1499,13 +649,27 @@ class _AddEditInvoiceBottomSheetState extends State<AddEditInvoiceBottomSheet> {
           'INV-${DateTime.now().millisecondsSinceEpoch.toString().substring(6)}';
       _invoiceDateController.text = _formatDateForDisplay(DateTime.now());
       _selectedDate = DateTime.now();
-      _selectedSupplierId = widget.suppliers.isNotEmpty
-          ? widget.suppliers.first.id
+      _selectedSupplierId = _localSuppliers.isNotEmpty
+          ? _localSuppliers.first.id
           : null;
       _selectedSiteId = widget.sites.isNotEmpty ? widget.sites.first.id : null;
 
-      // Add one empty material item for add mode
-      _addMaterialItem();
+      // Add one empty material item for add mode if invoice type is general_po
+      if (_selectedInvoiceType == 'general_po') {
+        _addMaterialItem();
+      }
+    }
+  }
+
+  // Add this method to refresh local suppliers
+  Future<void> _refreshSuppliers() async {
+    try {
+      final suppliers = await ApiServicePurchaseInvoice.getSuppliers();
+      setState(() {
+        _localSuppliers = suppliers;
+      });
+    } catch (e) {
+      print('Error refreshing suppliers: $e');
     }
   }
 
@@ -1638,6 +802,32 @@ class _AddEditInvoiceBottomSheetState extends State<AddEditInvoiceBottomSheet> {
     );
   }
 
+  void _showCreateSupplierBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => CreateSupplierBottomSheet(
+        onSupplierCreated: (newSupplierId) async {
+          // First refresh the parent's supplier list
+          widget.onSupplierCreated?.call();
+          
+          // Then refresh our local supplier list
+          await _refreshSuppliers();
+          
+          // Wait a moment for the state to update
+          await Future.delayed(const Duration(milliseconds: 300));
+          
+          // Set the newly created supplier as selected
+          if (mounted) {
+            setState(() {
+              _selectedSupplierId = newSupplierId;
+            });
+          }
+        },
+      ),
+    );
+  }
+
   void _addMaterialItem() {
     setState(() {
       _materialItems.add(MaterialItem());
@@ -1657,6 +847,12 @@ class _AddEditInvoiceBottomSheetState extends State<AddEditInvoiceBottomSheet> {
   }
 
   double get _totalAmount {
+    if (_selectedInvoiceType == 'minor_misc_service') {
+      // For minor misc service, you might want to add a separate field for total amount
+      // For now, we'll return 0 or you can add a separate text field for total amount
+      return 0;
+    }
+    
     double total = 0;
     for (var item in _materialItems) {
       if (item.subtotal.isNotEmpty) {
@@ -1671,10 +867,10 @@ class _AddEditInvoiceBottomSheetState extends State<AddEditInvoiceBottomSheet> {
       return;
     }
 
-    if (_materialItems.isEmpty) {
+    if (_selectedInvoiceType == 'general_po' && _materialItems.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please add at least one material item'),
+          content: Text('Please add at least one material item for General PO'),
           backgroundColor: Colors.red,
         ),
       );
@@ -1705,8 +901,13 @@ class _AddEditInvoiceBottomSheetState extends State<AddEditInvoiceBottomSheet> {
         'site_id': _selectedSiteId.toString(),
         'created_by': '1', // Assuming current user ID is 1
         'workspace_id': '1', // Assuming workspace ID is 1
+        'invoice_type': _selectedInvoiceType,
         'invoice_file': _selectedFile,
-        'items': _materialItems
+      };
+
+      // Add items only for general_po
+      if (_selectedInvoiceType == 'general_po') {
+        invoiceData['items'] = _materialItems
             .where((item) => item.materialId > 0)
             .map(
               (item) => {
@@ -1717,8 +918,8 @@ class _AddEditInvoiceBottomSheetState extends State<AddEditInvoiceBottomSheet> {
                 'subtotal': item.subtotal,
               },
             )
-            .toList(),
-      };
+            .toList();
+      }
 
       print('Submitting invoice data: $invoiceData');
 
@@ -1895,64 +1096,110 @@ class _AddEditInvoiceBottomSheetState extends State<AddEditInvoiceBottomSheet> {
                 ),
                 const SizedBox(height: 16),
 
-                // Invoice Materials Section
+                // Invoice Type
                 const Text(
-                  'Invoice Material',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  'Invoice Type*',
+                  style: TextStyle(fontWeight: FontWeight.bold),
                 ),
-                const SizedBox(height: 12),
-
-                if (_isLoadingMaterials) ...[
-                  const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(16.0),
-                      child: CircularProgressIndicator(),
+                const SizedBox(height: 8),
+                DropdownButtonFormField<String>(
+                  value: _selectedInvoiceType,
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.all(Radius.circular(10)),
                     ),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                    isDense: true,
                   ),
-                ] else ...[
-                  // Material Items List
-                  if (_materialItems.isNotEmpty) ...[
-                    ..._materialItems.asMap().entries.map((entry) {
-                      final index = entry.key;
-                      final item = entry.value;
-                      return MaterialItemRow(
-                        item: item,
-                        index: index,
+                  items: _invoiceTypeOptions.map((option) {
+                    return DropdownMenuItem<String>(
+                      value: option['value'],
+                      child: Text(option['label']!),
+                    );
+                  }).toList(),
+                  onChanged: _isSubmitting
+                      ? null
+                      : (value) {
+                          setState(() {
+                            _selectedInvoiceType = value!;
+                            // If switching to general_po and no items, add one
+                            if (value == 'general_po' && _materialItems.isEmpty) {
+                              _addMaterialItem();
+                            }
+                          });
+                        },
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please select invoice type';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                // Invoice Materials Section - Only show for General PO
+                if (_selectedInvoiceType == 'general_po') ...[
+                  const Text(
+                    'Invoice Material',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  const SizedBox(height: 12),
+
+                  if (_isLoadingMaterials) ...[
+                    const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(16.0),
+                        child: CircularProgressIndicator(),
+                      ),
+                    ),
+                  ] else ...[
+                    // Material Items List
+                    if (_materialItems.isNotEmpty) ...[
+                      ..._materialItems.asMap().entries.map((entry) {
+                        final index = entry.key;
+                        final item = entry.value;
+                        return MaterialItemRow(
+                          item: item,
+                          index: index,
+                          materials: _materials,
+                          units: _units,
+                          onUpdate: (updatedItem) =>
+                              _updateMaterialItem(index, updatedItem),
+                          onRemove: _isSubmitting
+                              ? null
+                              : () => _removeMaterialItem(index),
+                        );
+                      }),
+                      const SizedBox(height: 16),
+                    ] else ...[
+                      // Add empty material item row if no items
+                      MaterialItemRow(
+                        item: MaterialItem(),
+                        index: 0,
                         materials: _materials,
                         units: _units,
                         onUpdate: (updatedItem) =>
-                            _updateMaterialItem(index, updatedItem),
-                        onRemove: _isSubmitting
-                            ? null
-                            : () => _removeMaterialItem(index),
-                      );
-                    }),
+                            _updateMaterialItem(0, updatedItem),
+                        onRemove: null,
+                      ),
+                    ],
+
+                    // Add Item Button
                     const SizedBox(height: 16),
-                  ] else ...[
-                    // Add empty material item row if no items
-                    MaterialItemRow(
-                      item: MaterialItem(),
-                      index: 0,
-                      materials: _materials,
-                      units: _units,
-                      onUpdate: (updatedItem) =>
-                          _updateMaterialItem(0, updatedItem),
-                      onRemove: null,
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: _isSubmitting ? null : _addMaterialItem,
+                        icon: const Icon(Icons.add),
+                        label: const Text('Add Item'),
+                      ),
                     ),
+                    const SizedBox(height: 16),
                   ],
                 ],
-
-                // Add Item Button
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    onPressed: _isSubmitting ? null : _addMaterialItem,
-                    icon: const Icon(Icons.add),
-                    label: const Text('Add Item'),
-                  ),
-                ),
-                const SizedBox(height: 16),
 
                 // Invoice Date
                 const Text(
@@ -1996,7 +1243,7 @@ class _AddEditInvoiceBottomSheetState extends State<AddEditInvoiceBottomSheet> {
                       vertical: 16,
                     ),
                   ),
-                  items: widget.suppliers.map((supplier) {
+                  items: _localSuppliers.map((supplier) {
                     return DropdownMenuItem<int>(
                       value: supplier.id,
                       child: Text(
@@ -2020,6 +1267,21 @@ class _AddEditInvoiceBottomSheetState extends State<AddEditInvoiceBottomSheet> {
                     return null;
                   },
                   isExpanded: true,
+                ),
+                const SizedBox(height: 8),
+
+                // Create New Supplier Button
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: _isSubmitting ? null : _showCreateSupplierBottomSheet,
+                    icon: const Icon(Icons.add, size: 18),
+                    label: const Text('Create New Supplier'),
+                    style: OutlinedButton.styleFrom(
+                      alignment: Alignment.centerLeft,
+                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 16),
 
@@ -2137,8 +1399,399 @@ class _AddEditInvoiceBottomSheetState extends State<AddEditInvoiceBottomSheet> {
     );
   }
 }
+// Update the CreateSupplierBottomSheet to return the created supplier ID
+class CreateSupplierBottomSheet extends StatefulWidget {
+  final Function(int)? onSupplierCreated; // Changed to return supplier ID
 
-// Material Item Class
+  const CreateSupplierBottomSheet({
+    super.key,
+    this.onSupplierCreated,
+  });
+
+  @override
+  State<CreateSupplierBottomSheet> createState() => _CreateSupplierBottomSheetState();
+}
+
+class _CreateSupplierBottomSheetState extends State<CreateSupplierBottomSheet> {
+  final _formKey = GlobalKey<FormState>();
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
+
+  File? _upiScreenshot1;
+  final ImagePicker _picker = ImagePicker();
+
+  int? _selectedCategoryId;
+  List<SupplierCategory> _categories = [];
+  bool _isLoading = false;
+  bool _isSubmitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCategories();
+  }
+
+  Future<void> _loadCategories() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final categories = await SupplierApiService.getSupplierCategories();
+      setState(() {
+        _categories = categories;
+        if (categories.isNotEmpty) {
+          _selectedCategoryId = categories.first.id;
+        }
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('Error loading categories: $e');
+      setState(() {
+        _isLoading = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to load categories: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _pickUpiScreenshot1() async {
+    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+    if (image != null) {
+      setState(() {
+        _upiScreenshot1 = File(image.path);
+      });
+    }
+  }
+
+  Future<void> _submitForm() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    if (_selectedCategoryId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select a category'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _isSubmitting = true;
+    });
+
+    try {
+      // Create multipart request for file uploads
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('${SupplierApiService.baseUrl}/suppliers'),
+      );
+
+      // Add required fields based on API screenshot
+      request.fields['name'] = _nameController.text;
+      request.fields['category_id'] = _selectedCategoryId!.toString();
+      request.fields['created_by'] = '1'; // Default user ID
+      request.fields['workspace_id'] = '1'; // Default workspace ID
+      
+      // Add optional phone field if entered
+      if (_phoneController.text.isNotEmpty) {
+        request.fields['phone'] = _phoneController.text;
+      }
+
+      // Add UPI screenshot if available
+      if (_upiScreenshot1 != null) {
+        request.files.add(
+          await http.MultipartFile.fromPath(
+            'upi_screenshot_1',
+            _upiScreenshot1!.path,
+          ),
+        );
+      }
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      print('Supplier creation response status: ${response.statusCode}');
+      print('Supplier creation response body: ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final responseData = json.decode(response.body);
+        
+        if (responseData['status'] == 1) {
+          final supplierData = responseData['data'];
+          final newSupplierId = supplierData['id'] as int;
+          
+          if (mounted) {
+            Navigator.pop(context);
+            // Pass the new supplier ID back
+            widget.onSupplierCreated?.call(newSupplierId);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text('Supplier created successfully'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
+        } else {
+          throw Exception('API returned error: ${responseData['message']}');
+        }
+      } else if (response.statusCode == 422) {
+        // Handle validation errors
+        final responseData = json.decode(response.body);
+        print('Validation errors: $responseData');
+        
+        String errorMessage = 'Validation failed';
+        if (responseData is Map && responseData.containsKey('errors')) {
+          final errors = responseData['errors'];
+          if (errors is Map) {
+            final errorList = errors.entries.map((e) => '${e.key}: ${e.value.join(', ')}').toList();
+            errorMessage = errorList.join('\n');
+          }
+        }
+        
+        throw Exception(errorMessage);
+      } else {
+        throw Exception('Failed to create supplier. Status code: ${response.statusCode} - ${response.body}');
+      }
+    } catch (e) {
+      print('Error creating supplier: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to create supplier: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: MediaQuery.of(context).size.height * 0.9,
+      child: SingleChildScrollView(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: Container(
+          padding: const EdgeInsets.all(24.0),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Create New Supplier',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: _isSubmitting
+                          ? null
+                          : () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+
+                // Name
+                const Text(
+                  'Name*',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _nameController,
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.all(Radius.circular(10)),
+                    ),
+                    hintText: 'Enter Supplier Name',
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter supplier name';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                // Category
+                const Text(
+                  'Category*',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                _isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : DropdownButtonFormField<int>(
+                        value: _selectedCategoryId,
+                        decoration: const InputDecoration(
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(10)),
+                          ),
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 10,
+                          ),
+                        ),
+                        items: _categories.map((category) {
+                          return DropdownMenuItem<int>(
+                            value: category.id,
+                            child: Text(category.name),
+                          );
+                        }).toList(),
+                        onChanged: _isSubmitting
+                            ? null
+                            : (value) {
+                                setState(() {
+                                  _selectedCategoryId = value;
+                                });
+                              },
+                        validator: (value) {
+                          if (value == null) {
+                            return 'Please select a category';
+                          }
+                          return null;
+                        },
+                      ),
+                const SizedBox(height: 16),
+
+                // Phone (Optional)
+                const Text(
+                  'Phone',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _phoneController,
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.all(Radius.circular(10)),
+                    ),
+                    hintText: 'Enter Phone Number',
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                  ),
+                  keyboardType: TextInputType.phone,
+                ),
+                const SizedBox(height: 16),
+
+                // UPI Screenshot (Optional)
+                const Text(
+                  'UPI Screenshot',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: _isSubmitting ? null : _pickUpiScreenshot1,
+                    child: Padding(
+                      padding: const EdgeInsets.all(12.0),
+                      child: Column(
+                        children: [
+                          const Icon(Icons.upload_file),
+                          const SizedBox(height: 4),
+                          const Text('Choose File'),
+                          const SizedBox(height: 2),
+                          Text(
+                            _upiScreenshot1 != null
+                                ? _upiScreenshot1!.path.split('/').last
+                                : 'No file chosen',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Allowed: jpg, jpeg, png',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+                const SizedBox(height: 24),
+
+                // Action Buttons
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: _isSubmitting
+                            ? null
+                            : () => Navigator.pop(context),
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 12),
+                          child: Text('Close'),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: _isSubmitting ? null : _submitForm,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          child: _isSubmitting
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white,
+                                    ),
+                                  ),
+                                )
+                              : const Text('Save Supplier'),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}// Material Item Class
 class MaterialItem {
   int materialId;
   String materialName;
@@ -2492,5 +2145,15 @@ class _MaterialItemRowState extends State<MaterialItemRow> {
     _subtotalController.dispose();
     _unitController.dispose();
     super.dispose();
+  }
+}
+
+// Extension for string capitalization
+extension StringExtension on String {
+  String toTitleCase() {
+    return split(' ').map((word) {
+      if (word.isEmpty) return '';
+      return word[0].toUpperCase() + word.substring(1).toLowerCase();
+    }).join(' ');
   }
 }

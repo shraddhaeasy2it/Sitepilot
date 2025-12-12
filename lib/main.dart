@@ -66,7 +66,6 @@ void main() {
             return siteProvider;
           },),
 
-
          // Added this provider
         ChangeNotifierProvider<SiteProvider>(
           create: (context) => SiteProvider(),
@@ -97,7 +96,7 @@ class MyApp extends StatelessWidget {
             useMaterial3: true,
           ),
           debugShowCheckedModeBanner: false,
-          home: const HomePagescreen(),
+          home: const SplashScreen(),
           builder: (context, widget) {
             ScreenUtil.ensureScreenSize();
 

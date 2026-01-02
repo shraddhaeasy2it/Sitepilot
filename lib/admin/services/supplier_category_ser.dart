@@ -4,7 +4,7 @@ import 'package:ecoteam_app/admin/models/supplier_categary_model.dart';
 import 'package:http/http.dart' as http;
 
 class SupplierCategoryService {
-  static const String baseUrl = 'http://sitepilot.easy2it.in/api';
+  static const String baseUrl = 'https://sitepilot.easy2it.in/api';
   static String? authToken;
 
   static Future<Map<String, String>> getHeaders() async {

@@ -6,20 +6,25 @@ import 'package:ecoteam_app/admin/services/admin_user_provider.dart';
 import 'package:ecoteam_app/admin/provider/unit_provider.dart';
 import 'package:ecoteam_app/contractor/models/birthday_model.dart';
 import 'package:ecoteam_app/contractor/models/meeting_model.dart';
-import 'package:ecoteam_app/contractor/provider/fuelEntry_provider.dart';
+import 'package:ecoteam_app/contractor/provider/activity_provider.dart';
 import 'package:ecoteam_app/contractor/provider/fuel_usage_provider.dart';
 import 'package:ecoteam_app/contractor/provider/machine_provider.dart';
 import 'package:ecoteam_app/admin/provider/material_category_provider.dart';
-import 'package:ecoteam_app/contractor/provider/rentalEntry_provider.dart';
 import 'package:ecoteam_app/contractor/provider/worker_provider.dart';
+import 'package:ecoteam_app/contractor/services/app_pusher_services.dart';
 import 'package:ecoteam_app/contractor/services/company_site_provider.dart';
+import 'package:ecoteam_app/contractor/services/pusher_services.dart';
 import 'package:ecoteam_app/contractor/services/site_provider.dart';
-import 'package:ecoteam_app/contractor/view/contractor_dashboard/dashboard_page.dart';
+import 'package:ecoteam_app/contractor/view/contractor_dashboard/attendance_screen.dart';
 import 'package:ecoteam_app/contractor/view/contractor_dashboard/home_page.dart';
 import 'package:ecoteam_app/contractor/view/landing_page/splash_screen.dart';
+import 'package:ecoteam_app/firebase_options.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
+import 'package:ecoteam_app/contractor/view/contractor_dashboard/global_chat_listener.dart'; // Add this import
+import 'package:ecoteam_app/contractor/view/contractor_dashboard/activity_screen.dart';
 
 /// ✅ Responsive Helper
 class Responsive {
@@ -38,14 +43,17 @@ class Responsive {
       MediaQuery.of(context).size.width >= 1024;
 }
 
-void main() {
+void main() async{
+   WidgetsFlutterBinding.ensureInitialized();
+
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (context) => WorkerProvider()),
         ChangeNotifierProvider(create: (_) => MachineProvider()),
-        ChangeNotifierProvider(create: (_) => FuelEntryProvider()),
-        ChangeNotifierProvider(create: (_) => RentalEntryProvider()),
         ChangeNotifierProvider(create: (_) => ActivityProvider()),
         ChangeNotifierProvider(create: (_) => BirthdayProvider()),
         ChangeNotifierProvider(create: (_) => MeetingProvider()),
@@ -56,6 +64,7 @@ void main() {
         ChangeNotifierProvider(create: (_) => CompanySiteProvider()),
         ChangeNotifierProvider(create: (_) => MaterialCategoryProvider()),
         ChangeNotifierProvider(create: (_) => ProjectSiteProvider()),
+        ChangeNotifierProvider(create: (_) => EmployeeProvider()),
       
         ChangeNotifierProvider<SiteProvider>(
           create: (context) {
@@ -75,7 +84,15 @@ void main() {
     ),
   );
 }
+Future<void> afterLogin() async {
+  // Initialize global Pusher connection
+  await AppPusherManager().initializeAppConnection();
+}
 
+// On logout:
+Future<void> onLogout() async {
+  await AppPusherManager().disconnect();
+}
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -127,7 +144,9 @@ class MyApp extends StatelessWidget {
                   data: MediaQuery.of(context).copyWith(
                     textScaleFactor: scaleFactor,
                   ),
-                  child: widget!,
+                  child: GlobalChatListener(
+                    child: widget!,
+                  ),
                 ),
               ),
             );

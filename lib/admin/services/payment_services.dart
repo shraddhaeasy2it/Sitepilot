@@ -3,7 +3,7 @@ import 'package:ecoteam_app/admin/models/payment_model.dart';
 import 'package:http/http.dart' as http;
 
 class PaymentService {
-  static const String baseUrl = 'http://sitepilot.easy2it.in';
+  static const String baseUrl = 'https://sitepilot.easy2it.in';
   
   // Fetch all payments
   static Future<List<Payment>> getPayments() async {

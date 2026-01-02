@@ -16,7 +16,7 @@ class MaterialCategoryProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
   String get error => _error;
 
-  static const String baseUrl = 'http://sitepilot.easy2it.in/api/material-categories';
+  static const String baseUrl = 'https://sitepilot.easy2it.in/api/material-categories';
 
   MaterialCategoryProvider() {
     fetchCategories();

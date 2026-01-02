@@ -9,7 +9,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:location/location.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
+
+import '../../services/company_site_provider.dart';
 
 class HomePagescreen extends StatefulWidget {
   const HomePagescreen({super.key});
@@ -64,6 +68,10 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
 
   Future<void> _initializeData() async {
     try {
+      if (mounted) {
+         // Refresh permissions in background to keep UI responsive or await if critical
+         _companyProvider.refreshPermissions(); 
+      }
       await _companyProvider.loadCompanies();
 
       if (_companyProvider.companies.isNotEmpty) {
@@ -79,24 +87,23 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
   }
 
   // ADD THIS REFRESH METHOD
-  void _refreshData() {
+  Future<void> _refreshData() async {
     try {
       final provider = Provider.of<CompanySiteProvider>(context, listen: false);
-      provider.refreshCompanies();
+      // Run both refreshes concurrently
+      await Future.wait([
+        provider.refreshCompanies(),
+        provider.refreshPermissions(),
+      ]);
 
-      // Show loading state
-      setState(() {});
-
-      _showSnackBar('Refreshing data...', Colors.blue);
-
-      // Optional: Wait a bit and show success message
-      Future.delayed(const Duration(seconds: 2), () {
-        if (mounted) {
-          _showSnackBar('Data refreshed successfully!', Colors.green);
-        }
-      });
+      if (mounted) {
+        setState(() {});
+        _showSnackBar('Data refreshed successfully!', Colors.green);
+      }
     } catch (e) {
-      _showSnackBar('Failed to refresh data: $e', Colors.red);
+      if (mounted) {
+        _showSnackBar('Failed to refresh data: $e', Colors.red);
+      }
     }
   }
 
@@ -145,22 +152,22 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
     }
   }
 
-  void _navigateToChatScreen() {
-    final siteList = _companyProvider.sites;
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ChatScreen(
-          selectedSiteId: siteList.isNotEmpty ? siteList.first.id : null,
-          onSiteChanged: (String siteId) {
-            debugPrint('Site changed to: $siteId');
-          },
-          sites: siteList,
-          currentCompany: currentCompanyName,
-        ),
-      ),
-    );
-  }
+  // void _navigateToChatScreen() {
+  //   final siteList = _companyProvider.sites;
+  //   Navigator.push(
+  //     context,
+  //     MaterialPageRoute(
+  //       builder: (context) => ChatScreen(
+  //         selectedSiteId: siteList.isNotEmpty ? siteList.first.id : null,
+  //         onSiteChanged: (String siteId) {
+  //           debugPrint('Site changed to: $siteId');
+  //         },
+  //         sites: siteList,
+  //         currentCompany: currentCompanyName,
+  //       ),
+  //     ),
+  //   );
+  // }
 
   void _showProgressUpdateBottomSheet(SiteData site) {
     double newProgress = site.progress;
@@ -343,6 +350,9 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
   Widget build(BuildContext context) {
     final companyProvider = Provider.of<CompanySiteProvider>(context);
 
+    print('DEBUG: HomePage Build - Current Permissions: ${companyProvider.permissions}');
+    print('DEBUG: HomePage Build - Is Loading Permissions: ${companyProvider.isPermissionsLoading}');
+
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: const Color(0xFFF8FAFC),
@@ -381,16 +391,16 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                   child: Row(
                     children: [
                       Icon(Icons.business, color: Colors.white70, size: 21.w),
-                      SizedBox(width: 10.w),
-                      if (companyProvider.isLoading)
+                      SizedBox(width: 15.w),
+                      if (companyProvider.isLoading || companyProvider.isPermissionsLoading)
                         SizedBox(
-                          width: 150.w,
+                          width: 180.w,
                           child: Row(
                             children: [
                               Text(
-                                'Loading...',
+                                companyProvider.isPermissionsLoading ? 'Loading Perms...' : 'Loading...',
                                 style: TextStyle(
-                                  fontSize: 18.sp,
+                                  fontSize: 14.sp,
                                   fontWeight: FontWeight.w600,
                                   color: Colors.white,
                                 ),
@@ -414,42 +424,50 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                 ),
                 actions: [
                   // REFRESH BUTTON - FIXED
-                  IconButton(
-                    icon: const FaIcon(FontAwesomeIcons.bell, size: 20),
-                    tooltip: 'Notifications',
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const NotificationScreen(),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => NotificationScreen(),
+                            ),
+                          );
+                        },
+                        child: const FaIcon(FontAwesomeIcons.bell, size: 19),
+                      ),
+                      SizedBox(width: 5.h),
+                      // IconButton(
+                      //   tooltip: 'Chat',
+                      //   onPressed: _navigateToChatScreen,
+                      //   icon: const FaIcon(
+                      //     FontAwesomeIcons.commentDots,
+                      //     size: 19,
+                      //   ),
+                      //   color: Colors.white,
+                      // ),
+                      SizedBox(width: 5.h),
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ProfileScreen(),
+                            ),
+                          );
+                        },
+                        child: const CircleAvatar(
+                          backgroundColor: Colors.white,
+                          backgroundImage: AssetImage('assets/avtar.jpg'),
+                          radius: 16,
                         ),
-                      );
-                    },
-                    color: Colors.white,
+                      ),
+                      SizedBox(width: 15.h),
+                    ],
                   ),
-                  IconButton(
-                    tooltip: 'Chat',
-                    onPressed: _navigateToChatScreen,
-                    icon: const FaIcon(FontAwesomeIcons.commentDots, size: 20),
-                    color: Colors.white,
-                  ),
-                  SizedBox(width: 4.w),
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => ProfileScreen(),
-                        ),
-                      );
-                    },
-                    child: const CircleAvatar(
-                      backgroundColor: Colors.white,
-                      backgroundImage: AssetImage('assets/avtar.jpg'),
-                      radius: 18,
-                    ),
-                  ),
-                  SizedBox(width: 15.h),
                 ],
                 iconTheme: const IconThemeData(color: Colors.white),
               ),
@@ -482,22 +500,29 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      ElevatedButton.icon(
-                        onPressed: _showAddCompanyBottomSheet,
-                        icon: Icon(Icons.add, size: 20),
-                        label: Text('Add Company'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Color(0xFF4a63c0),
-                          foregroundColor: Colors.white,
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 3,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(15),
+                      // DEBUG PRINT
+                      Builder(builder: (context) {
+                        final canCreate = companyProvider.hasPermission('workspace create');
+                        print('DEBUG: checking workspace create: $canCreate');
+                        return SizedBox.shrink();
+                      }),
+                      if (companyProvider.hasPermission('workspace create'))
+                        ElevatedButton.icon(
+                          onPressed: _showAddCompanyBottomSheet,
+                          icon: Icon(Icons.add, size: 20),
+                          label: Text('Add Company'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Color(0xFF4a63c0),
+                            foregroundColor: Colors.white,
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 3,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(15),
+                            ),
                           ),
                         ),
-                      ),
                     ],
                   ),
                 ),
@@ -604,14 +629,15 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                                 ),
                               ),
                               SizedBox(height: 20),
-                              ElevatedButton(
-                                onPressed: _showAddCompanyBottomSheet,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Color(0xFF4a63c0),
-                                  foregroundColor: Colors.white,
+                              if (companyProvider.hasPermission('workspace create'))
+                                ElevatedButton(
+                                  onPressed: _showAddCompanyBottomSheet,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Color(0xFF4a63c0),
+                                    foregroundColor: Colors.white,
+                                  ),
+                                  child: Text('Add Company'),
                                 ),
-                                child: Text('Add Company'),
-                              ),
                             ],
                           ),
                         )
@@ -636,111 +662,135 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
               ],
             ),
       floatingActionButton: companies.isNotEmpty
-          ? _buildFloatingActionButton()
+          ? FloatingActionButton(
+              onPressed: _showAddSiteBottomSheet,
+              child: const Icon(Icons.add, color: Colors.white),
+              backgroundColor: const Color.fromRGBO(
+                42,
+                67,
+                160,
+                1,
+              ), // Your blue color
+              tooltip: 'Add New Site',
+            )
           : null,
     );
   }
 
-  Widget _buildFloatingActionButton() {
-    return Tooltip(
-      message: 'Add New Site',
-      child: Container(
-        width: 48,
-        height: 48,
-        decoration: BoxDecoration(
-          color: const Color(0xFF4a63c0),
-          borderRadius: BorderRadius.circular(24),
-        ),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: _showAddSiteBottomSheet,
-            borderRadius: BorderRadius.circular(24),
-            child: const Icon(Icons.add, color: Colors.white, size: 20),
-          ),
-        ),
-      ),
+  Widget _buildListView() {
+    return RefreshIndicator(
+      onRefresh: _refreshData,
+      color: const Color(0xFF4a63c0),
+      child: sites.isEmpty
+          ? LayoutBuilder(
+              builder: (context, constraints) {
+                return SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  child: Container(
+                    height: constraints.maxHeight,
+                    alignment: Alignment.center,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                            Icons.construction,
+                            size: 60,
+                            color: Colors.grey.shade400),
+                        SizedBox(height: 16),
+                        Text(
+                          'No sites found',
+                          style: TextStyle(
+                              fontSize: 18, color: Colors.grey.shade600),
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          'Add your first site to get started',
+                          style: TextStyle(
+                              fontSize: 14, color: Colors.grey.shade500),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            )
+          : ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              itemCount: sites.length,
+              itemBuilder: (context, index) {
+                return SiteCard(
+                  site: sites[index],
+                  onTap: () => _navigateToDashboard(sites[index]),
+                  onEdit: () => _showEditSiteBottomSheet(sites[index]),
+                  onDelete: () => _showDeleteSiteDialog(sites[index]),
+                  onStatusTap: () =>
+                      _showStatusSelectionBottomSheet(sites[index]),
+                  isGridView: false,
+                );
+              },
+            ),
     );
   }
 
-  Widget _buildListView() {
-    return sites.isEmpty
-        ? Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.construction, size: 60, color: Colors.grey.shade400),
-                SizedBox(height: 16),
-                Text(
-                  'No sites found',
-                  style: TextStyle(fontSize: 18, color: Colors.grey.shade600),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  'Add your first site to get started',
-                  style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
-                ),
-              ],
-            ),
-          )
-        : ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            itemCount: sites.length,
-            itemBuilder: (context, index) {
-              return SiteCard(
-                site: sites[index],
-                onTap: () => _navigateToDashboard(sites[index]),
-                onEdit: () => _showEditSiteBottomSheet(sites[index]),
-                onDelete: () => _showDeleteSiteDialog(sites[index]),
-                onStatusTap: () =>
-                    _showStatusSelectionBottomSheet(sites[index]),
-                isGridView: false,
-              );
-            },
-          );
-  }
-
   Widget _buildGridView() {
-    return sites.isEmpty
-        ? Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.construction, size: 60, color: Colors.grey.shade400),
-                SizedBox(height: 16),
-                Text(
-                  'No sites found',
-                  style: TextStyle(fontSize: 18, color: Colors.grey.shade600),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  'Add your first site to get started',
-                  style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
-                ),
-              ],
+    return RefreshIndicator(
+      onRefresh: _refreshData,
+      color: const Color(0xFF4a63c0),
+      child: sites.isEmpty
+          ? LayoutBuilder(
+              builder: (context, constraints) {
+                return SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  child: Container(
+                    height: constraints.maxHeight,
+                    alignment: Alignment.center,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                            Icons.construction,
+                            size: 60,
+                            color: Colors.grey.shade400),
+                        SizedBox(height: 16),
+                        Text(
+                          'No sites found',
+                          style: TextStyle(
+                              fontSize: 18, color: Colors.grey.shade600),
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          'Add your first site to get started',
+                          style: TextStyle(
+                              fontSize: 14, color: Colors.grey.shade500),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            )
+          : GridView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                childAspectRatio: 0.85,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+              ),
+              itemCount: sites.length,
+              itemBuilder: (context, index) {
+                return SiteCard(
+                  site: sites[index],
+                  onTap: () => _navigateToDashboard(sites[index]),
+                  onEdit: () => _showEditSiteBottomSheet(sites[index]),
+                  onDelete: () => _showDeleteSiteDialog(sites[index]),
+                  onStatusTap: () =>
+                      _showStatusSelectionBottomSheet(sites[index]),
+                  isGridView: true,
+                );
+              },
             ),
-          )
-        : GridView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              childAspectRatio: 0.85,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-            ),
-            itemCount: sites.length,
-            itemBuilder: (context, index) {
-              return SiteCard(
-                site: sites[index],
-                onTap: () => _navigateToDashboard(sites[index]),
-                onEdit: () => _showEditSiteBottomSheet(sites[index]),
-                onDelete: () => _showDeleteSiteDialog(sites[index]),
-                onStatusTap: () =>
-                    _showStatusSelectionBottomSheet(sites[index]),
-                isGridView: true,
-              );
-            },
-          );
+    );
   }
 
   void _showStatusSelectionBottomSheet(SiteData site) {
@@ -891,7 +941,7 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                             color: Color(0xFF4a63c0),
                           ),
                         ),
-                        
+
                         Row(
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [
@@ -919,11 +969,14 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                                 );
                               },
                             ),
+                            if (_companyProvider.hasPermission('workspace create'))
                             IconButton(
                               icon: Icon(Icons.add, color: Color(0xFF4a63c0)),
                               onPressed: () {
-                                Navigator.pop(context);
-                                _showAddCompanyBottomSheet();
+                                 
+                                  Navigator.pop(context);
+                                  _showAddCompanyBottomSheet();
+                                
                               },
                             ),
                           ],
@@ -1019,26 +1072,28 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                 color: Color(0xFF4a63c0),
                 size: 20,
               ),
-              SizedBox(width: 8),
-            IconButton(
-              icon: Icon(Icons.edit, size: 18, color: Colors.blue.shade600),
-              onPressed: () {
-                Navigator.pop(context);
-                _showEditCompanyBottomSheet(companyId, companyName);
-              },
-              padding: EdgeInsets.zero,
-              constraints: BoxConstraints(),
-            ),
             SizedBox(width: 8),
-            IconButton(
-              icon: Icon(Icons.delete, size: 18, color: Colors.red.shade600),
-              onPressed: () {
-                Navigator.pop(context);
-                _showDeleteCompanyDialog(companyId, companyName);
-              },
-              padding: EdgeInsets.zero,
-              constraints: BoxConstraints(),
-            ),
+            if (_companyProvider.hasPermission('workspace edit'))
+              IconButton(
+                icon: Icon(Icons.edit, size: 18, color: Colors.blue.shade600),
+                onPressed: () {
+                  Navigator.pop(context);
+                  _showEditCompanyBottomSheet(companyId, companyName);
+                },
+                padding: EdgeInsets.zero,
+                constraints: BoxConstraints(),
+              ),
+            SizedBox(width: 8),
+            if (_companyProvider.hasPermission('workspace delete'))
+              IconButton(
+                icon: Icon(Icons.delete, size: 18, color: Colors.red.shade600),
+                onPressed: () {
+                  Navigator.pop(context);
+                  _showDeleteCompanyDialog(companyId, companyName);
+                },
+                padding: EdgeInsets.zero,
+                constraints: BoxConstraints(),
+              ),
           ],
         ),
       ),
@@ -1336,49 +1391,127 @@ class _ContractorDashboardPageState extends State<HomePagescreen> {
                 SizedBox(
                   width: double.infinity,
                   height: 50,
-                  child: ElevatedButton(
-                    onPressed: () async {
-                      if (nameController.text.isNotEmpty &&
-                          addressController.text.isNotEmpty) {
-                        final newSite = Site(
-                          id: '',
-                          name: nameController.text,
-                          companyId: currentCompanyId ?? '',
-                          status: selectedStatus,
-                          startDate: startDateController.text.isNotEmpty
-                              ? startDateController.text
-                              : '2023-01-01',
-                          endDate: endDateController.text.isNotEmpty
-                              ? endDateController.text
-                              : '2023-12-31',
-                          budget: 5000000.0,
-                          progress: 0.0,
-                          description: addressController.text,
-                        );
+                  child: StatefulBuilder(
+                    builder: (BuildContext context, StateSetter setModalState) {
+                      bool isFetchingLocation = false;
 
-                        try {
-                          await _companyProvider.addSite(newSite);
-                          Navigator.pop(context);
-                          _showSnackBar(
-                            'Site added successfully',
-                            Colors.green,
-                          );
-                        } catch (e) {
-                          _showSnackBar('Failed to add site: $e', Colors.red);
-                        }
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Color(0xFF4a63c0),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      elevation: 2,
-                    ),
-                    child: const Text(
-                      'Add Site',
-                      style: TextStyle(fontSize: 16, color: Colors.white),
-                    ),
+                      return ElevatedButton(
+                        onPressed: () async {
+                          if (nameController.text.isNotEmpty &&
+                              addressController.text.isNotEmpty) {
+                            
+                            // Prevent multiple clicks
+                            if (isFetchingLocation) return;
+
+                            setModalState(() {
+                              isFetchingLocation = true;
+                            });
+
+                            String? latitude;
+                            String? longitude;
+
+                            try {
+                              // Check Permissions
+                              var status = await Permission.location.status;
+                              if (!status.isGranted) {
+                                status = await Permission.location.request();
+                                if (!status.isGranted) {
+                                   if (mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Location permission is required to add a site.'),
+                                        backgroundColor: Colors.red,
+                                      ),
+                                    );
+                                   }
+                                   setModalState(() => isFetchingLocation = false);
+                                   return; 
+                                }
+                              }
+
+                              // Get Location
+                              Location location = Location();
+                              bool serviceEnabled = await location.serviceEnabled();
+                              if (!serviceEnabled) {
+                                serviceEnabled = await location.requestService();
+                                if (!serviceEnabled) {
+                                  if (mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('Location service is disabled.')),
+                                    );
+                                  }
+                                  setModalState(() => isFetchingLocation = false);
+                                  return;
+                                }
+                              }
+
+                              final locationData = await location.getLocation();
+                              latitude = locationData.latitude?.toString();
+                              longitude = locationData.longitude?.toString();
+
+                            } catch (e) {
+                              debugPrint('Error getting location: $e');
+                              // Optional: Show error or proceed without location? 
+                              // User request implies location is needed.
+                            }
+
+                            final newSite = Site(
+                              id: '',
+                              name: nameController.text,
+                              companyId: currentCompanyId ?? '',
+                              status: selectedStatus,
+                              startDate: startDateController.text.isNotEmpty
+                                  ? startDateController.text
+                                  : '2023-01-01',
+                              endDate: endDateController.text.isNotEmpty
+                                  ? endDateController.text
+                                  : '2023-12-31',
+                              budget: 5000000.0,
+                              progress: 0.0,
+                              description: addressController.text,
+                              latitude: latitude,
+                              longitude: longitude,
+                            );
+
+                            try {
+                              await _companyProvider.addSite(newSite);
+                              if (mounted) {
+                                Navigator.pop(context);
+                                _showSnackBar(
+                                  'Site added successfully',
+                                  Colors.green,
+                                );
+                              }
+                            } catch (e) {
+                              if (mounted) {
+                                _showSnackBar('Failed to add site: $e', Colors.red);
+                              }
+                            } finally {
+                               if (mounted) {
+                                setModalState(() => isFetchingLocation = false);
+                               }
+                            }
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Color(0xFF4a63c0),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 2,
+                        ),
+                        child: isFetchingLocation 
+                          ? const SizedBox(
+                              height: 20, 
+                              width: 20, 
+                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
+                            )
+                          : const Text(
+                              'Add Site',
+                              style: TextStyle(fontSize: 16, color: Colors.white),
+                            ),
+                      );
+                    }
                   ),
                 ),
                 const SizedBox(height: 16),

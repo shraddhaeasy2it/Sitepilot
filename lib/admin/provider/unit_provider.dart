@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 import '../models/unit_model.dart';
 
 class UnitProvider extends ChangeNotifier {
-  final String baseUrl = 'http://sitepilot.easy2it.in/api/units';
+  final String baseUrl = 'https://sitepilot.easy2it.in/api/units';
 
   List<Unit> _units = [];
   List<Unit> get units => _units;

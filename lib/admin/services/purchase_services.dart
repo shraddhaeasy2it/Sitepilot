@@ -7,7 +7,7 @@ import 'package:ecoteam_app/admin/models/purchase_model.dart';
 import 'package:http/http.dart' as http;
 
 class ApiServicePurchaseInvoice {
-  static const String baseUrl = 'http://sitepilot.easy2it.in/api';
+  static const String baseUrl = 'https://sitepilot.easy2it.in/api';
 
   // Updated endpoints based on your API structure
   static const String getInvoicesEndpoint = '$baseUrl/purchase-invoice';

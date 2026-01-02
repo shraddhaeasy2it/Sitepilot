@@ -3,16 +3,23 @@ import 'package:flutter/material.dart' hide Material;
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../models/material_transfer_model.dart';
 
-class MaterialTransferScreen extends StatefulWidget {
-  final int? workspaceId;
-  final String? workspaceName;
-  const MaterialTransferScreen({super.key, this.workspaceId, this.workspaceName});
+class AdminMaterialtransferScreen extends StatefulWidget {
+  
+  final int? selectedSiteId;
+  final String? selectedSiteName;
+
+  const AdminMaterialtransferScreen({
+    super.key,
+ 
+    this.selectedSiteId,
+    this.selectedSiteName,
+  });
 
   @override
-  State<MaterialTransferScreen> createState() => _MaterialTransferScreenState();
+  State<AdminMaterialtransferScreen> createState() => _AdminMaterialtransferScreenState();
 }
 
-class _MaterialTransferScreenState extends State<MaterialTransferScreen> {
+class _AdminMaterialtransferScreenState extends State<AdminMaterialtransferScreen> {
   List<MaterialTransfer> _transfers = [];
   List<MaterialTransfer> _filteredTransfers = [];
   bool _isLoading = true;
@@ -32,9 +39,14 @@ class _MaterialTransferScreenState extends State<MaterialTransferScreen> {
     try {
       final transfers = await MaterialTransferService.getMaterialTransfers();
       setState(() {
-        _transfers = transfers
-            .where((transfer) => transfer.id != null)
-            .toList();
+        _transfers = transfers.where((transfer) {
+          if (transfer.id == null) return false;
+          if (widget.selectedSiteId != null) {
+            return transfer.fromSiteId == widget.selectedSiteId ||
+                transfer.toSiteId == widget.selectedSiteId;
+          }
+          return true;
+        }).toList();
         _filteredTransfers = _transfers;
         _isLoading = false;
       });
@@ -97,8 +109,8 @@ class _MaterialTransferScreenState extends State<MaterialTransferScreen> {
       backgroundColor: Colors.transparent,
       builder: (context) => MaterialTransferForm(
         transfer: transfer,
-        workspaceId: widget.workspaceId,
-        workspaceName: widget.workspaceName,
+        currentSiteId: widget.selectedSiteId,
+        currentSiteName: widget.selectedSiteName,
         onSave: (savedTransfer) async {
           if (transfer == null) {
             // Add new transfer
@@ -157,13 +169,28 @@ class _MaterialTransferScreenState extends State<MaterialTransferScreen> {
             ],
           ),
         ),
-        title: Text(
-          widget.workspaceName != null ? 'Material Transfer - ${widget.workspaceName}' : 'Material Transfer',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
+        title:Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Material Transfer Management',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 17.sp,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            SizedBox(height: 4.h),
+            Text("Site: ${widget.selectedSiteName ?? 'All Sites'}",
+              
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.9),
+                fontSize: 13.sp,
+                fontWeight: FontWeight.w400,
+              ),
+            ),
+          ],
         ),
         actions: [
           IconButton(
@@ -498,6 +525,8 @@ class MaterialTransferForm extends StatefulWidget {
   final MaterialTransfer? transfer;
   final Function(MaterialTransfer) onSave;
   final Function(int)? onDelete;
+  final int? currentSiteId;
+  final String? currentSiteName;
   final int? workspaceId;
   final String? workspaceName;
 
@@ -506,6 +535,8 @@ class MaterialTransferForm extends StatefulWidget {
     this.transfer,
     required this.onSave,
     this.onDelete,
+    this.currentSiteId,
+    this.currentSiteName,
     this.workspaceId,
     this.workspaceName,
   });
@@ -530,6 +561,13 @@ class _MaterialTransferFormState extends State<MaterialTransferForm> {
     super.initState();
     _transfer = widget.transfer ?? MaterialTransfer();
     _items = widget.transfer?.items.toList() ?? [];
+    
+    // Set from site ID based on current site (for new transfers) or existing transfer
+    if (widget.transfer == null && widget.currentSiteId != null) {
+      // For new transfer, set from site to current site
+      _transfer.fromSiteId = widget.currentSiteId;
+    }
+    
     _selectedFromSiteId = _transfer.fromSiteId;
     _loadFormData();
   }
@@ -545,14 +583,27 @@ class _MaterialTransferFormState extends State<MaterialTransferForm> {
         workspaceId: widget.workspaceId,
       );
 
-      List<Site> filteredSites = widget.workspaceId != null
-          ? formData.sites
-              .where((site) => site.workspace == widget.workspaceId)
-              .toList()
-          : formData.sites;
+      // Get all sites
+      List<Site> allSites = formData.sites;
 
-      if (filteredSites.isEmpty) {
-        filteredSites = formData.sites;
+      // Log initial site information
+      print('Total sites from API: ${allSites.length}');
+      for (var site in allSites) {
+        print('Site: ${site.id} - ${site.name}');
+      }
+
+      // Filter sites for workspace if workspaceId is provided
+      if (widget.workspaceId != null) {
+        allSites = allSites
+            .where((site) => site.workspace == widget.workspaceId)
+            .toList();
+        print('Sites after workspace filter (workspace: ${widget.workspaceId}): ${allSites.length}');
+      }
+
+      // If no sites found with workspace filter, use all sites
+      if (allSites.isEmpty) {
+        allSites = formData.sites;
+        print('Using all sites (no workspace filter applied)');
       }
 
       final baseMaterials = formData.materials.values.toList();
@@ -567,13 +618,23 @@ class _MaterialTransferFormState extends State<MaterialTransferForm> {
       final mergedMaterials = _mergeSelectedMaterials(materials);
 
       setState(() {
-        _sites = filteredSites;
+        _sites = allSites;
         _availableMaterials = mergedMaterials;
         _isLoadingFormData = false;
       });
 
       print('Loaded ${_sites.length} sites for workspace ${widget.workspaceId}');
       print('Loaded ${_availableMaterials.length} materials via form data');
+      print('Current fromSiteId: ${_transfer.fromSiteId}');
+      print('Current toSiteId: ${_transfer.toSiteId}');
+      
+      // Log available sites for dropdown
+      print('Available sites for To Site dropdown:');
+      for (var site in _sites) {
+        if (site.id != _transfer.fromSiteId) {
+          print('  - ${site.id}: ${site.name}');
+        }
+      }
     } catch (e) {
       setState(() {
         _isLoadingFormData = false;
@@ -582,7 +643,6 @@ class _MaterialTransferFormState extends State<MaterialTransferForm> {
       print('Error loading form data: $e');
     }
   }
-
   Future<void> _loadMaterialsForSite(int siteId) async {
     try {
       setState(() {
@@ -896,7 +956,7 @@ class _MaterialTransferFormState extends State<MaterialTransferForm> {
     );
   }
 
-  Widget _buildBasicInfoSection() {
+Widget _buildBasicInfoSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -926,64 +986,53 @@ class _MaterialTransferFormState extends State<MaterialTransferForm> {
         ),
         const SizedBox(height: 12),
 
-        // From Site - Shows site names filtered by workspace
-        DropdownButtonFormField<int>(
-          value: _transfer.fromSiteId,
-          decoration: const InputDecoration(
-            labelText: 'From Project / Site*',
-            border: OutlineInputBorder(),
+        // From Site - Shows current site or selected site
+        Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey[300]!),
+            borderRadius: BorderRadius.circular(4),
           ),
-          items: _sites.map((site) {
-            return DropdownMenuItem<int>(
-              value: site.id,
-              child: Text(site.name ?? 'Unknown Site'),
-            );
-          }).toList(),
-          onChanged: (value) async {
-            setState(() {
-              _transfer.fromSiteId = value;
-              _selectedFromSiteId = value;
-              // Clear to site if it's the same as from site
-              if (_transfer.toSiteId == value) {
-                _transfer.toSiteId = null;
-              }
-            });
-            
-            // Load materials for the selected site
-            if (value != null) {
-              await _loadMaterialsForSite(value);
-            }
-          },
-          validator: (value) {
-            if (value == null) {
-              return 'Please select from site';
-            }
-            return null;
-          },
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+          child: Row(
+            children: [
+              const Icon(Icons.location_on, color: Color(0xFF2a43a0)),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'From Project / Site*',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _getFromSiteDisplayName(),
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: 12),
 
-        // To Site - Shows site names filtered by workspace
+        // To Site - Shows all sites except the current from site
         DropdownButtonFormField<int>(
           value: _transfer.toSiteId,
           decoration: const InputDecoration(
             labelText: 'To Project / Site*',
             border: OutlineInputBorder(),
           ),
-          items: _sites.map((site) {
-            // Disable the from site in to site dropdown
-            final bool isFromSite = site.id == _transfer.fromSiteId;
-            return DropdownMenuItem<int>(
-              value: site.id,
-              child: Text(
-                site.name ?? 'Unknown Site',
-                style: TextStyle(
-                  color: isFromSite ? Colors.grey : null,
-                ),
-              ),
-              enabled: !isFromSite, // Disable if it's the from site
-            );
-          }).toList(),
+          isExpanded: true,
+          items: _getToSiteDropdownItems(),
           onChanged: (value) {
             setState(() {
               _transfer.toSiteId = value;
@@ -1001,6 +1050,56 @@ class _MaterialTransferFormState extends State<MaterialTransferForm> {
         ),
       ],
     );
+  }
+
+  List<DropdownMenuItem<int>> _getToSiteDropdownItems() {
+    // If no sites loaded, return empty list
+    if (_sites.isEmpty) {
+      return [];
+    }
+
+    // If fromSiteId is null, show all sites
+    if (_transfer.fromSiteId == null) {
+      return _sites.map((site) {
+        return DropdownMenuItem<int>(
+          value: site.id,
+          child: Text(
+            site.name ?? 'Unknown Site',
+            overflow: TextOverflow.ellipsis,
+          ),
+        );
+      }).toList();
+    }
+
+    // Show all sites except the from site
+    return _sites
+        .where((site) => site.id != _transfer.fromSiteId)
+        .map((site) {
+          return DropdownMenuItem<int>(
+            value: site.id,
+            child: Text(
+              site.name ?? 'Unknown Site',
+              overflow: TextOverflow.ellipsis,
+            ),
+          );
+        }).toList();
+  }
+
+  String _getFromSiteDisplayName() {
+    if (_transfer.fromSiteId == null) {
+      return widget.currentSiteName ?? 'Not selected';
+    }
+    
+    // Try to find site in the list
+    try {
+      final fromSite = _sites.firstWhere(
+        (site) => site.id == _transfer.fromSiteId,
+      );
+      return fromSite.name ?? 'Site ${_transfer.fromSiteId}';
+    } catch (e) {
+      // If not found in list, try to get from current site name
+      return widget.currentSiteName ?? 'Site ${_transfer.fromSiteId}';
+    }
   }
 
   Widget _buildItemsSection() {
@@ -1091,10 +1190,14 @@ class _MaterialTransferFormState extends State<MaterialTransferForm> {
                 labelText: 'Material*',
                 border: OutlineInputBorder(),
               ),
+              isExpanded: true,
               items: _availableMaterials.map((mat) {
                 return DropdownMenuItem<int>(
                   value: mat.id,
-                  child: Text('${mat.name ?? 'Unknown'} (₹${mat.price ?? '0.00'}) - Stock: ${mat.totalQty ?? 'N/A'}'),
+                  child: Text(
+                    '${mat.name ?? 'Unknown'} (₹${mat.price ?? '0.00'}) - Stock: ${mat.totalQty ?? 'N/A'}',
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 );
               }).toList(),
               onChanged: (selectedId) {

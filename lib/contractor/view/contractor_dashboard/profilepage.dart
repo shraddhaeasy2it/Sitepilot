@@ -10,6 +10,10 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:ecoteam_app/admin/models/employee_model.dart';
+import 'package:ecoteam_app/admin/services/employee_services.dart';
+import 'package:ecoteam_app/contractor/view/contractor_dashboard/read_only_employee_view.dart';
+import 'package:ecoteam_app/contractor/view/contractor_dashboard/employee_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -24,30 +28,16 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _positionController = TextEditingController(
-    text: 'Construction Site Manager',
-  );
+  
   final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _phoneController = TextEditingController(
-    text: '+966501234567',
-  );
-  final TextEditingController _departmentController = TextEditingController(
-    text: 'Project Management',
-  );
-  final TextEditingController _projectsController = TextEditingController(
-    text: 'Site A',
-  );
-  final TextEditingController _skillsController = TextEditingController(
-    text: 'Site Management, Planning, Safety',
-  );
-  final TextEditingController _experienceController = TextEditingController(
-    text: '10 years',
-  );
-  final TextEditingController _birthdateController = TextEditingController(
-    text: 'Oct 04, 2024'
-  );
+  
+  String _userType = '';
+ 
   DateTime? _selectedBirthdate;
   String? _profileImageUrl = 'assets/avtar.jpg';
+  Employee? _employee;
+  Employee? _creationData;
+  bool _isLoadingEmployee = false;
 
   // Leave Management Variables
   int _availableLeaves = 21;
@@ -118,13 +108,8 @@ class _ProfileScreenState extends State<ProfileScreen>
     try {
       await ProfileService.shareProfile(
         name: _nameController.text,
-        position: _positionController.text,
         email: _emailController.text,
-        phone: _phoneController.text,
-        department: _departmentController.text,
-        projects: _projectsController.text,
-        skills: _skillsController.text,
-        experience: _experienceController.text,
+       
       );
       _showSnackBar('Profile shared successfully');
     } catch (e) {
@@ -146,15 +131,19 @@ class _ProfileScreenState extends State<ProfileScreen>
         setState(() {
           _nameController.text = userData['name'] ?? 'John Deo';
           _emailController.text = userData['email'] ?? 'John@example.com';
-          if (userData['birthdate'] != null) {
-            _selectedBirthdate = DateTime.parse(userData['birthdate']);
-            _birthdateController.text = DateFormat('MMM dd, yyyy').format(_selectedBirthdate!);
-          }
+          _userType = userData['type'] ?? 'Site / Project Manager';
         });
+        
+        // Fetch employee data
+        if (userData['id'] != null) {
+           _fetchEmployeeData(userData['id'], userData['active_workspace'] ?? 3);
+        }
+
       } else {
         setState(() {
           _nameController.text = 'John Deo';
           _emailController.text = 'John@example.com';
+          _userType = 'Site / Project Manager';
         });
       }
     } catch (e) {
@@ -163,6 +152,51 @@ class _ProfileScreenState extends State<ProfileScreen>
         _nameController.text = 'John Deo';
         _emailController.text = 'John@example.com';
       });
+    }
+  }
+
+  Future<void> _fetchEmployeeData(int userId, int workspaceId) async {
+    setState(() => _isLoadingEmployee = true);
+    try {
+      // Fetch creation data first
+      final creationData = await ApiService.fetchEmployeeCreationData(
+        workspaceId: workspaceId,
+        createdBy: userId, // Assuming current user as creator for context, or just passed
+      );
+      setState(() => _creationData = creationData);
+
+      // Fetch all employees and find the current one
+      final employees = await ApiService.fetchEmployees(workspaceId: workspaceId);
+      final employee = employees.firstWhere(
+        (e) => e.userId == userId,
+        orElse: () => Employee(
+          id: '', 
+          name: _nameController.text, 
+          email: _emailController.text, 
+          gender: 'male',
+          workspace: workspaceId
+        ),
+      );
+      
+      setState(() {
+        _employee = employee;
+        // Merge creation data metadata if needed to the employee object for easier access
+         if (_employee!.id.isNotEmpty) {
+             _employee = _employee!.copyWith(
+                departments: creationData.departments,
+                designations: creationData.designations,
+                branches: creationData.branches,
+                roles: creationData.roles,
+                locationTypes: creationData.locationTypes,
+                documentList: creationData.documentList,
+             );
+         }
+      });
+      
+    } catch (e) {
+      print('Error fetching employee data: $e');
+    } finally {
+      setState(() => _isLoadingEmployee = false);
     }
   }
 
@@ -176,14 +210,8 @@ class _ProfileScreenState extends State<ProfileScreen>
   void dispose() {
     _animationController.dispose();
     _nameController.dispose();
-    _positionController.dispose();
     _emailController.dispose();
-    _phoneController.dispose();
-    _departmentController.dispose();
-    _projectsController.dispose();
-    _skillsController.dispose();
-    _experienceController.dispose();
-    _birthdateController.dispose();
+   
     _leaveTypeController.dispose();
     _leaveReasonController.dispose();
     super.dispose();
@@ -411,7 +439,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   Widget _buildSliverAppBar() {
     return SliverAppBar(
       iconTheme: const IconThemeData(color: Colors.white),
-      expandedHeight: 80,
+      expandedHeight: 70,
       floating: false,
       pinned: true,
       elevation: 0,
@@ -449,6 +477,25 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
   }
 
+  ImageProvider? _getAvatarImageProvider() {
+    // 1. Prioritize Employee object's avatar (fetched from API)
+    if (_employee != null && _employee!.avatar != null && _employee!.avatar!.isNotEmpty) {
+      return NetworkImage('https://sitepilot.easy2it.in/${_employee!.avatar!}');
+    }
+    
+    // 2. Fallback to locally stored/selected profile image
+    if (_profileImageUrl != null && _profileImageUrl!.isNotEmpty) {
+      if (_profileImageUrl!.startsWith('assets/')) {
+        return AssetImage(_profileImageUrl!);
+      } else {
+        return FileImage(File(_profileImageUrl!));
+      }
+    }
+    
+    // 3. No image available
+    return null;
+  }
+
   Widget _buildUserCard() {
     return Container(
       decoration: BoxDecoration(
@@ -476,7 +523,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                 Hero(
                   tag: 'profile_avatar',
                   child: GestureDetector(
-                    onTap: _showImagePickerDialog,
+                    //onTap: _showImagePickerDialog,
                     child: Container(
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
@@ -501,14 +548,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                       padding: EdgeInsets.all(1.5),
                       child: CircleAvatar(
                         radius: 35,
-                        backgroundImage: _profileImageUrl != null
-                            ? (_profileImageUrl!.startsWith('assets/')
-                                  ? AssetImage(_profileImageUrl!)
-                                        as ImageProvider
-                                  : FileImage(File(_profileImageUrl!)))
-                            : null,
+                        backgroundImage: _getAvatarImageProvider(),
                         backgroundColor: Colors.white,
-                        child: _profileImageUrl == null
+                        child: _getAvatarImageProvider() == null
                             ? Icon(
                                 Icons.person,
                                 size: 35,
@@ -534,10 +576,10 @@ class _ProfileScreenState extends State<ProfileScreen>
                       ),
                       SizedBox(height: 6),
                       Text(
-                        _positionController.text,
+                        _userType,
                         style: TextStyle(
-                          fontSize: 16,
-                          color: Color(0xFF64748B),
+                          fontSize: 14,
+                          color: Color.fromARGB(255, 75, 85, 100),
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -547,19 +589,14 @@ class _ProfileScreenState extends State<ProfileScreen>
               ],
             ),
             SizedBox(height: 15),
+      
             Row(
               children: [
                 Expanded(
                   child: _buildGradientButton(
-                    onPressed: () {
-                      setState(() {
-                        _isExpanded = !_isExpanded;
-                      });
-                    },
-                    text: _isExpanded ? 'Hide Details' : 'View Details',
-                    icon: _isExpanded
-                        ? Icons.keyboard_arrow_up
-                        : Icons.keyboard_arrow_down,
+                    onPressed: _showEmployeeDetails,
+                    text: 'View Details',
+                    icon: Icons.visibility,
                     isPrimary: true,
                   ),
                 ),
@@ -573,77 +610,64 @@ class _ProfileScreenState extends State<ProfileScreen>
                 ),
               ],
             ),
-            AnimatedContainer(
-              duration: Duration(milliseconds: 300),
-              curve: Curves.easeInOut,
-              height: _isExpanded ? null : 0,
-              child: _isExpanded
-                  ? Column(
-                      children: [
-                        SizedBox(height: 24),
-                        Container(
-                          height: 1,
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                Colors.transparent,
-                                Color(0xFF667EEA).withOpacity(0.3),
-                                Colors.transparent,
-                              ],
-                            ),
-                          ),
-                        ),
-                        SizedBox(height: 24),
-                        ...[
-                          _buildDetailItem(
-                            Icons.email_outlined,
-                            'Email',
-                            _emailController.text,
-                          ),
-                          _buildDetailItem(
-                            Icons.phone_outlined,
-                            'Phone',
-                            _phoneController.text,
-                          ),
-                          _buildDetailItem(
-                            Icons.business_outlined,
-                            'Department',
-                            _departmentController.text,
-                          ),
-                          _buildDetailItem(
-                            Icons.assignment_outlined,
-                            'Assigned Projects',
-                            _projectsController.text,
-                          ),
-                          _buildDetailItem(
-                            Icons.build_outlined,
-                            'Skills',
-                            _skillsController.text,
-                          ),
-                          _buildDetailItem(
-                            Icons.work_outline,
-                            'Experience',
-                            _experienceController.text,
-                          ),
-                          _buildDetailItem(
-                            Icons.cake_outlined,
-                            'Birthdate',
-                            _birthdateController.text.isNotEmpty ? _birthdateController.text : 'Not set',
-                          ),
-                        ],
-                        SizedBox(height: 24),
-                        _buildGradientButton(
-                          onPressed: _shareProfile,
-                          text: 'Share Profile',
-                          icon: Icons.share_outlined,
-                          isPrimary: true,
-                        ),
-                      ],
-                    )
-                  : null,
-            ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showEmployeeDetails() {
+    if (_employee == null) {
+      if (_isLoadingEmployee) {
+         _showSnackBar('Still loading employee data...');
+      } else {
+         _showSnackBar('Employee data not available. Please try again later.');
+      }
+      return;
+    }
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => ReadOnlyEmployeeBottomSheet(
+        employee: _employee,
+      ),
+    );
+  }
+
+  void _showEditProfileDialog() {
+    if (_employee == null) {
+      if (_isLoadingEmployee) {
+         _showSnackBar('Still loading employee data...');
+      } else {
+         _showSnackBar('Employee data not available. Please try again later.');
+      }
+      return;
+    }
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent, // Important for rounded corners if not set by sheet
+      builder: (context) => EmployeeBottomSheet(
+        employee: _employee,
+        creationData: _creationData,
+        onSave: (updatedEmployee, avatarFile) async {
+           try {
+             final saved = await ApiService.updateEmployee(updatedEmployee, avatarFile: avatarFile);
+             setState(() {
+               _employee = saved;
+               // Update local controllers
+               _nameController.text = saved.name;
+               _emailController.text = saved.email;
+               
+             });
+             return saved;
+           } catch (e) {
+             ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to update: $e')));
+             return null;
+           }
+        },
       ),
     );
   }
@@ -837,234 +861,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
   }
 
-  void _showEditProfileDialog() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        return Container(
-          height: MediaQuery.of(context).size.height * 0.85,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(20),
-              topRight: Radius.circular(20),
-            ),
-          ),
-          child: Column(
-            children: [
-              Container(
-                width: 60,
-                height: 5,
-                margin: EdgeInsets.symmetric(vertical: 12),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 20),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Edit Profile',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF1E293B),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Divider(),
-              Expanded(
-                child: Scrollbar(
-                  child: SingleChildScrollView(
-                    padding: EdgeInsets.all(16),
-                    child: Form(
-                      key: _formKey,
-                      child: Column(
-                        children: [
-                          _buildTextField(
-                            _nameController,
-                            'Full Name',
-                            Icons.person_outline,
-                          ),
-                          SizedBox(height: 16),
-                          _buildTextField(
-                            _positionController,
-                            'Position',
-                            Icons.work_outline,
-                          ),
-                          SizedBox(height: 16),
-                          _buildTextField(
-                            _emailController,
-                            'Email',
-                            Icons.email_outlined,
-                            keyboardType: TextInputType.emailAddress,
-                          ),
-                          SizedBox(height: 16),
-                          _buildTextField(
-                            _phoneController,
-                            'Phone',
-                            Icons.phone_outlined,
-                            keyboardType: TextInputType.phone,
-                          ),
-                          SizedBox(height: 16),
-                          _buildTextField(
-                            _departmentController,
-                            'Department',
-                            Icons.business_outlined,
-                          ),
-                          SizedBox(height: 16),
-                          _buildTextField(
-                            _projectsController,
-                            'Assigned Projects',
-                            Icons.assignment_outlined,
-                          ),
-                          SizedBox(height: 16),
-                          _buildTextField(
-                            _skillsController,
-                            'Skills',
-                            Icons.build_outlined,
-                            maxLines: 2,
-                          ),
-                          SizedBox(height: 16),
-                          _buildTextField(
-                            _experienceController,
-                            'Experience',
-                            Icons.work_outline,
-                          ),
-                          SizedBox(height: 16),
-                          InkWell(
-                            onTap: () async {
-                              final date = await showDatePicker(
-                                context: context,
-                                initialDate: _selectedBirthdate ?? DateTime.now().subtract(Duration(days: 365 * 25)),
-                                firstDate: DateTime(1900),
-                                lastDate: DateTime.now(),
-                                builder: (context, child) {
-                                  return Theme(
-                                    data: Theme.of(context).copyWith(
-                                      colorScheme: ColorScheme.light(
-                                        primary: Color(0xFF6f88e2),
-                                        onPrimary: Colors.white,
-                                        surface: Colors.white,
-                                        onSurface: Colors.black,
-                                      ),
-                                    ),
-                                    child: child!,
-                                  );
-                                },
-                              );
-                              if (date != null) {
-                                setState(() {
-                                  _selectedBirthdate = date;
-                                  _birthdateController.text = DateFormat('MMM dd, yyyy').format(date);
-                                });
-                              }
-                            },
-                            child: TextFormField(
-                              controller: _birthdateController,
-                              enabled: false,
-                              style: TextStyle(fontSize: 14),
-                              decoration: InputDecoration(
-                                labelText: 'Birthdate',
-                                labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
-                                floatingLabelStyle: TextStyle(color: Color(0xFF6f88e2), fontSize: 14),
-                                prefixIcon: Icon(Icons.cake_outlined, color: Colors.grey.shade500, size: 15),
-                                suffixIcon: Icon(Icons.calendar_today, color: Colors.grey.shade500, size: 15),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide: BorderSide(color: Colors.grey.shade300),
-                                ),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide: BorderSide(color: Colors.grey.shade300),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide: BorderSide(color: Color(0xFF6f88e2), width: 1),
-                                ),
-                                filled: true,
-                                fillColor: Colors.white,
-                                contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                              ),
-                            ),
-                          ),
-                          SizedBox(height: 24),
-
-                          // Buttons
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              OutlinedButton(
-                                onPressed: () => Navigator.pop(context),
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: Colors.grey.shade700,
-                                  side: BorderSide(color: Colors.grey.shade300),
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: 24,
-                                    vertical: 12,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                ),
-                                child: Text('Cancel'),
-                              ),
-                              SizedBox(width: 12),
-                              ElevatedButton(
-                                onPressed: () async {
-                                  if (_formKey.currentState!.validate()) {
-                                    // Save to SharedPreferences
-                                    final prefs = await SharedPreferences.getInstance();
-                                    final userData = {
-                                      'name': _nameController.text,
-                                      'email': _emailController.text,
-                                      'birthdate': _selectedBirthdate?.toIso8601String(),
-                                    };
-                                    await prefs.setString('user_data', jsonEncode(userData));
-
-                                    setState(() {});
-                                    Navigator.pop(context);
-                                    _showSnackBar(
-                                      'Profile updated successfully',
-                                    );
-                                  }
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Color(0xFF6f88e2),
-                                  foregroundColor: Colors.white,
-                                  elevation: 0,
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: 24,
-                                    vertical: 12,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                ),
-                                child: Text('Save Changes'),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
+ 
   Widget _buildTextField(
     TextEditingController controller,
     String label,

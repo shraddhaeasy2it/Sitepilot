@@ -1,5 +1,8 @@
+import 'package:ecoteam_app/contractor/view/contractor_dashboard/chat_screen.dart';
+import 'package:ecoteam_app/contractor/view/contractor_dashboard/notification.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -21,12 +24,15 @@ class ManpowerCountScreen extends StatefulWidget {
   final String? selectedSiteId;
   final Function(String) onSiteChanged;
   final List<Site> sites;
-
+  final int? workspaceId;
+  final String? currentCompany;
   ManpowerCountScreen({
     super.key,
     required this.selectedSiteId,
     required this.onSiteChanged,
     required this.sites,
+     this.workspaceId,
+    this.currentCompany,
   });
 
   @override
@@ -43,12 +49,13 @@ class _ManpowerCountScreenState extends State<ManpowerCountScreen> {
       return sum + (record.totalCount ?? 0);
     });
   }
-// For report date range
-DateTime _reportStartDate = DateTime.now();
-DateTime _reportEndDate = DateTime.now();
-List<ManpowerRecord> _reportRecords = [];
-int _reportTotalManpower = 0;
-Map<String, int> _reportCategoryTotals = {};
+
+  // For report date range
+  DateTime _reportStartDate = DateTime.now();
+  DateTime _reportEndDate = DateTime.now();
+  List<ManpowerRecord> _reportRecords = [];
+  int _reportTotalManpower = 0;
+  Map<String, int> _reportCategoryTotals = {};
   // State
   List<ManpowerRecord> _records = [];
   List<ManpowerType> _manpowerTypes = [];
@@ -71,6 +78,14 @@ Map<String, int> _reportCategoryTotals = {};
     _searchController.addListener(_filterRecords);
   }
 
+  @override
+  void didUpdateWidget(ManpowerCountScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.selectedSiteId != oldWidget.selectedSiteId) {
+      _filterRecords();
+    }
+  }
+
   Future<void> _loadInitialData() async {
     setState(() {
       _isLoading = true;
@@ -88,8 +103,8 @@ Map<String, int> _reportCategoryTotals = {};
       // Load records
       await _loadManpowerRecords();
 
-      // Initialize daily count from records
       _initializeDailyCount();
+      _filterRecords(); // Apply filter immediately
 
       setState(() {
         _isLoading = false;
@@ -169,10 +184,22 @@ Map<String, int> _reportCategoryTotals = {};
   void _filterRecords() {
     final query = _searchController.text.toLowerCase();
     setState(() {
-      if (query.isEmpty) {
-        _filteredRecords = List.from(_records);
-      } else {
-        _filteredRecords = _records.where((record) {
+      var filtered = _records;
+
+      // Filter by Site
+      if (widget.selectedSiteId != null) {
+        final siteId = int.tryParse(widget.selectedSiteId!);
+        if (siteId != null) {
+          filtered = filtered
+              .where(
+                (record) => record.siteId == siteId,
+              ) // Assuming record has siteId
+              .toList();
+        }
+      }
+
+      if (query.isNotEmpty) {
+        filtered = filtered.where((record) {
           return record.workDate.toLowerCase().contains(query) ||
               record.supplier.toLowerCase().contains(query) ||
               record.site.toLowerCase().contains(query) ||
@@ -180,6 +207,7 @@ Map<String, int> _reportCategoryTotals = {};
                   record.totalCount.toString().contains(query));
         }).toList();
       }
+      _filteredRecords = filtered;
     });
   }
 
@@ -209,6 +237,9 @@ Map<String, int> _reportCategoryTotals = {};
           dropdownData: _dropdownData!,
           onSave: (newRecord) => newRecord,
           selectedDate: _selectedDate,
+          initialSiteId: widget.selectedSiteId != null
+              ? int.tryParse(widget.selectedSiteId!)
+              : null,
         ),
       ),
     );
@@ -393,658 +424,677 @@ Map<String, int> _reportCategoryTotals = {};
   }
 
   Future<void> _generateReport() async {
-  // Initialize report with default values (today's date)
-  _reportStartDate = DateTime.now();
-  _reportEndDate = DateTime.now();
-  
-  // Calculate initial report data
-  _updateReportData();
-  
-  await showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    builder: (context) => _buildReportSheet(),
-  );
-}
+    // Initialize report with default values (today's date)
+    _reportStartDate = DateTime.now();
+    _reportEndDate = DateTime.now();
 
-void _updateReportData() {
-  // Filter records by date range
-  _reportRecords = _records.where((record) {
-    try {
-      final recordDate = DateTime.parse(record.workDate);
-      return (recordDate.isAtSameMomentAs(_reportStartDate) || 
-              recordDate.isAfter(_reportStartDate)) &&
-             (recordDate.isAtSameMomentAs(_reportEndDate) || 
-              recordDate.isBefore(_reportEndDate.add(const Duration(days: 1))));
-    } catch (e) {
-      return false;
-    }
-  }).toList();
+    // Calculate initial report data
+    _updateReportData();
 
-  // Calculate totals for the filtered records
-  _reportTotalManpower = 0;
-  _reportCategoryTotals.clear();
-  
-  for (var record in _reportRecords) {
-    _reportTotalManpower += record.totalCount ?? 0;
-    
-    // Sum up categories
-    for (var entry in record.manpowerCounts.entries) {
-      _reportCategoryTotals[entry.key] = 
-          (_reportCategoryTotals[entry.key] ?? 0) + entry.value;
-    }
-  }
-}
-
-  Widget _buildReportSheet() {
-  final screenHeight = MediaQuery.of(context).size.height;
-  
-  return StatefulBuilder(
-    builder: (context, setState) {
-      return Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        padding: const EdgeInsets.all(16),
-        height: screenHeight * 0.85,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Manpower Report',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF2a43a0),
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.close, color: Color(0xFF2a43a0)),
-                  onPressed: () => Navigator.pop(context),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            
-            // Date Range Selection
-            const Text(
-              'Select Date Range:',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF2a43a0),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () async {
-                      final DateTime? picked = await showDatePicker(
-                        context: context,
-                        initialDate: _reportStartDate,
-                        firstDate: DateTime(2000),
-                        lastDate: DateTime(2100),
-                      );
-                      if (picked != null) {
-                        setState(() {
-                          _reportStartDate = picked;
-                          if (_reportStartDate.isAfter(_reportEndDate)) {
-                            _reportEndDate = _reportStartDate;
-                          }
-                          _updateReportData();
-                        });
-                      }
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey.shade300),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            DateFormat('yyyy-MM-dd').format(_reportStartDate),
-                            style: const TextStyle(fontSize: 14),
-                          ),
-                          const Icon(Icons.calendar_today, size: 16),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                const Text('to', style: TextStyle(fontSize: 14)),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () async {
-                      final DateTime? picked = await showDatePicker(
-                        context: context,
-                        initialDate: _reportEndDate,
-                        firstDate: _reportStartDate,
-                        lastDate: DateTime(2100),
-                      );
-                      if (picked != null) {
-                        setState(() {
-                          _reportEndDate = picked;
-                          _updateReportData();
-                        });
-                      }
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey.shade300),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            DateFormat('yyyy-MM-dd').format(_reportEndDate),
-                            style: const TextStyle(fontSize: 14),
-                          ),
-                          const Icon(Icons.calendar_today, size: 16),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            
-            const SizedBox(height: 16),
-            
-            // Report Summary
-            Expanded(
-              child: SingleChildScrollView(
-                child: Column(
-                  children: [
-                    _buildReportSummary(),
-                    const SizedBox(height: 16),
-                    _buildCategoryBreakdown(),
-                    const SizedBox(height: 16),
-                    _buildRecordsList(),
-                    const SizedBox(height: 5),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                ElevatedButton.icon(
-                  onPressed: () => _downloadPDF(() => Navigator.pop(context)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF4a63c0),
-                    foregroundColor: Colors.white,
-                    elevation: 4,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 10,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  icon: const Icon(Icons.download, size: 16),
-                  label: const Text('Download PDF', style: TextStyle(fontSize: 12)),
-                ),
-                ElevatedButton(
-                  onPressed: () => Navigator.pop(context),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.grey.shade300,
-                    foregroundColor: Colors.black54,
-                    elevation: 4,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 10,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: const Text('Close', style: TextStyle(fontSize: 12)),
-                ),
-              ],
-            ),
-          ],
-        ),
-      );
-    },
-  );
-}
-
- Widget _buildReportSummary() {
-  return Container(
-    decoration: BoxDecoration(
-      gradient: const LinearGradient(
-        colors: [Color(0xFF4a63c0), Color(0xFF2a43a0)],
-      ),
-      borderRadius: BorderRadius.circular(16),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withOpacity(0.1),
-          blurRadius: 8,
-          offset: const Offset(0, 4),
-        ),
-      ],
-    ),
-    padding: const EdgeInsets.all(16),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Report Summary',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-        const SizedBox(height: 12),
-        _buildReportItem(
-          'Date Range',
-          '${DateFormat('yyyy-MM-dd').format(_reportStartDate)} to ${DateFormat('yyyy-MM-dd').format(_reportEndDate)}',
-          Colors.white70,
-          Colors.white,
-        ),
-        _buildReportItem(
-          'Site',
-          _getCurrentSiteName(),
-          Colors.white70,
-          Colors.white,
-        ),
-        _buildReportItem(
-          'Total Records',
-          _reportRecords.length.toString(),
-          Colors.white70,
-          Colors.white,
-        ),
-        _buildReportItem(
-          'Total Manpower',
-          _reportTotalManpower.toString(),
-          Colors.white70,
-          Colors.white,
-        ),
-        const SizedBox(height: 10),
-        const Divider(color: Colors.white30),
-        const SizedBox(height: 10),
-        _buildReportItem(
-          'Report Generated',
-          DateFormat('yyyy-MM-dd HH:mm').format(DateTime.now()),
-          Colors.white70,
-          Colors.white,
-        ),
-      ],
-    ),
-  );
-}
-Widget _buildReportItem(
-  String label,
-  String value,
-  Color labelColor,
-  Color valueColor,
-) {
-  return Padding(
-    padding: const EdgeInsets.symmetric(vertical: 4),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Expanded(
-          child: Text(
-            '$label:',
-            style: TextStyle(color: labelColor),
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-        Expanded(
-          child: Text(
-            value,
-            textAlign: TextAlign.end,
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: valueColor,
-              fontSize: 14,
-            ),
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-      ],
-    ),
-  );
-}
-Widget _buildCategoryBreakdown() {
-  final typesWithCounts = _manpowerTypes.where(
-    (type) => (_reportCategoryTotals[type.name] ?? 0) > 0
-  ).toList();
-  
-  if (typesWithCounts.isEmpty) {
-    return const Center(
-      child: Text(
-        'No manpower data for selected date range',
-        style: TextStyle(color: Colors.grey),
-      ),
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _buildReportSheet(),
     );
   }
-  
-  return Container(
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(16),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withOpacity(0.05),
-          blurRadius: 8,
-          offset: const Offset(0, 4),
-        ),
-      ],
-    ),
-    padding: const EdgeInsets.all(16),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Category Breakdown',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF2a43a0),
+
+  void _updateReportData() {
+    // Filter records by date range
+    _reportRecords = _records.where((record) {
+      try {
+        final recordDate = DateTime.parse(record.workDate);
+        return (recordDate.isAtSameMomentAs(_reportStartDate) ||
+                recordDate.isAfter(_reportStartDate)) &&
+            (recordDate.isAtSameMomentAs(_reportEndDate) ||
+                recordDate.isBefore(
+                  _reportEndDate.add(const Duration(days: 1)),
+                ));
+      } catch (e) {
+        return false;
+      }
+    }).toList();
+
+    // Calculate totals for the filtered records
+    _reportTotalManpower = 0;
+    _reportCategoryTotals.clear();
+
+    for (var record in _reportRecords) {
+      _reportTotalManpower += record.totalCount ?? 0;
+
+      // Sum up categories
+      for (var entry in record.manpowerCounts.entries) {
+        _reportCategoryTotals[entry.key] =
+            (_reportCategoryTotals[entry.key] ?? 0) + entry.value;
+      }
+    }
+  }
+
+  Widget _buildReportSheet() {
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    return StatefulBuilder(
+      builder: (context, setState) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
           ),
-        ),
-        const SizedBox(height: 12),
-        ...typesWithCounts.map(
-          (type) => Padding(
-            padding: const EdgeInsets.symmetric(vertical: 6),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Text(
-                    type.name,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE8F0FE),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    '${_reportCategoryTotals[type.name] ?? 0}',
-                    style: const TextStyle(
+          padding: const EdgeInsets.all(16),
+          height: screenHeight * 0.85,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Manpower Report',
+                    style: TextStyle(
+                      fontSize: 20,
                       fontWeight: FontWeight.bold,
                       color: Color(0xFF2a43a0),
-                      fontSize: 14,
                     ),
                   ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    ),
-  );
-}
-
-Widget _buildRecordsList() {
-  if (_reportRecords.isEmpty) {
-    return Container();
-  }
-  
-  return Container(
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(16),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withOpacity(0.05),
-          blurRadius: 8,
-          offset: const Offset(0, 4),
-        ),
-      ],
-    ),
-    padding: const EdgeInsets.all(16),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Individual Records',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF2a43a0),
-          ),
-        ),
-        const SizedBox(height: 12),
-        ..._reportRecords.take(10).map((record) => Padding(
-          padding: const EdgeInsets.only(bottom: 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Text(
-                  '${record.workDate} - ${record.site}',
-                  style: const TextStyle(fontSize: 14),
-                ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Color(0xFF2a43a0)),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
               ),
-              Text(
-                '${record.totalCount ?? 0}',
-                style: const TextStyle(
-                  fontSize: 14,
+              const SizedBox(height: 12),
+
+              // Date Range Selection
+              const Text(
+                'Select Date Range:',
+                style: TextStyle(
+                  fontSize: 16,
                   fontWeight: FontWeight.bold,
                   color: Color(0xFF2a43a0),
                 ),
               ),
-            ],
-          ),
-        )).toList(),
-        if (_reportRecords.length > 10)
-          Text(
-            '... and ${_reportRecords.length - 10} more records',
-            style: const TextStyle(
-              fontSize: 12,
-              fontStyle: FontStyle.italic,
-              color: Colors.grey,
-            ),
-          ),
-      ],
-    ),
-  );
-}
-
- Future<Uint8List> _generatePdfBytes() async {
-  final pdf = pw.Document();
-  
-  // Filter records by date range
-  final filteredRecords = _records.where((record) {
-    try {
-      final recordDate = DateTime.parse(record.workDate);
-      return (recordDate.isAtSameMomentAs(_reportStartDate) || 
-              recordDate.isAfter(_reportStartDate)) &&
-             (recordDate.isAtSameMomentAs(_reportEndDate) || 
-              recordDate.isBefore(_reportEndDate.add(const Duration(days: 1))));
-    } catch (e) {
-      return false;
-    }
-  }).toList();
-
-  // Group and calculate totals by date
-  final Map<String, int> manpowerByDate = {};
-  int totalManpower = 0;
-  
-  for (var record in filteredRecords) {
-    final dateTotal = record.totalCount ?? 0;
-    totalManpower += dateTotal;
-    manpowerByDate[record.workDate] = (manpowerByDate[record.workDate] ?? 0) + dateTotal;
-  }
-
-  // Sort dates
-  final sortedDates = manpowerByDate.keys.toList()..sort();
-  
-  pdf.addPage(
-    pw.Page(
-      pageFormat: PdfPageFormat.a4,
-      margin: const pw.EdgeInsets.all(32),
-      build: (pw.Context context) {
-        return pw.Column(
-          crossAxisAlignment: pw.CrossAxisAlignment.start,
-          children: [
-            // Header
-            pw.Row(
-              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-              children: [
-                pw.Text(
-                  'Manpower Report',
-                  style: pw.TextStyle(
-                    fontSize: 24,
-                    fontWeight: pw.FontWeight.bold,
-                    color: PdfColor.fromInt(0xFF2a43a0),
-                  ),
-                ),
-                pw.Text(
-                  'Site: ${_getCurrentSiteName()}',
-                  style: pw.TextStyle(fontSize: 12),
-                ),
-              ],
-            ),
-            pw.SizedBox(height: 20),
-            
-            // Report Details
-            pw.Container(
-              decoration: pw.BoxDecoration(
-                border: pw.Border.all(width: 1),
-                borderRadius: pw.BorderRadius.circular(8),
-              ),
-              padding: const pw.EdgeInsets.all(12),
-              child: pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
+              const SizedBox(height: 8),
+              Row(
                 children: [
-                  pw.Text(
-                    'Report Period: ${DateFormat('dd MMM yyyy').format(_reportStartDate)} to ${DateFormat('dd MMM yyyy').format(_reportEndDate)}',
-                    style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () async {
+                        final DateTime? picked = await showDatePicker(
+                          context: context,
+                          initialDate: _reportStartDate,
+                          firstDate: DateTime(2000),
+                          lastDate: DateTime(2100),
+                        );
+                        if (picked != null) {
+                          setState(() {
+                            _reportStartDate = picked;
+                            if (_reportStartDate.isAfter(_reportEndDate)) {
+                              _reportEndDate = _reportStartDate;
+                            }
+                            _updateReportData();
+                          });
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey.shade300),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              DateFormat('yyyy-MM-dd').format(_reportStartDate),
+                              style: const TextStyle(fontSize: 14),
+                            ),
+                            const Icon(Icons.calendar_today, size: 16),
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
-                  pw.SizedBox(height: 8),
-                  pw.Row(
+                  const SizedBox(width: 8),
+                  const Text('to', style: TextStyle(fontSize: 14)),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () async {
+                        final DateTime? picked = await showDatePicker(
+                          context: context,
+                          initialDate: _reportEndDate,
+                          firstDate: _reportStartDate,
+                          lastDate: DateTime(2100),
+                        );
+                        if (picked != null) {
+                          setState(() {
+                            _reportEndDate = picked;
+                            _updateReportData();
+                          });
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey.shade300),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              DateFormat('yyyy-MM-dd').format(_reportEndDate),
+                              style: const TextStyle(fontSize: 14),
+                            ),
+                            const Icon(Icons.calendar_today, size: 16),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 16),
+
+              // Report Summary
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
                     children: [
-                      pw.Expanded(
-                        child: pw.Text(
-                          'Total Records: ${filteredRecords.length}',
-                          style: pw.TextStyle(fontSize: 12),
-                        ),
-                      ),
-                      pw.Expanded(
-                        child: pw.Text(
-                          'Total Manpower: $totalManpower',
-                          style: pw.TextStyle(
-                            fontSize: 12,
-                            fontWeight: pw.FontWeight.bold,
-                          ),
-                        ),
-                      ),
+                      _buildReportSummary(),
+                      const SizedBox(height: 16),
+                      _buildCategoryBreakdown(),
+                      const SizedBox(height: 16),
+                      _buildRecordsList(),
+                      const SizedBox(height: 5),
                     ],
                   ),
-                  pw.SizedBox(height: 4),
-                  pw.Text(
-                    'Dates with Data: ${sortedDates.length}',
-                    style: pw.TextStyle(fontSize: 12),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: () => _downloadPDF(() => Navigator.pop(context)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF4a63c0),
+                      foregroundColor: Colors.white,
+                      elevation: 4,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    icon: const Icon(Icons.download, size: 16),
+                    label: const Text(
+                      'Download PDF',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                  ),
+                  ElevatedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.grey.shade300,
+                      foregroundColor: Colors.black54,
+                      elevation: 4,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 10,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text('Close', style: TextStyle(fontSize: 12)),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildReportSummary() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF4a63c0), Color(0xFF2a43a0)],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Report Summary',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 12),
+          _buildReportItem(
+            'Date Range',
+            '${DateFormat('yyyy-MM-dd').format(_reportStartDate)} to ${DateFormat('yyyy-MM-dd').format(_reportEndDate)}',
+            Colors.white70,
+            Colors.white,
+          ),
+          _buildReportItem(
+            'Site',
+            _getCurrentSiteName(),
+            Colors.white70,
+            Colors.white,
+          ),
+          _buildReportItem(
+            'Total Records',
+            _reportRecords.length.toString(),
+            Colors.white70,
+            Colors.white,
+          ),
+          _buildReportItem(
+            'Total Manpower',
+            _reportTotalManpower.toString(),
+            Colors.white70,
+            Colors.white,
+          ),
+          const SizedBox(height: 10),
+          const Divider(color: Colors.white30),
+          const SizedBox(height: 10),
+          _buildReportItem(
+            'Report Generated',
+            DateFormat('yyyy-MM-dd HH:mm').format(DateTime.now()),
+            Colors.white70,
+            Colors.white,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReportItem(
+    String label,
+    String value,
+    Color labelColor,
+    Color valueColor,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Text(
+              '$label:',
+              style: TextStyle(color: labelColor),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              textAlign: TextAlign.end,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: valueColor,
+                fontSize: 14,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCategoryBreakdown() {
+    final typesWithCounts = _manpowerTypes
+        .where((type) => (_reportCategoryTotals[type.name] ?? 0) > 0)
+        .toList();
+
+    if (typesWithCounts.isEmpty) {
+      return const Center(
+        child: Text(
+          'No manpower data for selected date range',
+          style: TextStyle(color: Colors.grey),
+        ),
+      );
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Category Breakdown',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF2a43a0),
+            ),
+          ),
+          const SizedBox(height: 12),
+          ...typesWithCounts.map(
+            (type) => Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      type.name,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE8F0FE),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      '${_reportCategoryTotals[type.name] ?? 0}',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF2a43a0),
+                        fontSize: 14,
+                      ),
+                    ),
                   ),
                 ],
               ),
             ),
-            
-            pw.SizedBox(height: 25),
-            
-            // Date-wise Manpower Summary
-            pw.Text(
-              'Date-wise Manpower Summary',
-              style: pw.TextStyle(
-                fontSize: 18,
-                fontWeight: pw.FontWeight.bold,
-                color: PdfColor.fromInt(0xFF2a43a0),
-              ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRecordsList() {
+    if (_reportRecords.isEmpty) {
+      return Container();
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Individual Records',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF2a43a0),
             ),
-            pw.SizedBox(height: 10),
-            
-            if (sortedDates.isNotEmpty)
-              pw.Table(
-                border: pw.TableBorder.all(width: 0.5),
-                columnWidths: {
-                  0: const pw.FlexColumnWidth(1.5), // Date
-                  1: const pw.FlexColumnWidth(2),   // Day
-                  2: const pw.FlexColumnWidth(1),   // Count
-                },
-                children: [
-                  // Header
-                  pw.TableRow(
-                    decoration: pw.BoxDecoration(
-                      color: PdfColor.fromInt(0xFF2a43a0),
-                    ),
+          ),
+          const SizedBox(height: 12),
+          ..._reportRecords
+              .take(10)
+              .map(
+                (record) => Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      pw.Padding(
-                        child: pw.Text(
-                          'Date',
-                          style: pw.TextStyle(
-                            fontWeight: pw.FontWeight.bold,
-                            color: PdfColors.white,
-                            fontSize: 12,
-                          ),
+                      Expanded(
+                        child: Text(
+                          '${record.workDate} - ${record.site}',
+                          style: const TextStyle(fontSize: 14),
                         ),
-                        padding: const pw.EdgeInsets.all(8),
                       ),
-                      pw.Padding(
-                        child: pw.Text(
-                          'Day',
-                          style: pw.TextStyle(
-                            fontWeight: pw.FontWeight.bold,
-                            color: PdfColors.white,
-                            fontSize: 12,
-                          ),
+                      Text(
+                        '${record.totalCount ?? 0}',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF2a43a0),
                         ),
-                        padding: const pw.EdgeInsets.all(8),
-                      ),
-                      pw.Padding(
-                        child: pw.Text(
-                          'Manpower Count',
-                          style: pw.TextStyle(
-                            fontWeight: pw.FontWeight.bold,
-                            color: PdfColors.white,
-                            fontSize: 12,
-                          ),
-                        ),
-                        padding: const pw.EdgeInsets.all(8),
                       ),
                     ],
                   ),
-                  
-                  // Data rows for each date
-                  ...sortedDates.map(
-                    (dateStr) {
+                ),
+              )
+              .toList(),
+          if (_reportRecords.length > 10)
+            Text(
+              '... and ${_reportRecords.length - 10} more records',
+              style: const TextStyle(
+                fontSize: 12,
+                fontStyle: FontStyle.italic,
+                color: Colors.grey,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Future<Uint8List> _generatePdfBytes() async {
+    final pdf = pw.Document();
+
+    // Filter records by date range
+    final filteredRecords = _records.where((record) {
+      try {
+        final recordDate = DateTime.parse(record.workDate);
+        return (recordDate.isAtSameMomentAs(_reportStartDate) ||
+                recordDate.isAfter(_reportStartDate)) &&
+            (recordDate.isAtSameMomentAs(_reportEndDate) ||
+                recordDate.isBefore(
+                  _reportEndDate.add(const Duration(days: 1)),
+                ));
+      } catch (e) {
+        return false;
+      }
+    }).toList();
+
+    // Group and calculate totals by date
+    final Map<String, int> manpowerByDate = {};
+    int totalManpower = 0;
+
+    for (var record in filteredRecords) {
+      final dateTotal = record.totalCount ?? 0;
+      totalManpower += dateTotal;
+      manpowerByDate[record.workDate] =
+          (manpowerByDate[record.workDate] ?? 0) + dateTotal;
+    }
+
+    // Sort dates
+    final sortedDates = manpowerByDate.keys.toList()..sort();
+
+    pdf.addPage(
+      pw.Page(
+        pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.all(32),
+        build: (pw.Context context) {
+          return pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              // Header
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.Text(
+                    'Manpower Report',
+                    style: pw.TextStyle(
+                      fontSize: 24,
+                      fontWeight: pw.FontWeight.bold,
+                      color: PdfColor.fromInt(0xFF2a43a0),
+                    ),
+                  ),
+                  pw.Text(
+                    'Site: ${_getCurrentSiteName()}',
+                    style: pw.TextStyle(fontSize: 12),
+                  ),
+                ],
+              ),
+              pw.SizedBox(height: 20),
+
+              // Report Details
+              pw.Container(
+                decoration: pw.BoxDecoration(
+                  border: pw.Border.all(width: 1),
+                  borderRadius: pw.BorderRadius.circular(8),
+                ),
+                padding: const pw.EdgeInsets.all(12),
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text(
+                      'Report Period: ${DateFormat('dd MMM yyyy').format(_reportStartDate)} to ${DateFormat('dd MMM yyyy').format(_reportEndDate)}',
+                      style: pw.TextStyle(
+                        fontSize: 14,
+                        fontWeight: pw.FontWeight.bold,
+                      ),
+                    ),
+                    pw.SizedBox(height: 8),
+                    pw.Row(
+                      children: [
+                        pw.Expanded(
+                          child: pw.Text(
+                            'Total Records: ${filteredRecords.length}',
+                            style: pw.TextStyle(fontSize: 12),
+                          ),
+                        ),
+                        pw.Expanded(
+                          child: pw.Text(
+                            'Total Manpower: $totalManpower',
+                            style: pw.TextStyle(
+                              fontSize: 12,
+                              fontWeight: pw.FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    pw.SizedBox(height: 4),
+                    pw.Text(
+                      'Dates with Data: ${sortedDates.length}',
+                      style: pw.TextStyle(fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+
+              pw.SizedBox(height: 25),
+
+              // Date-wise Manpower Summary
+              pw.Text(
+                'Date-wise Manpower Summary',
+                style: pw.TextStyle(
+                  fontSize: 18,
+                  fontWeight: pw.FontWeight.bold,
+                  color: PdfColor.fromInt(0xFF2a43a0),
+                ),
+              ),
+              pw.SizedBox(height: 10),
+
+              if (sortedDates.isNotEmpty)
+                pw.Table(
+                  border: pw.TableBorder.all(width: 0.5),
+                  columnWidths: {
+                    0: const pw.FlexColumnWidth(1.5), // Date
+                    1: const pw.FlexColumnWidth(2), // Day
+                    2: const pw.FlexColumnWidth(1), // Count
+                  },
+                  children: [
+                    // Header
+                    pw.TableRow(
+                      decoration: pw.BoxDecoration(
+                        color: PdfColor.fromInt(0xFF2a43a0),
+                      ),
+                      children: [
+                        pw.Padding(
+                          child: pw.Text(
+                            'Date',
+                            style: pw.TextStyle(
+                              fontWeight: pw.FontWeight.bold,
+                              color: PdfColors.white,
+                              fontSize: 12,
+                            ),
+                          ),
+                          padding: const pw.EdgeInsets.all(8),
+                        ),
+                        pw.Padding(
+                          child: pw.Text(
+                            'Day',
+                            style: pw.TextStyle(
+                              fontWeight: pw.FontWeight.bold,
+                              color: PdfColors.white,
+                              fontSize: 12,
+                            ),
+                          ),
+                          padding: const pw.EdgeInsets.all(8),
+                        ),
+                        pw.Padding(
+                          child: pw.Text(
+                            'Manpower Count',
+                            style: pw.TextStyle(
+                              fontWeight: pw.FontWeight.bold,
+                              color: PdfColors.white,
+                              fontSize: 12,
+                            ),
+                          ),
+                          padding: const pw.EdgeInsets.all(8),
+                        ),
+                      ],
+                    ),
+
+                    // Data rows for each date
+                    ...sortedDates.map((dateStr) {
                       try {
                         final date = DateTime.parse(dateStr);
-                        final formattedDate = DateFormat('dd-MMM-yyyy').format(date);
+                        final formattedDate = DateFormat(
+                          'dd-MMM-yyyy',
+                        ).format(date);
                         final dayName = DateFormat('EEEE').format(date);
                         final manpowerCount = manpowerByDate[dateStr] ?? 0;
-                        
+
                         return pw.TableRow(
                           children: [
                             pw.Padding(
@@ -1082,7 +1132,7 @@ Widget _buildRecordsList() {
                               padding: const pw.EdgeInsets.all(8),
                             ),
                             pw.Padding(
-                              child:pw.Text('-'),
+                              child: pw.Text('-'),
                               padding: const pw.EdgeInsets.all(8),
                             ),
                             pw.Padding(
@@ -1097,351 +1147,359 @@ Widget _buildRecordsList() {
                           ],
                         );
                       }
-                    },
-                  ).toList(),
-                  
-                  // Total row
-                  pw.TableRow(
-                    decoration: pw.BoxDecoration(
-                      color: PdfColor.fromInt(0xFFF0F4FF),
+                    }).toList(),
+
+                    // Total row
+                    pw.TableRow(
+                      decoration: pw.BoxDecoration(
+                        color: PdfColor.fromInt(0xFFF0F4FF),
+                      ),
+                      children: [
+                        pw.Padding(
+                          child: pw.Text(
+                            'TOTAL',
+                            style: pw.TextStyle(
+                              fontWeight: pw.FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                          padding: const pw.EdgeInsets.all(8),
+                        ),
+                        pw.Padding(
+                          child: pw.Text(''),
+                          padding: const pw.EdgeInsets.all(8),
+                        ),
+                        pw.Padding(
+                          child: pw.Text(
+                            totalManpower.toString(),
+                            style: pw.TextStyle(
+                              fontWeight: pw.FontWeight.bold,
+                              fontSize: 12,
+                              color: PdfColor.fromInt(0xFF2a43a0),
+                            ),
+                          ),
+                          padding: const pw.EdgeInsets.all(8),
+                        ),
+                      ],
                     ),
+                  ],
+                )
+              else
+                pw.Container(
+                  padding: const pw.EdgeInsets.all(20),
+                  decoration: pw.BoxDecoration(
+                    border: pw.Border.all(width: 0.5),
+                    borderRadius: pw.BorderRadius.circular(8),
+                  ),
+                  child: pw.Center(
+                    child: pw.Text(
+                      'No manpower data found for the selected date range',
+                      style: pw.TextStyle(fontSize: 14, color: PdfColors.grey),
+                    ),
+                  ),
+                ),
+
+              pw.SizedBox(height: 30),
+
+              // Daily Averages & Statistics
+              if (sortedDates.isNotEmpty)
+                pw.Container(
+                  width: double.infinity,
+                  padding: const pw.EdgeInsets.all(16),
+                  decoration: pw.BoxDecoration(
+                    color: PdfColor.fromInt(0xFFF8F9FA),
+                    border: pw.Border.all(width: 0.5, color: PdfColors.grey400),
+                    borderRadius: pw.BorderRadius.circular(8),
+                  ),
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
                     children: [
-                      pw.Padding(
-                        child: pw.Text(
-                          'TOTAL',
-                          style: pw.TextStyle(
-                            fontWeight: pw.FontWeight.bold,
-                            fontSize: 12,
-                          ),
+                      pw.Text(
+                        'Statistics',
+                        style: pw.TextStyle(
+                          fontSize: 16,
+                          fontWeight: pw.FontWeight.bold,
+                          color: PdfColor.fromInt(0xFF2a43a0),
                         ),
-                        padding: const pw.EdgeInsets.all(8),
                       ),
-                      pw.Padding(
-                        child:pw.Text(''),
-                        padding: const pw.EdgeInsets.all(8),
-                      ),
-                      pw.Padding(
-                        child: pw.Text(
-                          totalManpower.toString(),
-                          style: pw.TextStyle(
-                            fontWeight: pw.FontWeight.bold,
-                            fontSize: 12,
-                            color: PdfColor.fromInt(0xFF2a43a0),
+                      pw.SizedBox(height: 12),
+
+                      pw.Row(
+                        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                        children: [
+                          pw.Column(
+                            crossAxisAlignment: pw.CrossAxisAlignment.start,
+                            children: [
+                              pw.Text(
+                                'Average Daily Manpower:',
+                                style: const pw.TextStyle(fontSize: 11),
+                              ),
+                              pw.SizedBox(height: 8),
+                              pw.Text(
+                                'Highest Daily Count:',
+                                style: const pw.TextStyle(fontSize: 11),
+                              ),
+                              pw.SizedBox(height: 8),
+                              pw.Text(
+                                'Lowest Daily Count:',
+                                style: const pw.TextStyle(fontSize: 11),
+                              ),
+                              pw.SizedBox(height: 8),
+                              pw.Text(
+                                'Days with Data:',
+                                style: const pw.TextStyle(fontSize: 11),
+                              ),
+                            ],
                           ),
-                        ),
-                        padding: const pw.EdgeInsets.all(8),
+
+                          pw.Column(
+                            crossAxisAlignment: pw.CrossAxisAlignment.end,
+                            children: [
+                              pw.Text(
+                                '${(totalManpower / sortedDates.length).toStringAsFixed(1)}',
+                                style: pw.TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: pw.FontWeight.bold,
+                                ),
+                              ),
+                              pw.SizedBox(height: 8),
+                              pw.Text(
+                                manpowerByDate.values.isNotEmpty
+                                    ? manpowerByDate.values
+                                          .reduce((a, b) => a > b ? a : b)
+                                          .toString()
+                                    : '0',
+                                style: pw.TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: pw.FontWeight.bold,
+                                ),
+                              ),
+                              pw.SizedBox(height: 8),
+                              pw.Text(
+                                manpowerByDate.values.isNotEmpty
+                                    ? manpowerByDate.values
+                                          .reduce((a, b) => a < b ? a : b)
+                                          .toString()
+                                    : '0',
+                                style: pw.TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: pw.FontWeight.bold,
+                                ),
+                              ),
+                              pw.SizedBox(height: 8),
+                              pw.Text(
+                                '${sortedDates.length}',
+                                style: pw.TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: pw.FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                ],
-              )
-            else
-              pw.Container(
-                padding: const pw.EdgeInsets.all(20),
-                decoration: pw.BoxDecoration(
-                  border: pw.Border.all(width: 0.5),
-                  borderRadius: pw.BorderRadius.circular(8),
                 ),
-                child: pw.Center(
-                  child: pw.Text(
-                    'No manpower data found for the selected date range',
-                    style: pw.TextStyle(
-                      fontSize: 14,
-                      color: PdfColors.grey,
-                    ),
-                  ),
-                ),
-              ),
-            
-            pw.SizedBox(height: 30),
-            
-            // Daily Averages & Statistics
-            if (sortedDates.isNotEmpty)
+
+              pw.SizedBox(height: 20),
+
+              // Footer
               pw.Container(
                 width: double.infinity,
-                padding: const pw.EdgeInsets.all(16),
+                padding: const pw.EdgeInsets.all(10),
                 decoration: pw.BoxDecoration(
+                  border: pw.Border.all(width: 0.5),
                   color: PdfColor.fromInt(0xFFF8F9FA),
-                  border: pw.Border.all(width: 0.5, color: PdfColors.grey400),
-                  borderRadius: pw.BorderRadius.circular(8),
                 ),
                 child: pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
                     pw.Text(
-                      'Statistics',
+                      'Report Details:',
                       style: pw.TextStyle(
-                        fontSize: 16,
+                        fontSize: 10,
                         fontWeight: pw.FontWeight.bold,
-                        color: PdfColor.fromInt(0xFF2a43a0),
                       ),
                     ),
-                    pw.SizedBox(height: 12),
-                    
-                    pw.Row(
-                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                      children: [
-                        pw.Column(
-                          crossAxisAlignment: pw.CrossAxisAlignment.start,
-                          children: [
-                            pw.Text(
-                              'Average Daily Manpower:',
-                              style: const pw.TextStyle(fontSize: 11),
-                            ),
-                            pw.SizedBox(height: 8),
-                            pw.Text(
-                              'Highest Daily Count:',
-                              style: const pw.TextStyle(fontSize: 11),
-                            ),
-                            pw.SizedBox(height: 8),
-                            pw.Text(
-                              'Lowest Daily Count:',
-                              style: const pw.TextStyle(fontSize: 11),
-                            ),
-                            pw.SizedBox(height: 8),
-                            pw.Text(
-                              'Days with Data:',
-                              style: const pw.TextStyle(fontSize: 11),
-                            ),
-                          ],
-                        ),
-                        
-                        pw.Column(
-                          crossAxisAlignment: pw.CrossAxisAlignment.end,
-                          children: [
-                            pw.Text(
-                              '${(totalManpower / sortedDates.length).toStringAsFixed(1)}',
-                              style: pw.TextStyle(
-                                fontSize: 11,
-                                fontWeight: pw.FontWeight.bold,
-                              ),
-                            ),
-                            pw.SizedBox(height: 8),
-                            pw.Text(
-                              manpowerByDate.values.isNotEmpty 
-                                ? manpowerByDate.values.reduce((a, b) => a > b ? a : b).toString()
-                                : '0',
-                              style: pw.TextStyle(
-                                fontSize: 11,
-                                fontWeight: pw.FontWeight.bold,
-                              ),
-                            ),
-                            pw.SizedBox(height: 8),
-                            pw.Text(
-                              manpowerByDate.values.isNotEmpty 
-                                ? manpowerByDate.values.reduce((a, b) => a < b ? a : b).toString()
-                                : '0',
-                              style: pw.TextStyle(
-                                fontSize: 11,
-                                fontWeight: pw.FontWeight.bold,
-                              ),
-                            ),
-                            pw.SizedBox(height: 8),
-                            pw.Text(
-                              '${sortedDates.length}',
-                              style: pw.TextStyle(
-                                fontSize: 11,
-                                fontWeight: pw.FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
+                    pw.SizedBox(height: 5),
+                    pw.Text(
+                      'Generated on: ${DateFormat('dd MMM yyyy HH:mm').format(DateTime.now())}',
+                      style: pw.TextStyle(fontSize: 9),
+                    ),
+                    pw.Text(
+                      'Generated by: Manpower Management System',
+                      style: pw.TextStyle(fontSize: 9),
+                    ),
+                    pw.Text(
+                      'Site: ${_getCurrentSiteName()}',
+                      style: pw.TextStyle(fontSize: 9),
                     ),
                   ],
                 ),
               ),
-            
-            pw.SizedBox(height: 20),
-            
-            // Footer
-            pw.Container(
-              width: double.infinity,
-              padding: const pw.EdgeInsets.all(10),
-              decoration: pw.BoxDecoration(
-                border: pw.Border.all(width: 0.5),
-                color: PdfColor.fromInt(0xFFF8F9FA),
-              ),
-              child: pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
-                children: [
-                  pw.Text(
-                    'Report Details:',
-                    style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
+            ],
+          );
+        },
+      ),
+    );
+
+    return pdf.save();
+  }
+
+  List<pw.Widget> _buildRecordRows(List<ManpowerRecord> records) {
+    final rows = <pw.Widget>[];
+
+    for (var record in records) {
+      rows.add(
+        pw.Table(
+          border: pw.TableBorder.all(width: 0.5),
+          columnWidths: {
+            0: const pw.FlexColumnWidth(2), // Date
+            1: const pw.FlexColumnWidth(2), // Site
+            2: const pw.FlexColumnWidth(2), // Supplier
+            3: const pw.FlexColumnWidth(1), // Total
+          },
+          children: [
+            pw.TableRow(
+              children: [
+                pw.Padding(
+                  child: pw.Text(
+                    record.workDate,
+                    style: const pw.TextStyle(fontSize: 10),
                   ),
-                  pw.SizedBox(height: 5),
-                  pw.Text(
-                    'Generated on: ${DateFormat('dd MMM yyyy HH:mm').format(DateTime.now())}',
-                    style: pw.TextStyle(fontSize: 9),
+                  padding: const pw.EdgeInsets.all(6),
+                ),
+                pw.Padding(
+                  child: pw.Text(
+                    record.site,
+                    style: const pw.TextStyle(fontSize: 10),
                   ),
-                  pw.Text(
-                    'Generated by: Manpower Management System',
-                    style: pw.TextStyle(fontSize: 9),
+                  padding: const pw.EdgeInsets.all(6),
+                ),
+                pw.Padding(
+                  child: pw.Text(
+                    record.supplier,
+                    style: const pw.TextStyle(fontSize: 10),
                   ),
-                  pw.Text(
-                    'Site: ${_getCurrentSiteName()}',
-                    style: pw.TextStyle(fontSize: 9),
+                  padding: const pw.EdgeInsets.all(6),
+                ),
+                pw.Padding(
+                  child: pw.Text(
+                    '${record.totalCount ?? 0}',
+                    style: pw.TextStyle(
+                      fontSize: 10,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
                   ),
-                ],
-              ),
+                  padding: const pw.EdgeInsets.all(6),
+                ),
+              ],
             ),
           ],
-        );
-      },
-    ),
-  );
-  
-  return pdf.save();
-}
-
-List<pw.Widget> _buildRecordRows(List<ManpowerRecord> records) {
-  final rows = <pw.Widget>[];
-  
-  for (var record in records) {
-    rows.add(
-      pw.Table(
-        border: pw.TableBorder.all(width: 0.5),
-        columnWidths: {
-          0: const pw.FlexColumnWidth(2), // Date
-          1: const pw.FlexColumnWidth(2), // Site
-          2: const pw.FlexColumnWidth(2), // Supplier
-          3: const pw.FlexColumnWidth(1), // Total
-        },
-        children: [
-          pw.TableRow(
-            children: [
-              pw.Padding(
-                child: pw.Text(
-                  record.workDate,
-                  style: const pw.TextStyle(fontSize: 10),
-                ),
-                padding: const pw.EdgeInsets.all(6),
-              ),
-              pw.Padding(
-                child: pw.Text(
-                  record.site,
-                  style: const pw.TextStyle(fontSize: 10),
-                ),
-                padding: const pw.EdgeInsets.all(6),
-              ),
-              pw.Padding(
-                child: pw.Text(
-                  record.supplier,
-                  style: const pw.TextStyle(fontSize: 10),
-                ),
-                padding: const pw.EdgeInsets.all(6),
-              ),
-              pw.Padding(
-                child: pw.Text(
-                  '${record.totalCount ?? 0}',
-                  style: pw.TextStyle(
-                    fontSize: 10,
-                    fontWeight: pw.FontWeight.bold,
-                  ),
-                ),
-                padding: const pw.EdgeInsets.all(6),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-  
-  return rows;
-}
- Future<void> _downloadPDF([VoidCallback? onSuccess]) async {
-  try {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator()),
-    );
-    
-    if (Platform.isAndroid) {
-      await _requestStoragePermission();
-    }
-    
-    final pdfBytes = await _generatePdfBytes();
-    final directory = await _getDownloadDirectory();
-    final siteName = _getCurrentSiteName().replaceAll(' ', '_');
-    final fileName = 'manpower_report_${siteName}_${DateFormat('yyyyMMdd').format(_reportStartDate)}_to_${DateFormat('yyyyMMdd').format(_reportEndDate)}.pdf';
-    final file = File('${directory.path}/$fileName');
-    
-    await file.writeAsBytes(pdfBytes);
-    
-    if (Navigator.canPop(context)) {
-      Navigator.pop(context);
-    }
-    
-    if (onSuccess != null) {
-      onSuccess();
-    }
-    
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('PDF downloaded to ${file.path}'),
-        backgroundColor: Colors.green,
-        behavior: SnackBarBehavior.floating,
-        action: SnackBarAction(
-          label: 'Open',
-          textColor: Colors.white,
-          onPressed: () async {
-            final result = await OpenFile.open(file.path);
-            if (result.type != ResultType.done) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Could not open file: ${result.message}'),
-                  backgroundColor: Colors.red,
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
-            }
-          },
         ),
-      ),
-    );
-  } catch (e) {
-    if (Navigator.canPop(context)) {
-      Navigator.pop(context);
+      );
     }
-    
-    _showErrorSnackbar('Failed to download PDF: $e');
+
+    return rows;
   }
-}
+
+  Future<void> _downloadPDF([VoidCallback? onSuccess]) async {
+    try {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
+      );
+
+      if (Platform.isAndroid) {
+        await _requestStoragePermission();
+      }
+
+      final pdfBytes = await _generatePdfBytes();
+      final directory = await _getDownloadDirectory();
+      final siteName = _getCurrentSiteName().replaceAll(' ', '_');
+      final fileName =
+          'manpower_report_${siteName}_${DateFormat('yyyyMMdd').format(_reportStartDate)}_to_${DateFormat('yyyyMMdd').format(_reportEndDate)}.pdf';
+      final file = File('${directory.path}/$fileName');
+
+      await file.writeAsBytes(pdfBytes);
+
+      if (Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
+
+      if (onSuccess != null) {
+        onSuccess();
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('PDF downloaded to ${file.path}'),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+          action: SnackBarAction(
+            label: 'Open',
+            textColor: Colors.white,
+            onPressed: () async {
+              final result = await OpenFile.open(file.path);
+              if (result.type != ResultType.done) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Could not open file: ${result.message}'),
+                    backgroundColor: Colors.red,
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              }
+            },
+          ),
+        ),
+      );
+    } catch (e) {
+      if (Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
+
+      _showErrorSnackbar('Failed to download PDF: $e');
+    }
+  }
+
   Future<void> _sharePDF([VoidCallback? onSuccess]) async {
-  try {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator()),
-    );
-    
-    final pdfBytes = await _generatePdfBytes();
-    final siteName = _getCurrentSiteName().replaceAll(' ', '_');
-    
-    if (Navigator.canPop(context)) {
-      Navigator.pop(context);
+    try {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
+      );
+
+      final pdfBytes = await _generatePdfBytes();
+      final siteName = _getCurrentSiteName().replaceAll(' ', '_');
+
+      if (Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
+
+      await Printing.sharePdf(
+        bytes: pdfBytes,
+        filename:
+            'manpower_report_${siteName}_${DateFormat('yyyyMMdd').format(_reportStartDate)}_to_${DateFormat('yyyyMMdd').format(_reportEndDate)}.pdf',
+      );
+
+      if (onSuccess != null) {
+        onSuccess();
+      }
+
+      _showSuccessSnackbar('PDF shared successfully!');
+    } catch (e) {
+      if (Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
+
+      _showErrorSnackbar('Failed to share PDF: $e');
     }
-    
-    await Printing.sharePdf(
-      bytes: pdfBytes,
-      filename: 'manpower_report_${siteName}_${DateFormat('yyyyMMdd').format(_reportStartDate)}_to_${DateFormat('yyyyMMdd').format(_reportEndDate)}.pdf',
-    );
-    
-    if (onSuccess != null) {
-      onSuccess();
-    }
-    
-    _showSuccessSnackbar('PDF shared successfully!');
-  } catch (e) {
-    if (Navigator.canPop(context)) {
-      Navigator.pop(context);
-    }
-    
-    _showErrorSnackbar('Failed to share PDF: $e');
   }
-}
+
   Future<void> _requestStoragePermission() async {
     if (Platform.isAndroid) {
       final status = await Permission.storage.status;
@@ -1495,7 +1553,7 @@ List<pw.Widget> _buildRecordRows(List<ManpowerRecord> records) {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(20),
-          onTap: () => _viewRecord(record),
+
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -1535,17 +1593,6 @@ List<pw.Widget> _buildRecordRows(List<ManpowerRecord> records) {
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  'Work Date',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: const Color(
-                                      0xFF718096,
-                                    ).withOpacity(0.8),
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
                               ],
                             ),
                           ),
@@ -1554,31 +1601,20 @@ List<pw.Widget> _buildRecordRows(List<ManpowerRecord> records) {
                     ),
                     Row(
                       children: [
-                        Container(
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF2a43a0).withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: IconButton(
-                            icon: const Icon(Icons.edit, size: 18),
-                            onPressed: () => _editRecord(record),
-                            color: const Color(0xFF2a43a0),
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          decoration: BoxDecoration(
-                            color: Colors.red.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: IconButton(
-                            icon: const Icon(Icons.delete, size: 18),
-                            onPressed: () => _deleteRecord(record),
-                            color: Colors.red,
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
+                        Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(20),
+                            onTap: () =>
+                                _showManpowerOptionsBottomSheet(record),
+                            child: Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Icon(
+                                Icons.more_vert,
+                                color: const Color(0xFF718096),
+                                size: 24,
+                              ),
+                            ),
                           ),
                         ),
                       ],
@@ -1589,88 +1625,46 @@ List<pw.Widget> _buildRecordRows(List<ManpowerRecord> records) {
                 const SizedBox(height: 16),
 
                 // Site and Supplier details
-                Row(
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: _buildCompactInfoItem(
-                        Icons.location_on,
-                        'Site',
-                        record.site,
-                      ),
+                    _buildCompactInfoItem(
+                      Icons.business,
+                      'Supplier',
+                      record.supplier,
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildCompactInfoItem(
-                        Icons.business,
-                        'Supplier',
-                        record.supplier,
-                      ),
+
+                    const SizedBox(height: 12),
+
+                    // Total and updated time
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.all_inbox,
+                          color: const Color(0xFF718096),
+                          size: 16,
+                        ),
+                        SizedBox(width: 6),
+                        const Text(
+                          'Total Manpower: ',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF718096),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(width: 5),
+                        Text(
+                          '$totalManpower',
+                          style: const TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF2D3748),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
-                ),
-
-                const SizedBox(height: 12),
-
-                // Total and updated time
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF2a43a0).withOpacity(0.05),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: const Color(0xFF2a43a0).withOpacity(0.1),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Total Manpower',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Color(0xFF718096),
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            '$totalManpower',
-                            style: const TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF2a43a0),
-                            ),
-                          ),
-                        ],
-                      ),
-                      if (record.updatedAt != null)
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            const Text(
-                              'Last Updated',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Color(0xFF718096),
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              _formatTime(record.updatedAt!),
-                              style: const TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w500,
-                                color: Color(0xFF2D3748),
-                              ),
-                            ),
-                          ],
-                        ),
-                    ],
-                  ),
                 ),
               ],
             ),
@@ -1681,47 +1675,39 @@ List<pw.Widget> _buildRecordRows(List<ManpowerRecord> records) {
   }
 
   Widget _buildCompactInfoItem(IconData icon, String label, String value) {
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: const Color(0xFFf8f9fa),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFF2a43a0).withOpacity(0.1)),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, size: 16, color: const Color(0xFF718096)),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: const TextStyle(
-                    fontSize: 10,
-                    color: Color(0xFF718096),
-                    fontWeight: FontWeight.w600,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: const Color(0xFF718096)),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 10,
+                  color: Color(0xFF718096),
+                  fontWeight: FontWeight.w600,
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  value,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF2D3748),
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF2D3748),
                 ),
-              ],
-            ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -1909,7 +1895,7 @@ List<pw.Widget> _buildRecordRows(List<ManpowerRecord> records) {
 
     return Scaffold(
       appBar: AppBar(
-        toolbarHeight: 80.h,
+        toolbarHeight: 74.h,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -1917,16 +1903,17 @@ List<pw.Widget> _buildRecordRows(List<ManpowerRecord> records) {
               'Manpower Management',
               style: TextStyle(
                 color: Colors.white,
-                fontSize: 19,
+                fontSize: 17.sp,
                 fontWeight: FontWeight.w600,
               ),
             ),
-            SizedBox(height: 3),
+            SizedBox(height: 4.h),
             Text(
-              _getCurrentSiteName(),
+              "Site: ${_getCurrentSiteName()}",
+
               style: TextStyle(
                 color: Colors.white.withOpacity(0.9),
-                fontSize: 16,
+                fontSize: 13.sp,
                 fontWeight: FontWeight.w400,
               ),
             ),
@@ -1944,23 +1931,40 @@ List<pw.Widget> _buildRecordRows(List<ManpowerRecord> records) {
             borderRadius: BorderRadius.vertical(bottom: Radius.circular(25)),
           ),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add_circle),
-            onPressed: _manageManpowerTypes,
-            tooltip: 'Manage Manpower Types',
+         actions: [
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => NotificationScreen()),
+              );
+            },
+            child: const FaIcon(FontAwesomeIcons.bell, size: 20),
           ),
-
+          const SizedBox(width: 5),
+          // Chat Button
           IconButton(
-            icon: const Icon(Icons.summarize),
-            onPressed: _generateReport,
-            tooltip: 'Generate Report',
+            tooltip: 'Chat',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ChatScreen(
+                    selectedSiteId: widget.selectedSiteId,
+                    onSiteChanged: (String siteId) {
+                      debugPrint('Site changed to: $siteId');
+                    },
+                    sites: widget.sites,
+                    currentCompany: widget.currentCompany,
+                    workspaceId: widget.workspaceId,
+                  ),
+                ),
+              );
+            },
+            icon: const FaIcon(FontAwesomeIcons.commentDots, size: 20),
+            color: Colors.white,
           ),
-          IconButton(
-            icon: Icon(Icons.refresh, size: 28.sp),
-            onPressed: _refreshData,
-            tooltip: 'Refresh',
-          ),
+         
         ],
       ),
       body: _isLoading
@@ -1981,22 +1985,10 @@ List<pw.Widget> _buildRecordRows(List<ManpowerRecord> records) {
                           color: Color(0xFF2a43a0),
                         ),
                       ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            SizedBox(height: 4),
-                            Text(
-                              'Total: ${_calculateOverallTotal()}',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.green,
-                              ),
-                            ),
-                          ],
-                        ),
+                      IconButton(
+                        icon: const Icon(Icons.summarize),
+                        onPressed: _generateReport,
+                        tooltip: 'Generate Report',
                       ),
                     ],
                   ),
@@ -2087,6 +2079,99 @@ List<pw.Widget> _buildRecordRows(List<ManpowerRecord> records) {
     _searchController.dispose();
     super.dispose();
   }
+
+  Widget _buildOptionTile({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    Color? backgroundColor,
+    required VoidCallback onTap,
+    Color color = const Color(0xFF2D3748),
+  }) {
+    return ListTile(
+      leading: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: backgroundColor ?? const Color(0xFF2a43a0).withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(icon, color: iconColor, size: 20),
+      ),
+      title: Text(
+        title,
+        style: TextStyle(
+          color: color,
+          fontWeight: FontWeight.w600,
+          fontSize: 14.sp,
+        ),
+      ),
+      onTap: onTap,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
+    );
+  }
+
+  void _showManpowerOptionsBottomSheet(ManpowerRecord record) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              margin: const EdgeInsets.only(top: 8),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            _buildOptionTile(
+              icon: Icons.visibility_outlined,
+              title: 'View Full Details',
+              iconColor: const Color(0xFF2a43a0),
+              backgroundColor: const Color(0xFF2a43a0).withOpacity(0.1),
+              onTap: () {
+                Navigator.pop(context);
+                _viewRecord(record);
+              },
+            ),
+
+            _buildOptionTile(
+              icon: Icons.edit_outlined,
+              title: 'Edit Record',
+              iconColor: Colors.blue,
+              backgroundColor: Colors.blue.withOpacity(0.1),
+              onTap: () {
+                Navigator.pop(context);
+                _editRecord(record);
+              },
+            ),
+            _buildOptionTile(
+              icon: Icons.delete_outline,
+              title: 'Delete Record',
+              color: Colors.red,
+              iconColor: Colors.red,
+              backgroundColor: Colors.red.withOpacity(0.1),
+              onTap: () {
+                Navigator.pop(context);
+                Future.delayed(const Duration(milliseconds: 200), () {
+                  _deleteRecord(record);
+                });
+              },
+            ),
+            const SizedBox(height: 30),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 // Custom ManpowerBottomSheet (simplified version)
@@ -2096,6 +2181,7 @@ class ManpowerBottomSheet extends StatefulWidget {
   final Function(ManpowerRecord)? onSave;
   final bool isViewMode;
   final DateTime? selectedDate;
+  final int? initialSiteId;
 
   const ManpowerBottomSheet({
     super.key,
@@ -2104,6 +2190,7 @@ class ManpowerBottomSheet extends StatefulWidget {
     this.onSave,
     this.isViewMode = false,
     this.selectedDate,
+    this.initialSiteId,
   });
 
   @override
@@ -2118,6 +2205,7 @@ class _ManpowerBottomSheetState extends State<ManpowerBottomSheet> {
   int? _selectedSiteId;
   final List<int> _selectedTypes = [];
   final Map<String, int> _manpowerCounts = {};
+  Map<int, String> _availableManpowerTypes = {};
 
   @override
   void initState() {
@@ -2136,16 +2224,35 @@ class _ManpowerBottomSheetState extends State<ManpowerBottomSheet> {
 
     if (record?.supplierId != null) {
       _selectedSupplierId = record!.supplierId;
+      // Validate if supplier exists in dropdown data, otherwise set to null
+      if (!widget.dropdownData.suppliers.containsKey(_selectedSupplierId)) {
+        _selectedSupplierId = null;
+      }
     }
 
     if (record?.siteId != null) {
       _selectedSiteId = record!.siteId;
+    } else if (widget.initialSiteId != null) {
+      _selectedSiteId = widget.initialSiteId;
     }
+
+    // Validate if site exists in dropdown data, otherwise set to null
+    if (_selectedSiteId != null &&
+        !widget.dropdownData.sites.containsKey(_selectedSiteId)) {
+      _selectedSiteId = null;
+    }
+
+    // Auto-select first site if no site is selected (required since we removed the dropdown)
+    if (_selectedSiteId == null && widget.dropdownData.sites.isNotEmpty) {
+      _selectedSiteId = widget.dropdownData.sites.keys.first;
+    }
+
+    _availableManpowerTypes = Map.from(widget.dropdownData.manpowerTypes);
 
     if (record != null) {
       _manpowerCounts.addAll(record.manpowerCounts);
       _selectedTypes.addAll(
-        widget.dropdownData.manpowerTypes.entries
+        _availableManpowerTypes.entries
             .where((e) => _manpowerCounts.containsKey(e.value))
             .map((e) => e.key)
             .toList(),
@@ -2156,15 +2263,41 @@ class _ManpowerBottomSheetState extends State<ManpowerBottomSheet> {
   }
 
   void _updateSelectedText() {
-    final types = widget.dropdownData.manpowerTypes;
     _manpowerTypeController.text = _selectedTypes
-        .map((id) => types[id] ?? 'Unknown')
+        .map((id) => _availableManpowerTypes[id] ?? 'Unknown')
         .join(", ");
   }
 
-  void _selectManpowerTypes() async {
-    final manpowerTypes = widget.dropdownData.manpowerTypes;
+  Future<void> _refreshManpowerTypes() async {
+    try {
+      final service = ManpowerTypeService();
+      final types = await service.getManpowerTypes();
+      if (mounted) {
+        setState(() {
+          _availableManpowerTypes = {for (var t in types) t.id: t.name};
+          // Re-validate selected types/names
+          _updateSelectedText();
+        });
+      }
+    } catch (e) {
+      print('Error refreshing manpower types: $e');
+    }
+  }
 
+  void _addManpowerType() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => AddManpowerTypeBottomSheet(
+        onTypeAdded: _refreshManpowerTypes,
+        siteId: _selectedSiteId ?? 0,
+        workspaceId: widget.record?.workspaceId ?? 1,
+        userId: widget.record?.createdBy ?? 1,
+      ),
+    );
+  }
+
+  void _selectManpowerTypes() async {
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -2188,14 +2321,14 @@ class _ManpowerBottomSheetState extends State<ManpowerBottomSheet> {
                       onPressed: () => Navigator.pop(context),
                       child: const Text(
                         "Done",
-                        style: TextStyle(color: Colors.white),
+                        style: TextStyle(color: Color.fromARGB(255, 48, 38, 146),fontSize: 17,fontWeight:FontWeight.w600),
                       ),
                     ),
                   ],
                 ),
                 body: ListView(
                   padding: const EdgeInsets.all(16),
-                  children: manpowerTypes.entries.map((e) {
+                  children: _availableManpowerTypes.entries.map((e) {
                     return Row(
                       children: [
                         Checkbox(
@@ -2211,17 +2344,56 @@ class _ManpowerBottomSheetState extends State<ManpowerBottomSheet> {
                                 _manpowerCounts.remove(e.value);
                               }
                             });
+                            // Update parent state as well to reflect text change immediately if needed?
+                            // Actually _updateSelectedText is called after bottom sheet closes usually or via setState in parent.
+                            // But here we are in a nested StatefulBuilder.
+                            // We need to update the parent _selectedTypes (which is a reference so it's fine)
+                            // But _updateSelectedText needs to be called on parent.
+                            // We can't easily call parent setState from here without a callback or just waiting for close.
+                            // The original code called _updateSelectedText inside the checkbox onChanged,
+                            // but that was using 'this.setState' of the parent widget?
+                            // No, the original code had:
+                            // Checkbox(..., onChanged: (v) { setState(() { ... }); _updateSelectedText(); })
+                            // This `setState` referred to the StatefulBuilder's setState.
+                            // `_updateSelectedText` updates the controller text.
+                            // So we should call it here too.
                             _updateSelectedText();
                           },
                         ),
                         Expanded(child: Text(e.value)),
                         SizedBox(
-                          width: 60,
+                          width: 80,
                           child: TextField(
                             keyboardType: TextInputType.number,
                             enabled: _selectedTypes.contains(e.key),
-                            decoration: const InputDecoration(
+                            decoration: InputDecoration(
                               hintText: 'Count',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12.r),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12.r),
+                                borderSide: BorderSide(
+                                  color: Color.fromARGB(255, 214, 215, 216),
+                                  width: 1.5,
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12.r),
+                                borderSide: BorderSide(
+                                  color: Color.fromARGB(
+                                    255,
+                                    189,
+                                    190,
+                                    197,
+                                  ), // Different color when focused
+                                  width: 1.0,
+                                ),
+                              ),
+                              contentPadding: EdgeInsets.symmetric(
+                                vertical: 2,
+                                horizontal: 8,
+                              ),
                             ),
                             controller: TextEditingController(
                               text: _manpowerCounts[e.value]?.toString() ?? '',
@@ -2281,6 +2453,7 @@ class _ManpowerBottomSheetState extends State<ManpowerBottomSheet> {
             icon: const Icon(Icons.close),
             onPressed: () => Navigator.pop(context),
           ),
+
         ),
         body: ListView(
           padding: const EdgeInsets.all(14),
@@ -2298,11 +2471,7 @@ class _ManpowerBottomSheetState extends State<ManpowerBottomSheet> {
               title: const Text("Supplier"),
               subtitle: Text(suppliers[_selectedSupplierId] ?? 'N/A'),
             ),
-            ListTile(
-              leading: const Icon(Icons.location_on, color: Color(0xFF2a43a0)),
-              title: const Text("Site"),
-              subtitle: Text(sites[_selectedSiteId] ?? 'N/A'),
-            ),
+
             const SizedBox(height: 6),
             const Divider(),
             const SizedBox(height: 8),
@@ -2384,10 +2553,37 @@ class _ManpowerBottomSheetState extends State<ManpowerBottomSheet> {
           children: [
             TextFormField(
               controller: _dateController,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: "Work Date",
-                prefixIcon: Icon(Icons.calendar_month),
-                border: OutlineInputBorder(),
+                hintText: 'Select date',
+                prefixIcon: Icon(
+                  Icons.calendar_month,
+                  color: Color(0xFF4a63c0),
+                  size: 20.sp,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12.r),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12.r),
+                  borderSide: BorderSide(
+                    color: Color.fromARGB(255, 214, 215, 216),
+                    width: 1.5,
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12.r),
+                  borderSide: BorderSide(
+                    color: Color.fromARGB(
+                      255,
+                      189,
+                      190,
+                      197,
+                    ), // Different color when focused
+                    width: 1.0,
+                  ),
+                ),
+                contentPadding: EdgeInsets.symmetric(vertical: 2),
               ),
               validator: (v) {
                 if (v == null || v.isEmpty) return "Date required";
@@ -2403,9 +2599,36 @@ class _ManpowerBottomSheetState extends State<ManpowerBottomSheet> {
 
             DropdownButtonFormField<int>(
               value: _selectedSupplierId,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: "Supplier",
-                border: OutlineInputBorder(),
+                prefixIcon: Icon(
+                  Icons.business,
+                  color: Color(0xFF4a63c0),
+                  size: 20.sp,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12.r),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12.r),
+                  borderSide: BorderSide(
+                    color: Color.fromARGB(255, 214, 215, 216),
+                    width: 1.5,
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12.r),
+                  borderSide: BorderSide(
+                    color: Color.fromARGB(
+                      255,
+                      189,
+                      190,
+                      197,
+                    ), // Different color when focused
+                    width: 1.0,
+                  ),
+                ),
+                contentPadding: EdgeInsets.symmetric(vertical: 2),
               ),
               items: [
                 const DropdownMenuItem<int>(
@@ -2426,47 +2649,78 @@ class _ManpowerBottomSheetState extends State<ManpowerBottomSheet> {
             ),
             const SizedBox(height: 12),
 
-            DropdownButtonFormField<int>(
-              value: _selectedSiteId,
-              decoration: const InputDecoration(
-                labelText: "Site",
-                border: OutlineInputBorder(),
-              ),
-              items: [
-                const DropdownMenuItem<int>(
-                  value: null,
-                  child: Text('Select Site'),
-                ),
-                ...sites.entries
-                    .map(
-                      (e) => DropdownMenuItem<int>(
-                        value: e.key,
-                        child: Text(e.value),
-                      ),
-                    )
-                    .toList(),
-              ],
-              onChanged: (v) => setState(() => _selectedSiteId = v),
-              validator: (v) => v == null ? "Select site" : null,
-            ),
-            const SizedBox(height: 20),
-
             TextFormField(
               controller: _manpowerTypeController,
               readOnly: true,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: "Manpower Types",
-                border: OutlineInputBorder(),
-                suffixIcon: Icon(Icons.arrow_drop_down),
+                prefixIcon: Icon(
+                  Icons.people,
+                  color: Color(0xFF4a63c0),
+                  size: 20.sp,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12.r),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12.r),
+                  borderSide: BorderSide(
+                    color: Color.fromARGB(255, 214, 215, 216),
+                    width: 1.5,
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12.r),
+                  borderSide: BorderSide(
+                    color: Color.fromARGB(
+                      255,
+                      189,
+                      190,
+                      197,
+                    ), // Different color when focused
+                    width: 1.0,
+                  ),
+                ),
+                contentPadding: EdgeInsets.symmetric(vertical: 2),
+                suffixIcon: Icon(
+                  Icons.arrow_drop_down,
+                  color: Color(0xFF4a63c0),
+                ),
               ),
               onTap: _selectManpowerTypes,
               validator: (_) =>
                   _selectedTypes.isEmpty ? "Select at least one type" : null,
             ),
-            const SizedBox(height: 20),
-
+            const SizedBox(height: 10),
+            Center(
+              child: Container(
+                
+                constraints: const BoxConstraints(
+                  minWidth: 150,
+                ), // Minimum width
+                child: ElevatedButton(
+                  onPressed: _addManpowerType,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2a43a0),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: const Text(
+                    'Add Manpower Type',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            SizedBox(height: 10),
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(9),
               decoration: BoxDecoration(
                 border: Border.all(color: Colors.grey.shade300),
                 color: Colors.grey.shade100,
@@ -2477,12 +2731,12 @@ class _ManpowerBottomSheetState extends State<ManpowerBottomSheet> {
                 children: [
                   const Text(
                     "Total Manpower:",
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                   ),
                   Text(
                     _calculateTotalCount().toString(),
                     style: const TextStyle(
-                      fontSize: 18,
+                      fontSize: 16,
                       fontWeight: FontWeight.bold,
                       color: Color(0xFF2a43a0),
                     ),
@@ -2703,22 +2957,40 @@ class _ManpowerTypesBottomSheetState extends State<ManpowerTypesBottomSheet> {
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Container(
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade50,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.grey.shade200),
-                          ),
-                          child: TextField(
-                            controller: editController,
-                            decoration: const InputDecoration(
-                              hintText: 'Enter manpower type name',
-                              border: InputBorder.none,
-                              contentPadding: EdgeInsets.all(16),
-                              hintStyle: TextStyle(color: Colors.grey),
+                        TextField(
+                          controller: editController,
+                          decoration: InputDecoration(
+                            hintText: 'Enter manpower type name',
+                            prefixIcon: Icon(
+                              Icons.work_outline,
+                              color: Color(0xFF4a63c0),
+                              size: 20.sp,
                             ),
-                            style: const TextStyle(fontSize: 16),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12.r),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12.r),
+                              borderSide: BorderSide(
+                                color: Color.fromARGB(255, 214, 215, 216),
+                                width: 1.5,
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12.r),
+                              borderSide: BorderSide(
+                                color: Color.fromARGB(
+                                  255,
+                                  189,
+                                  190,
+                                  197,
+                                ), // Different color when focused
+                                width: 1.0,
+                              ),
+                            ),
+                            contentPadding: EdgeInsets.symmetric(vertical: 2),
                           ),
+                          style: const TextStyle(fontSize: 16),
                         ),
                         const SizedBox(height: 30),
 
@@ -3055,42 +3327,80 @@ class _ManpowerTypesBottomSheetState extends State<ManpowerTypesBottomSheet> {
                   const SizedBox(height: 20),
 
                   // Type Name Field
-                  Container(
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey.shade300),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: TextField(
-                      controller: _nameController,
-                      decoration: const InputDecoration(
-                        hintText: 'Type Name (e.g., Carpenter, Electrician)',
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.all(12),
-                        hintStyle: TextStyle(color: Colors.grey),
+                  TextField(
+                    controller: _nameController,
+                    decoration: InputDecoration(
+                      hintText: 'Type Name (e.g., Carpenter, Electrician)',
+                      prefixIcon: Icon(
+                        Icons.work_outline,
+                        color: Color(0xFF4a63c0),
+                        size: 20.sp,
                       ),
-                      style: const TextStyle(fontSize: 14),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12.r),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12.r),
+                        borderSide: BorderSide(
+                          color: Color.fromARGB(255, 214, 215, 216),
+                          width: 1.5,
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12.r),
+                        borderSide: BorderSide(
+                          color: Color.fromARGB(
+                            255,
+                            189,
+                            190,
+                            197,
+                          ), // Different color when focused
+                          width: 1.0,
+                        ),
+                      ),
+                      contentPadding: EdgeInsets.symmetric(vertical: 2),
                     ),
+                    style: const TextStyle(fontSize: 14),
                   ),
 
                   const SizedBox(height: 14),
 
                   // Description Field (Optional)
-                  Container(
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey.shade300),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: TextField(
-                      controller: _descriptionController,
-                      maxLines: 1,
-                      decoration: const InputDecoration(
-                        hintText: 'Description (Optional)',
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.all(12),
-                        hintStyle: TextStyle(color: Colors.grey),
+                  TextField(
+                    controller: _descriptionController,
+                    maxLines: 1,
+                    decoration: InputDecoration(
+                      hintText: 'Description (Optional)',
+                      prefixIcon: Icon(
+                        Icons.description_outlined,
+                        color: Color(0xFF4a63c0),
+                        size: 20.sp,
                       ),
-                      style: const TextStyle(fontSize: 14),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12.r),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12.r),
+                        borderSide: BorderSide(
+                          color: Color.fromARGB(255, 214, 215, 216),
+                          width: 1.5,
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12.r),
+                        borderSide: BorderSide(
+                          color: Color.fromARGB(
+                            255,
+                            189,
+                            190,
+                            197,
+                          ), // Different color when focused
+                          width: 1.0,
+                        ),
+                      ),
+                      contentPadding: EdgeInsets.symmetric(vertical: 2),
                     ),
+                    style: const TextStyle(fontSize: 14),
                   ),
 
                   const SizedBox(height: 15),
@@ -3304,5 +3614,169 @@ class _ManpowerTypesBottomSheetState extends State<ManpowerTypesBottomSheet> {
     _nameController.dispose();
     _descriptionController.dispose();
     super.dispose();
+  }
+}
+
+class AddManpowerTypeBottomSheet extends StatefulWidget {
+  final VoidCallback? onTypeAdded;
+  final int siteId;
+  final int workspaceId;
+  final int userId;
+
+  const AddManpowerTypeBottomSheet({
+    super.key,
+    this.onTypeAdded,
+    required this.siteId,
+    required this.workspaceId,
+    required this.userId,
+  });
+
+  @override
+  State<AddManpowerTypeBottomSheet> createState() =>
+      _AddManpowerTypeBottomSheetState();
+}
+
+class _AddManpowerTypeBottomSheetState
+    extends State<AddManpowerTypeBottomSheet> {
+  final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
+  final _manpowerTypeService = ManpowerTypeService();
+  bool _isLoading = false;
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      final newType = ManpowerType(
+        id: 0,
+        name: _nameController.text.trim(),
+        status: 1,
+        siteId: widget.siteId,
+        workspaceId: widget.workspaceId,
+        createdBy: widget.userId,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+
+      final createdType = await _manpowerTypeService.createManpowerType(
+        newType,
+      );
+
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Manpower type added successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        widget.onTypeAdded?.call();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Add Manpower Type',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF2a43a0),
+                ),
+              ),
+              const SizedBox(height: 24),
+              TextFormField(
+                controller: _nameController,
+                decoration: InputDecoration(
+                  labelText: 'Manpower Type Name',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  prefixIcon: const Icon(Icons.work_outline),
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Please enter a name';
+                  }
+                  return null;
+                },
+                textCapitalization: TextCapitalization.words,
+              ),
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text(
+                      'Cancel',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  ElevatedButton(
+                    onPressed: _isLoading ? null : _submit,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF2a43a0),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 32,
+                        vertical: 12,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: _isLoading
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : const Text(
+                            'Add',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

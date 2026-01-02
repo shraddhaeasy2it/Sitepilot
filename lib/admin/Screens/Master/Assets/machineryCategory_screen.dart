@@ -360,12 +360,12 @@ class CategoryCard extends StatelessWidget {
                 Row(
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.edit, color: Colors.blue),
+                      icon: const Icon(Icons.edit, color: Color(0xFF2a43a0), size: 20),
                       onPressed: onEdit,
                       tooltip: 'Edit',
                     ),
                     IconButton(
-                      icon: const Icon(Icons.delete, color: Colors.red),
+                      icon: const Icon(Icons.delete, color: Colors.red, size: 20),
                       onPressed: onDelete,
                       tooltip: 'Delete',
                     ),
@@ -377,7 +377,7 @@ class CategoryCard extends StatelessWidget {
             Text(
               category.description,
               style: TextStyle(
-                fontSize: 14,
+                fontSize: 13,
                 color: Colors.grey[700],
               ),
             ),

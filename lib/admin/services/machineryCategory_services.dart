@@ -3,7 +3,7 @@ import 'package:ecoteam_app/admin/models/MachineryCategory_model.dart';
 import 'package:http/http.dart' as http;
 
 class MachineryCategoryService {
-  static const String baseUrl = 'http://sitepilot.easy2it.in/api';
+  static const String baseUrl = 'https://sitepilot.easy2it.in/api';
   
   Future<List<MachineryCategory>> getCategories() async {
     try {

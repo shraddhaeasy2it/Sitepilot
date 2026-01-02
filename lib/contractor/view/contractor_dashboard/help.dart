@@ -145,113 +145,13 @@ class HelpPage extends StatelessWidget {
       body: Column(
         children: [
           // Quick Help Cards
-          Container(
-            padding: EdgeInsets.symmetric(vertical: 16, horizontal: 16),
-            color: Colors.grey[50],
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "Quick Help",
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF111827),
-                  ),
-                ),
-                SizedBox(height: 12),
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      _buildHelpCard(
-                        icon: Icons.video_library,
-                        title: "Video Guides",
-                        color: Colors.blue,
-                        onTap: () {
-                          // Navigate to video guides
-                        },
-                      ),
-                      SizedBox(width: 12),
-                      _buildHelpCard(
-                        icon: Icons.article,
-                        title: "User Manual",
-                        color: Colors.green,
-                        onTap: () {
-                          // Open user manual
-                        },
-                      ),
-                      SizedBox(width: 12),
-                      _buildHelpCard(
-                        icon: Icons.bug_report,
-                        title: "Report Issue",
-                        color: Colors.red,
-                        onTap: () => _showFeedbackDialog(context),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
+         
           Expanded(
             child: ListView(
               padding: const EdgeInsets.all(16),
               children: [
                 // FAQ Section
-                Row(
-                  children: [
-                    Text(
-                      "Frequently Asked Questions",
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF111827),
-                      ),
-                    ),
-                    Spacer(),
-                  ],
-                ),
-                const SizedBox(height: 12),
-
-                ExpansionTile(
-                  title: const Text("How do I mark attendance?"),
-                  children: const [
-                    Padding(
-                      padding: EdgeInsets.all(12.0),
-                      child: Text(
-                        "Go to the Attendance tab, select the site, and tap on the worker's name to mark present or absent.",
-                        style: TextStyle(color: Colors.black87),
-                      ),
-                    ),
-                  ],
-                ),
-                ExpansionTile(
-                  title: const Text("How can I download reports?"),
-                  children: const [
-                    Padding(
-                      padding: EdgeInsets.all(12.0),
-                      child: Text(
-                        "Navigate to the Attendance screen, tap the download icon on top-right, and choose your export format.",
-                        style: TextStyle(color: Colors.black87),
-                      ),
-                    ),
-                  ],
-                ),
-                ExpansionTile(
-                  title: const Text("Can I use the app offline?"),
-                  children: const [
-                    Padding(
-                      padding: EdgeInsets.all(12.0),
-                      child: Text(
-                        "Yes, you can mark attendance offline. Data will sync automatically when internet is available.",
-                        style: TextStyle(color: Colors.black87),
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 24),
+               
 
                 // Contact Support Section
                 Text(

@@ -1,9 +1,10 @@
-
-
 import 'package:ecoteam_app/admin/models/Allsupplier_model.dart';
 import 'package:ecoteam_app/admin/services/Allsupplier_service.dart';
+import 'package:ecoteam_app/contractor/view/contractor_dashboard/chat_screen.dart';
+import 'package:ecoteam_app/contractor/view/contractor_dashboard/notification.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
 
 // Add this import if you have a site model
@@ -13,12 +14,16 @@ class SupplierLedger extends StatefulWidget {
   final String? selectedSiteId;
   final Function(String) onSiteChanged;
   final List<Site> sites;
+  final int? workspaceId;
+  final String? currentCompany;
 
   const SupplierLedger({
     Key? key,
     required this.selectedSiteId,
     required this.onSiteChanged,
     required this.sites,
+    this.currentCompany,
+    this.workspaceId
   }) : super(key: key);
 
   @override
@@ -258,7 +263,6 @@ class _AllSupplierPageState extends State<SupplierLedger> {
     );
   }
 
-  
   Widget _buildEnhancedTextField({
     required TextEditingController controller,
     required String label,
@@ -270,66 +274,45 @@ class _AllSupplierPageState extends State<SupplierLedger> {
     int maxLines = 1,
     String? Function(String?)? validator,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
+    return TextFormField(
+      controller: controller,
+      keyboardType: keyboardType,
+      readOnly: readOnly,
+      onTap: onTap,
+      maxLines: maxLines,
+      validator: validator,
+      style: const TextStyle(
+        color: textPrimary,
+        fontSize: 16,
+        fontWeight: FontWeight.w500,
       ),
-      child: TextFormField(
-        controller: controller,
-        keyboardType: keyboardType,
-        readOnly: readOnly,
-        onTap: onTap,
-        maxLines: maxLines,
-        validator: validator,
-        style: const TextStyle(
-          color: textPrimary,
-          fontSize: 16,
-          fontWeight: FontWeight.w500,
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hint,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12.r),
         ),
-        decoration: InputDecoration(
-          labelText: label,
-          hintText: hint,
-          prefixIcon: Icon(icon, color: primaryColor, size: 22),
-          filled: true,
-          fillColor: Colors.white,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide.none,
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12.r),
+          borderSide: BorderSide(
+            color: Color.fromARGB(255, 214, 215, 216),
+            width: 1.5,
           ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(color: Colors.grey.withOpacity(0.1)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12.r),
+          borderSide: BorderSide(
+            color: Color.fromARGB(255, 189, 190, 197), // Different color when focused
+            width: 1.0,
           ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(color: primaryColor, width: 2),
-          ),
-          errorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(color: Colors.red, width: 1),
-          ),
-          focusedErrorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(color: Colors.red, width: 2),
-          ),
-          labelStyle: TextStyle(
-            color: textSecondary,
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-          ),
-          hintStyle: TextStyle(
-            color: textSecondary.withOpacity(0.7),
-            fontSize: 14,
-          ),
-          errorStyle: const TextStyle(fontSize: 12),
+        ),
+        contentPadding: EdgeInsets.symmetric(
+          vertical: 2,
+        ),
+        prefixIcon: Icon(
+          icon,
+          color: Color(0xFF4a63c0),
+          size: 20.sp,
         ),
       ),
     );
@@ -346,75 +329,57 @@ class _AllSupplierPageState extends State<SupplierLedger> {
     required void Function(T?) onChanged,
     String? Function(T?)? validator,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: DropdownButtonFormField<T>(
-        value: value,
-        decoration: InputDecoration(
-          labelText: label,
-          hintText: hint,
-          prefixIcon: Icon(icon, color: primaryColor, size: 22),
-          filled: true,
-          fillColor: Colors.white,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide.none,
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(color: Colors.grey.withOpacity(0.1)),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(color: primaryColor, width: 2),
-          ),
-          errorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(color: Colors.red, width: 1),
-          ),
-          focusedErrorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(color: Colors.red, width: 2),
-          ),
-          labelStyle: TextStyle(
-            color: textSecondary,
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-          ),
-          hintStyle: TextStyle(
-            color: textSecondary.withOpacity(0.7),
-            fontSize: 14,
-          ),
-          errorStyle: const TextStyle(fontSize: 12),
+    return DropdownButtonFormField<T>(
+      value: value,
+      isExpanded: true, // Prevent overflow by allowing the dropdown to expand within constraints
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hint,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12.r),
         ),
-        dropdownColor: Colors.white,
-        style: const TextStyle(
-          color: textPrimary,
-          fontSize: 16,
-          fontWeight: FontWeight.w500,
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12.r),
+          borderSide: BorderSide(
+            color: Color.fromARGB(255, 214, 215, 216),
+            width: 1.5,
+          ),
         ),
-        items: items.map((item) {
-          return DropdownMenuItem<T>(
-            value: getValue(item),
-            child: Text(
-              displayText(item),
-              style: const TextStyle(fontSize: 14),
-            ),
-          );
-        }).toList(),
-        onChanged: onChanged,
-        validator: validator,
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12.r),
+          borderSide: BorderSide(
+            color: Color.fromARGB(255, 189, 190, 197), // Different color when focused
+            width: 1.0,
+          ),
+        ),
+        contentPadding: EdgeInsets.symmetric(
+          vertical: 2,
+        ),
+        prefixIcon: Icon(
+          icon,
+          color: Color(0xFF4a63c0),
+          size: 20.sp,
+        ),
       ),
+      dropdownColor: const Color.fromARGB(255, 255, 255, 255),
+      style: const TextStyle(
+        color: textPrimary,
+        fontSize: 16,
+        fontWeight: FontWeight.w500,
+      ),
+      items: items.map((item) {
+        return DropdownMenuItem<T>(
+          value: getValue(item),
+          child: Text(
+            displayText(item),
+            style: const TextStyle(fontSize: 14),
+            overflow: TextOverflow.ellipsis, // Prevent text overflow
+            maxLines: 1,
+          ),
+        );
+      }).toList(),
+      onChanged: onChanged,
+      validator: validator,
     );
   }
 
@@ -456,490 +421,390 @@ class _AllSupplierPageState extends State<SupplierLedger> {
   }
 
   void _showSupplierDetailsBottomSheet(Supplier supplier) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.85,
-        minChildSize: 0.5,
-        maxChildSize: 0.95,
-        builder: (context, scrollController) {
-          return Container(
-            decoration: const BoxDecoration(
-              color: backgroundColor,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black26,
-                  blurRadius: 20,
-                  offset: Offset(0, -5),
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (context) => DraggableScrollableSheet(
+      initialChildSize: 0.85,
+      minChildSize: 0.5,
+      maxChildSize: 0.95,
+      builder: (context, scrollController) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom,
+            ),
+            child: CustomScrollView(
+              controller: scrollController,
+              slivers: [
+                // Header
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+                  sliver: SliverToBoxAdapter(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Center(
+                          child: Container(
+                            width: 40,
+                            height: 4,
+                            decoration: BoxDecoration(
+                              color: Colors.grey[300],
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        
+                        // Supplier Name
+                        Text(
+                          supplier.name,
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        
+                        // Category & Site
+                        Text(
+                          '${_getCategoryName(supplier.categoryId)} • ${supplier.siteId == 0 ? 'All Sites' : 'Site ${supplier.siteId}'}',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        
+                        // Status
+                        Row(
+                          children: [
+                            Container(
+                              width: 8,
+                              height: 8,
+                              decoration: BoxDecoration(
+                                color: supplier.status == '1' 
+                                  ? Colors.green 
+                                  : Colors.red,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              supplier.status == '1' ? 'Active' : 'Inactive',
+                              style: TextStyle(
+                                color: supplier.status == '1' 
+                                  ? Colors.green 
+                                  : Colors.red,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                
+                // Divider
+                const SliverToBoxAdapter(
+                  child: Divider(
+                    height: 32,
+                    thickness: 1,
+                    indent: 24,
+                    endIndent: 24,
+                  ),
+                ),
+                
+                // Contact Information
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  sliver: SliverToBoxAdapter(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildInfoRow(
+                          Icons.person_outline,
+                          'Contact Person',
+                          supplier.contactPerson,
+                        ),
+                        const SizedBox(height: 16),
+                        _buildInfoRow(
+                          Icons.phone_outlined,
+                          'Phone',
+                          supplier.phone,
+                        ),
+                        if (supplier.email != null && supplier.email!.isNotEmpty) ...[
+                          const SizedBox(height: 16),
+                          _buildInfoRow(
+                            Icons.email_outlined,
+                            'Email',
+                            supplier.email!,
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+                
+                // Address Section (if available)
+                if (supplier.address != null && supplier.address!.isNotEmpty) ...[
+                  const SliverToBoxAdapter(
+                    child: Divider(
+                      height: 32,
+                      thickness: 1,
+                      indent: 24,
+                      endIndent: 24,
+                    ),
+                  ),
+                  
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    sliver: SliverToBoxAdapter(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Address',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          _buildInfoRow(
+                            Icons.location_on_outlined,
+                            'Address',
+                            supplier.address!,
+                            showIcon: true,
+                          ),
+                          if (supplier.city != null && supplier.city!.isNotEmpty) ...[
+                            const SizedBox(height: 8),
+                            _buildInfoRow(
+                              Icons.location_city_outlined,
+                              'City',
+                              supplier.city!,
+                              showIcon: true,
+                            ),
+                          ],
+                          if (supplier.state != null && supplier.state!.isNotEmpty) ...[
+                            const SizedBox(height: 8),
+                            _buildInfoRow(
+                              Icons.map_outlined,
+                              'State',
+                              supplier.state!,
+                              showIcon: true,
+                            ),
+                          ],
+                          if (supplier.pincode != null && supplier.pincode!.isNotEmpty) ...[
+                            const SizedBox(height: 8),
+                            _buildInfoRow(
+                              Icons.pin_drop_outlined,
+                              'Pincode',
+                              supplier.pincode!,
+                              showIcon: true,
+                            ),
+                          ],
+                          if (supplier.country != null && supplier.country!.isNotEmpty) ...[
+                            const SizedBox(height: 8),
+                            _buildInfoRow(
+                              Icons.public_outlined,
+                              'Country',
+                              supplier.country!,
+                              showIcon: true,
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+                
+                // Tax Information (if available)
+                if ((supplier.gstNumber != null && supplier.gstNumber!.isNotEmpty) ||
+                    (supplier.panNumber != null && supplier.panNumber!.isNotEmpty) ||
+                    (supplier.registrationNumber != null && supplier.registrationNumber!.isNotEmpty)) ...[
+                  const SliverToBoxAdapter(
+                    child: Divider(
+                      height: 32,
+                      thickness: 1,
+                      indent: 24,
+                      endIndent: 24,
+                    ),
+                  ),
+                  
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    sliver: SliverToBoxAdapter(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Tax Information',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          if (supplier.gstNumber != null && supplier.gstNumber!.isNotEmpty)
+                            _buildInfoRow(
+                              Icons.receipt_outlined,
+                              'GST Number',
+                              supplier.gstNumber!,
+                            ),
+                          if (supplier.panNumber != null && supplier.panNumber!.isNotEmpty) ...[
+                            const SizedBox(height: 12),
+                            _buildInfoRow(
+                              Icons.credit_card_outlined,
+                              'PAN Number',
+                              supplier.panNumber!,
+                            ),
+                          ],
+                          if (supplier.registrationNumber != null && supplier.registrationNumber!.isNotEmpty) ...[
+                            const SizedBox(height: 12),
+                            _buildInfoRow(
+                              Icons.assignment_outlined,
+                              'Registration Number',
+                              supplier.registrationNumber!,
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+                
+                // Bank Details (if available)
+                if ((supplier.bankName != null && supplier.bankName!.isNotEmpty) ||
+                    (supplier.accountNumber != null && supplier.accountNumber!.isNotEmpty) ||
+                    (supplier.ifscCode != null && supplier.ifscCode!.isNotEmpty) ||
+                    (supplier.paymentTerms != null && supplier.paymentTerms!.isNotEmpty)) ...[
+                  const SliverToBoxAdapter(
+                    child: Divider(
+                      height: 32,
+                      thickness: 1,
+                      indent: 24,
+                      endIndent: 24,
+                    ),
+                  ),
+                  
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    sliver: SliverToBoxAdapter(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Bank & Payment',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          if (supplier.bankName != null && supplier.bankName!.isNotEmpty)
+                            _buildInfoRow(
+                              Icons.account_balance_outlined,
+                              'Bank Name',
+                              supplier.bankName!,
+                            ),
+                          if (supplier.accountNumber != null && supplier.accountNumber!.isNotEmpty) ...[
+                            const SizedBox(height: 12),
+                            _buildInfoRow(
+                              Icons.account_box_outlined,
+                              'Account Number',
+                              supplier.accountNumber!,
+                            ),
+                          ],
+                          if (supplier.ifscCode != null && supplier.ifscCode!.isNotEmpty) ...[
+                            const SizedBox(height: 12),
+                            _buildInfoRow(
+                              Icons.code_outlined,
+                              'IFSC Code',
+                              supplier.ifscCode!,
+                            ),
+                          ],
+                          if (supplier.paymentTerms != null && supplier.paymentTerms!.isNotEmpty) ...[
+                            const SizedBox(height: 12),
+                            _buildInfoRow(
+                              Icons.schedule_outlined,
+                              'Payment Terms',
+                              supplier.paymentTerms!,
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+                
+                // Bottom spacing
+                const SliverToBoxAdapter(
+                  child: SizedBox(height: 32),
                 ),
               ],
             ),
-            child: Padding(
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-                left: 20,
-                right: 20,
-                top: 24,
-              ),
-              child: Scrollbar(
-                controller: scrollController,
-                thumbVisibility: false,
-                child: SingleChildScrollView(
-                  controller: scrollController,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Center(
-                        child: Container(
-                          width: 40,
-                          height: 4,
-                          decoration: BoxDecoration(
-                            color: Colors.grey[300],
-                            borderRadius: BorderRadius.circular(2),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
+          ),
+        );
+      },
+    ),
+  );
+}
 
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: primaryColor.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Icon(
-                              Icons.business,
-                              color: primaryColor,
-                              size: 28,
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  supplier.name,
-                                  style: const TextStyle(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                    color: textPrimary,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                Text(
-                                  '${_getCategoryName(supplier.categoryId)} • ${supplier.siteId == 0 ? 'All Sites' : 'Site: ${supplier.siteId}'}',
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    color: textSecondary,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-
-                      // Basic Information Section
-                      const Text(
-                        'Basic Information',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-
-                      // Contact Info Row
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildDetailCard(
-                              Icons.person_outline,
-                              'Contact Person',
-                              supplier.contactPerson,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _buildDetailCard(
-                              Icons.phone_outlined,
-                              'Phone',
-                              supplier.phone,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-
-                      if (supplier.email != null && supplier.email!.isNotEmpty)
-                        Column(
-                          children: [
-                            _buildDetailCard(
-                              Icons.email_outlined,
-                              'Email',
-                              supplier.email!,
-                            ),
-                            const SizedBox(height: 12),
-                          ],
-                        ),
-
-                      // Address Section
-                      if (supplier.address != null &&
-                          supplier.address!.isNotEmpty)
-                        const Text(
-                          'Address',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: textPrimary,
-                          ),
-                        ),
-                      if (supplier.address != null &&
-                          supplier.address!.isNotEmpty)
-                        const SizedBox(height: 8),
-
-                      if (supplier.address != null &&
-                          supplier.address!.isNotEmpty)
-                        _buildDetailCard(
-                          Icons.location_on_outlined,
-                          'Address',
-                          supplier.address!,
-                        ),
-                      if (supplier.address != null &&
-                          supplier.address!.isNotEmpty)
-                        const SizedBox(height: 12),
-
-                      // Location Row
-                      if ((supplier.city != null &&
-                              supplier.city!.isNotEmpty) ||
-                          (supplier.state != null &&
-                              supplier.state!.isNotEmpty))
-                        Row(
-                          children: [
-                            if (supplier.city != null &&
-                                supplier.city!.isNotEmpty)
-                              Expanded(
-                                child: _buildDetailCard(
-                                  Icons.location_city_outlined,
-                                  'City',
-                                  supplier.city!,
-                                ),
-                              ),
-                            if (supplier.state != null &&
-                                supplier.state!.isNotEmpty)
-                              const SizedBox(width: 12),
-                            if (supplier.state != null &&
-                                supplier.state!.isNotEmpty)
-                              Expanded(
-                                child: _buildDetailCard(
-                                  Icons.map_outlined,
-                                  'State',
-                                  supplier.state!,
-                                ),
-                              ),
-                          ],
-                        ),
-                      if ((supplier.city != null &&
-                              supplier.city!.isNotEmpty) ||
-                          (supplier.state != null &&
-                              supplier.state!.isNotEmpty))
-                        const SizedBox(height: 12),
-
-                      // Pincode & Country Row
-                      if ((supplier.pincode != null &&
-                              supplier.pincode!.isNotEmpty) ||
-                          (supplier.country != null &&
-                              supplier.country!.isNotEmpty))
-                        Row(
-                          children: [
-                            if (supplier.pincode != null &&
-                                supplier.pincode!.isNotEmpty)
-                              Expanded(
-                                child: _buildDetailCard(
-                                  Icons.pin_drop_outlined,
-                                  'Pincode',
-                                  supplier.pincode!,
-                                ),
-                              ),
-                            if (supplier.country != null &&
-                                supplier.country!.isNotEmpty)
-                              const SizedBox(width: 12),
-                            if (supplier.country != null &&
-                                supplier.country!.isNotEmpty)
-                              Expanded(
-                                child: _buildDetailCard(
-                                  Icons.public_outlined,
-                                  'Country',
-                                  supplier.country!,
-                                ),
-                              ),
-                          ],
-                        ),
-                      if ((supplier.pincode != null &&
-                              supplier.pincode!.isNotEmpty) ||
-                          (supplier.country != null &&
-                              supplier.country!.isNotEmpty))
-                        const SizedBox(height: 12),
-
-                      // Tax Information Section
-                      if ((supplier.gstNumber != null &&
-                              supplier.gstNumber!.isNotEmpty) ||
-                          (supplier.panNumber != null &&
-                              supplier.panNumber!.isNotEmpty))
-                        const Text(
-                          'Tax Information',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: textPrimary,
-                          ),
-                        ),
-                      if ((supplier.gstNumber != null &&
-                              supplier.gstNumber!.isNotEmpty) ||
-                          (supplier.panNumber != null &&
-                              supplier.panNumber!.isNotEmpty))
-                        const SizedBox(height: 8),
-
-                      if ((supplier.gstNumber != null &&
-                              supplier.gstNumber!.isNotEmpty) ||
-                          (supplier.panNumber != null &&
-                              supplier.panNumber!.isNotEmpty))
-                        Row(
-                          children: [
-                            if (supplier.gstNumber != null &&
-                                supplier.gstNumber!.isNotEmpty)
-                              Expanded(
-                                child: _buildDetailCard(
-                                  Icons.receipt_outlined,
-                                  'GST Number',
-                                  supplier.gstNumber!,
-                                ),
-                              ),
-                            if (supplier.panNumber != null &&
-                                supplier.panNumber!.isNotEmpty)
-                              const SizedBox(width: 12),
-                            if (supplier.panNumber != null &&
-                                supplier.panNumber!.isNotEmpty)
-                              Expanded(
-                                child: _buildDetailCard(
-                                  Icons.credit_card_outlined,
-                                  'PAN Number',
-                                  supplier.panNumber!,
-                                ),
-                              ),
-                          ],
-                        ),
-                      if ((supplier.gstNumber != null &&
-                              supplier.gstNumber!.isNotEmpty) ||
-                          (supplier.panNumber != null &&
-                              supplier.panNumber!.isNotEmpty))
-                        const SizedBox(height: 12),
-
-                      // Registration Number
-                      if (supplier.registrationNumber != null &&
-                          supplier.registrationNumber!.isNotEmpty)
-                        _buildDetailCard(
-                          Icons.assignment_outlined,
-                          'Registration Number',
-                          supplier.registrationNumber!,
-                        ),
-                      if (supplier.registrationNumber != null &&
-                          supplier.registrationNumber!.isNotEmpty)
-                        const SizedBox(height: 12),
-
-                      // Bank Details Section
-                      if ((supplier.bankName != null &&
-                              supplier.bankName!.isNotEmpty) ||
-                          (supplier.accountNumber != null &&
-                              supplier.accountNumber!.isNotEmpty) ||
-                          (supplier.ifscCode != null &&
-                              supplier.ifscCode!.isNotEmpty))
-                        const Text(
-                          'Bank Details',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: textPrimary,
-                          ),
-                        ),
-                      if ((supplier.bankName != null &&
-                              supplier.bankName!.isNotEmpty) ||
-                          (supplier.accountNumber != null &&
-                              supplier.accountNumber!.isNotEmpty) ||
-                          (supplier.ifscCode != null &&
-                              supplier.ifscCode!.isNotEmpty))
-                        const SizedBox(height: 8),
-
-                      if ((supplier.bankName != null &&
-                              supplier.bankName!.isNotEmpty) ||
-                          (supplier.accountNumber != null &&
-                              supplier.accountNumber!.isNotEmpty))
-                        Row(
-                          children: [
-                            if (supplier.bankName != null &&
-                                supplier.bankName!.isNotEmpty)
-                              Expanded(
-                                child: _buildDetailCard(
-                                  Icons.account_balance_outlined,
-                                  'Bank Name',
-                                  supplier.bankName!,
-                                ),
-                              ),
-                            if (supplier.accountNumber != null &&
-                                supplier.accountNumber!.isNotEmpty)
-                              const SizedBox(width: 12),
-                            if (supplier.accountNumber != null &&
-                                supplier.accountNumber!.isNotEmpty)
-                              Expanded(
-                                child: _buildDetailCard(
-                                  Icons.account_box_outlined,
-                                  'Account Number',
-                                  supplier.accountNumber!,
-                                ),
-                              ),
-                          ],
-                        ),
-                      if ((supplier.bankName != null &&
-                              supplier.bankName!.isNotEmpty) ||
-                          (supplier.accountNumber != null &&
-                              supplier.accountNumber!.isNotEmpty))
-                        const SizedBox(height: 12),
-
-                      // IFSC Code
-                      if (supplier.ifscCode != null &&
-                          supplier.ifscCode!.isNotEmpty)
-                        _buildDetailCard(
-                          Icons.code_outlined,
-                          'IFSC Code',
-                          supplier.ifscCode!,
-                        ),
-                      if (supplier.ifscCode != null &&
-                          supplier.ifscCode!.isNotEmpty)
-                        const SizedBox(height: 12),
-
-                      // Payment Terms
-                      if (supplier.paymentTerms != null &&
-                          supplier.paymentTerms!.isNotEmpty)
-                        _buildDetailCard(
-                          Icons.schedule_outlined,
-                          'Payment Terms',
-                          supplier.paymentTerms!,
-                        ),
-                      if (supplier.paymentTerms != null &&
-                          supplier.paymentTerms!.isNotEmpty)
-                        const SizedBox(height: 12),
-
-                      // Status
-                      _buildDetailCard(
-                        Icons.info_outline,
-                        'Status',
-                        supplier.status == '1' ? 'Active' : 'Inactive',
-                        valueColor: supplier.status == '1'
-                            ? Colors.green
-                            : Colors.red,
-                      ),
-                      const SizedBox(height: 24),
-
-                      // Action Buttons
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Container(
-                              height: 56,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(
-                                  color: primaryColor,
-                                  width: 2,
-                                ),
-                              ),
-                              child: ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.transparent,
-                                  foregroundColor: primaryColor,
-                                  elevation: 0,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                ),
-                                onPressed: () => Navigator.pop(context),
-                                child: const Text(
-                                  'Close',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Container(
-                              height: 56,
-                              decoration: BoxDecoration(
-                                gradient: const LinearGradient(
-                                  colors: [primaryColor, primaryDark],
-                                  begin: Alignment.centerLeft,
-                                  end: Alignment.centerRight,
-                                ),
-                                borderRadius: BorderRadius.circular(16),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: primaryColor.withOpacity(0.3),
-                                    blurRadius: 12,
-                                    offset: const Offset(0, 6),
-                                  ),
-                                ],
-                              ),
-                              child: ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.transparent,
-                                  shadowColor: Colors.transparent,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                ),
-                                onPressed: () {
-                                  Navigator.pop(context);
-                                  _showAddEditSupplierBottomSheet(
-                                    supplier: supplier,
-                                  );
-                                },
-                                child: const Text(
-                                  'Edit Supplier',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                    ],
+Widget _buildInfoRow(IconData icon, String label, String value, {bool showIcon = true}) {
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (showIcon) ...[
+            Icon(
+              icon,
+              size: 20,
+              color: Colors.grey[600],
+            ),
+            const SizedBox(width: 12),
+          ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[600],
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
-              ),
+                const SizedBox(height: 4),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    color: Colors.black87,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
             ),
-          );
-        },
+          ),
+        ],
       ),
-    );
-  }
-
+    ],
+  );
+}
   Widget _buildDetailCard(
     IconData icon,
     String label,
@@ -1032,373 +897,137 @@ class _AllSupplierPageState extends State<SupplierLedger> {
     );
   }
 
- Widget _buildSupplierCard(Supplier supplier) {
-  return LayoutBuilder(
-    builder: (context, constraints) {
-      final isSmallScreen = constraints.maxWidth < 600;
+  Widget _buildSupplierCard(Supplier supplier) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isSmallScreen = constraints.maxWidth < 600;
 
-      return Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: cardColor,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: primaryColor.withOpacity(0.08),
-              blurRadius: 20,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
+        return Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: const Color.fromARGB(255, 255, 255, 255),
             borderRadius: BorderRadius.circular(20),
-            onTap: () => _showSupplierDetailsBottomSheet(supplier),
-            child: Padding(
-              padding: EdgeInsets.all(isSmallScreen ? 14 : 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Header row with icon, name, category, status - EXACTLY like machinery
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: primaryColor.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: primaryColor.withOpacity(0.08),
+                blurRadius: 20,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(20),
+             
+              child: Padding(
+                padding: EdgeInsets.all(isSmallScreen ? 14 : 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header row with icon, name, category, status - EXACTLY like machinery
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(9),
+                          decoration: BoxDecoration(
+                            color: primaryColor.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(
+                            Icons.business,
+                            color: primaryColor,
+                            size: 18,
+                          ),
                         ),
-                        child: Icon(
-                          Icons.business,
-                          color: primaryColor,
-                          size: 22,
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                supplier.name,
+                                style: TextStyle(
+                                  fontSize: isSmallScreen ? 15 : 17,
+                                  fontWeight: FontWeight.bold,
+                                  color: textPrimary,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                _getCategoryName(supplier.categoryId),
+                                style: TextStyle(
+                                  fontSize: isSmallScreen ? 11 : 13,
+                                  color: textSecondary,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        // Status and Delete button - EXACTLY like machinery
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text(
-                              supplier.name,
-                              style: TextStyle(
-                                fontSize: isSmallScreen ? 16 : 18,
-                                fontWeight: FontWeight.bold,
-                                color: textPrimary,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              _getCategoryName(supplier.categoryId),
-                              style: TextStyle(
-                                fontSize: isSmallScreen ? 12 : 14,
-                                color: textSecondary,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
+                           
+                            
+                             // More Options Button
+                             Material(
+                               color: Colors.transparent,
+                               child: InkWell(
+                                 borderRadius: BorderRadius.circular(20),
+                                 onTap: () => _showSupplierOptionsBottomSheet(supplier),
+                                 child: Padding(
+                                   padding: const EdgeInsets.all(8.0),
+                                   child: Icon(
+                                     Icons.more_vert,
+                                     color: textSecondary,
+                                     size: 24,
+                                   ),
+                                 ),
+                               ),
+                             ),
                           ],
                         ),
-                      ),
-                      // Status and Delete button - EXACTLY like machinery
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: supplier.status == '1'
-                                  ? Colors.green.withOpacity(0.1)
-                                  : Colors.red.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: supplier.status == '1'
-                                    ? Colors.green.withOpacity(0.3)
-                                    : Colors.red.withOpacity(0.3),
-                              ),
-                            ),
-                            child: Text(
-                              supplier.status == '1' ? 'Active' : 'Inactive',
-                              style: TextStyle(
-                                color: supplier.status == '1'
-                                    ? Colors.green
-                                    : Colors.red,
-                                fontSize: isSmallScreen ? 9 : 11,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          // Delete button - EXACTLY like machinery
-                          GestureDetector(
-                            onTap: () {
-                              _showDeleteConfirmationDialog(supplier);
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: BoxDecoration(
-                                color: Colors.red.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Icon(
-                                Icons.delete,
-                                color: Colors.red,
-                                size: 18,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+                      ],
+                    ),
 
-                  const SizedBox(height: 12),
-
-                  // Information rows - EXACT 2-column layout like machinery
-                  // First row: Contact Person and Phone side by side
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Container(
-                          padding: EdgeInsets.all(isSmallScreen ? 8 : 10),
-                          decoration: BoxDecoration(
-                            color: backgroundColor,
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: primaryColor.withOpacity(0.1)),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.person,
-                                size: isSmallScreen ? 14 : 16,
-                                color: const Color.fromARGB(255, 109, 109, 109),
-                              ),
-                              const SizedBox(width: 6),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Contact Person',
-                                      style: TextStyle(
-                                        fontSize: isSmallScreen ? 9 : 10,
-                                        color: textSecondary,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      supplier.contactPerson,
-                                      style: TextStyle(
-                                        fontSize: isSmallScreen ? 12 : 13,
-                                        fontWeight: FontWeight.bold,
-                                        color: textPrimary,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Container(
-                          padding: EdgeInsets.all(isSmallScreen ? 8 : 10),
-                          decoration: BoxDecoration(
-                            color: backgroundColor,
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: primaryColor.withOpacity(0.1)),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.phone,
-                                size: isSmallScreen ? 14 : 16,
-                                color: const Color.fromARGB(255, 109, 109, 109),
-                              ),
-                              const SizedBox(width: 6),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Phone',
-                                      style: TextStyle(
-                                        fontSize: isSmallScreen ? 9 : 10,
-                                        color: textSecondary,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      supplier.phone,
-                                      style: TextStyle(
-                                        fontSize: isSmallScreen ? 12 : 13,
-                                        fontWeight: FontWeight.bold,
-                                        color: textPrimary,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 8),
-
-                  // Second row: Address and GST Number side by side
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Container(
-                          padding: EdgeInsets.all(isSmallScreen ? 8 : 10),
-                          decoration: BoxDecoration(
-                            color: backgroundColor,
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: primaryColor.withOpacity(0.1)),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.location_on,
-                                size: isSmallScreen ? 14 : 16,
-                                color: const Color.fromARGB(255, 109, 109, 109),
-                              ),
-                              const SizedBox(width: 6),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Address',
-                                      style: TextStyle(
-                                        fontSize: isSmallScreen ? 9 : 10,
-                                        color: textSecondary,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      supplier.address ?? 'Not specified',
-                                      style: TextStyle(
-                                        fontSize: isSmallScreen ? 12 : 13,
-                                        fontWeight: FontWeight.bold,
-                                        color: textPrimary,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Container(
-                          padding: EdgeInsets.all(isSmallScreen ? 8 : 10),
-                          decoration: BoxDecoration(
-                            color: backgroundColor,
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: primaryColor.withOpacity(0.1)),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.receipt,
-                                size: isSmallScreen ? 14 : 16,
-                                color: const Color.fromARGB(255, 109, 109, 109),
-                              ),
-                              const SizedBox(width: 6),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'GST Number',
-                                      style: TextStyle(
-                                        fontSize: isSmallScreen ? 9 : 10,
-                                        color: textSecondary,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      supplier.gstNumber ?? 'Not specified',
-                                      style: TextStyle(
-                                        fontSize: isSmallScreen ? 12 : 13,
-                                        fontWeight: FontWeight.bold,
-                                        color: textPrimary,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+                   
+                  ],
+                ),
               ),
             ),
           ),
-        ),
-      );
-    },
-  );
-}
-void _showDeleteConfirmationDialog(Supplier supplier) {
-  showDialog(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: const Text('Delete Supplier'),
-      content: Text('Are you sure you want to delete ${supplier.name}?'),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
-        ),
-        TextButton(
-          onPressed: () {
-            Navigator.pop(context);
-            _deleteSupplier(supplier);
-          },
-          style: TextButton.styleFrom(foregroundColor: Colors.red),
-          child: const Text('Delete'),
-        ),
-      ],
-    ),
-  );
-}
+        );
+      },
+    );
+  }
+
+  void _showDeleteConfirmationDialog(Supplier supplier) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Supplier'),
+        content: Text('Are you sure you want to delete ${supplier.name}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _deleteSupplier(supplier);
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildEmptyState() {
     return Center(
@@ -1555,6 +1184,103 @@ void _showDeleteConfirmationDialog(Supplier supplier) {
     );
   }
 
+  Widget _buildOptionTile({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    Color? backgroundColor,
+    required VoidCallback onTap,
+    Color color = const Color(0xFF2D3748),
+  }) {
+    return ListTile(
+      leading: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: backgroundColor ?? primaryColor.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(icon, color: iconColor, size: 20),
+      ),
+      title: Text(
+        title,
+        style: TextStyle(
+          color: color,
+          fontWeight: FontWeight.w600,
+          fontSize: 14.sp,
+        ),
+      ),
+      onTap: onTap,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
+    );
+  }
+
+  void _showSupplierOptionsBottomSheet(Supplier supplier) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              margin: const EdgeInsets.only(top: 8),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            _buildOptionTile(
+              icon: Icons.visibility_outlined,
+              title: 'View Full Details',
+              iconColor: const Color.fromARGB(255, 37, 49, 158),
+              backgroundColor: const Color.fromARGB(
+                255,
+                37,
+                49,
+                158,
+              ).withOpacity(0.1),
+              onTap: () {
+                Navigator.pop(context);
+                _showSupplierDetailsBottomSheet(supplier);
+              },
+            ),
+            _buildOptionTile(
+              icon: Icons.edit_outlined,
+              title: 'Edit Supplier',
+              iconColor: Colors.blue,
+              backgroundColor: Colors.blue.withOpacity(0.1),
+              onTap: () {
+                Navigator.pop(context);
+                _showAddEditSupplierBottomSheet(supplier: supplier);
+              },
+            ),
+            _buildOptionTile(
+              icon: Icons.delete_outline,
+              title: 'Delete Supplier',
+              color: Colors.red,
+              iconColor: Colors.red,
+              backgroundColor: Colors.red.withOpacity(0.1),
+              onTap: () {
+                Navigator.pop(context);
+                Future.delayed(const Duration(milliseconds: 200), () {
+                  _showDeleteConfirmationDialog(supplier);
+                });
+              },
+            ),
+            const SizedBox(height: 30),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _showSnackBar(String message, {bool isSuccess = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -1577,7 +1303,8 @@ void _showDeleteConfirmationDialog(Supplier supplier) {
       ),
     );
   }
-void _showAddEditSupplierBottomSheet({Supplier? supplier}) {
+
+  void _showAddEditSupplierBottomSheet({Supplier? supplier}) {
     final isEditing = supplier != null;
 
     final nameController = TextEditingController(text: supplier?.name ?? '');
@@ -1769,7 +1496,7 @@ void _showAddEditSupplierBottomSheet({Supplier? supplier}) {
                                     return null;
                                   },
                                 ),
-                                const SizedBox(height: 16),
+                                const SizedBox(height: 10),
 
                                 // Category and Type Row
                                 Row(
@@ -1824,7 +1551,7 @@ void _showAddEditSupplierBottomSheet({Supplier? supplier}) {
                                     ),
                                   ],
                                 ),
-                                const SizedBox(height: 16),
+                                const SizedBox(height: 10),
 
                                 // Contact Person and Phone Row
                                 Row(
@@ -1866,7 +1593,7 @@ void _showAddEditSupplierBottomSheet({Supplier? supplier}) {
                                     ),
                                   ],
                                 ),
-                                const SizedBox(height: 16),
+                                const SizedBox(height: 10),
 
                                 // Email
                                 _buildEnhancedTextField(
@@ -1887,7 +1614,7 @@ void _showAddEditSupplierBottomSheet({Supplier? supplier}) {
                                     return null;
                                   },
                                 ),
-                                const SizedBox(height: 16),
+                                const SizedBox(height: 10),
 
                                 // Address
                                 _buildEnhancedTextField(
@@ -1897,7 +1624,7 @@ void _showAddEditSupplierBottomSheet({Supplier? supplier}) {
                                   icon: Icons.location_on_outlined,
                                   maxLines: 2,
                                 ),
-                                const SizedBox(height: 16),
+                                const SizedBox(height: 10),
 
                                 // City and State Row
                                 Row(
@@ -1921,7 +1648,7 @@ void _showAddEditSupplierBottomSheet({Supplier? supplier}) {
                                     ),
                                   ],
                                 ),
-                                const SizedBox(height: 16),
+                                const SizedBox(height: 10),
 
                                 // Pincode and Country Row
                                 Row(
@@ -1946,7 +1673,7 @@ void _showAddEditSupplierBottomSheet({Supplier? supplier}) {
                                     ),
                                   ],
                                 ),
-                                const SizedBox(height: 16),
+                                const SizedBox(height: 10),
 
                                 // GST and PAN Row
                                 Row(
@@ -1970,7 +1697,7 @@ void _showAddEditSupplierBottomSheet({Supplier? supplier}) {
                                     ),
                                   ],
                                 ),
-                                const SizedBox(height: 16),
+                                const SizedBox(height: 10),
 
                                 // Registration Number
                                 _buildEnhancedTextField(
@@ -1990,7 +1717,7 @@ void _showAddEditSupplierBottomSheet({Supplier? supplier}) {
                                     color: textPrimary,
                                   ),
                                 ),
-                                const SizedBox(height: 12),
+                                const SizedBox(height: 10),
 
                                 // Bank Name and Account Number Row
                                 Row(
@@ -2015,7 +1742,7 @@ void _showAddEditSupplierBottomSheet({Supplier? supplier}) {
                                     ),
                                   ],
                                 ),
-                                const SizedBox(height: 16),
+                                const SizedBox(height: 10),
 
                                 // IFSC Code
                                 _buildEnhancedTextField(
@@ -2024,7 +1751,7 @@ void _showAddEditSupplierBottomSheet({Supplier? supplier}) {
                                   hint: 'e.g. SBIN0001234',
                                   icon: Icons.code_outlined,
                                 ),
-                                const SizedBox(height: 16),
+                                const SizedBox(height: 10),
 
                                 // Payment Terms
                                 _buildEnhancedTextField(
@@ -2307,7 +2034,11 @@ void _showAddEditSupplierBottomSheet({Supplier? supplier}) {
                   return ExpansionTile(
                     leading: CircleAvatar(
                       backgroundColor: primaryColor.withOpacity(0.1),
-                      child: Icon(Icons.category, color: primaryColor, size: 20),
+                      child: Icon(
+                        Icons.category,
+                        color: primaryColor,
+                        size: 20,
+                      ),
                     ),
                     title: Text(categoryName),
                     subtitle: Text('${suppliers.length} suppliers'),
@@ -2339,7 +2070,7 @@ void _showAddEditSupplierBottomSheet({Supplier? supplier}) {
       backgroundColor: backgroundColor,
       appBar: AppBar(
         elevation: 0,
-        toolbarHeight: 80.h,
+        toolbarHeight: 74.h,
         backgroundColor: Colors.transparent,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -2348,37 +2079,57 @@ void _showAddEditSupplierBottomSheet({Supplier? supplier}) {
               'Suppliers Management',
               style: TextStyle(
                 color: Colors.white,
-                fontSize: 19,
+                fontSize: 17,
                 fontWeight: FontWeight.w600,
               ),
             ),
             SizedBox(height: 3),
             Text(
-              _getCurrentSiteName(),
+              "Site: ${_getCurrentSiteName()}",
+
               style: TextStyle(
                 color: Colors.white.withOpacity(0.9),
-                fontSize: 16,
+                fontSize: 13,
                 fontWeight: FontWeight.w400,
               ),
             ),
           ],
         ),
         iconTheme: const IconThemeData(color: Colors.white),
-        actions: [
-          IconButton(
-            onPressed: _showAddEditSupplierBottomSheet,
-            icon: Icon(Icons.add),
+         actions: [
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => NotificationScreen()),
+              );
+            },
+            child: const FaIcon(FontAwesomeIcons.bell, size: 20),
           ),
+          const SizedBox(width: 5),
+          // Chat Button
           IconButton(
-            icon: const Icon(Icons.category),
-            onPressed: _showCategoriesBottomSheet,
-            tooltip: 'Categories',
+            tooltip: 'Chat',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ChatScreen(
+                    selectedSiteId: widget.selectedSiteId,
+                    onSiteChanged: (String siteId) {
+                      debugPrint('Site changed to: $siteId');
+                    },
+                    sites: widget.sites,
+                    currentCompany: widget.currentCompany,
+                    workspaceId: widget.workspaceId,
+                  ),
+                ),
+              );
+            },
+            icon: const FaIcon(FontAwesomeIcons.commentDots, size: 20),
+            color: Colors.white,
           ),
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadData,
-            tooltip: 'Refresh',
-          ),
+         
         ],
         flexibleSpace: Container(
           decoration: BoxDecoration(
@@ -2400,6 +2151,17 @@ void _showAddEditSupplierBottomSheet({Supplier? supplier}) {
           ),
         ),
       ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _showAddEditSupplierBottomSheet,
+        child: const Icon(Icons.add, color: Colors.white),
+        backgroundColor: const Color.fromRGBO(
+          42,
+          67,
+          160,
+          1,
+        ), // Any color you want
+        tooltip: 'Add New Supplier',
+      ),
       body: Column(
         children: [
           _buildSearchBar(),
@@ -2419,17 +2181,11 @@ void _showAddEditSupplierBottomSheet({Supplier? supplier}) {
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  if (_searchController.text.isNotEmpty)
-                    TextButton(
-                      onPressed: () {
-                        _searchController.clear();
-                        _filterSuppliers();
-                      },
-                      child: const Text(
-                        'Clear Search',
-                        style: TextStyle(color: primaryColor),
-                      ),
-                    ),
+                  // IconButton(
+                  //   icon: const Icon(Icons.category),
+                  //   onPressed: _showCategoriesBottomSheet,
+                  //   tooltip: 'Filter by Categories',
+                  // ),
                 ],
               ),
             ),

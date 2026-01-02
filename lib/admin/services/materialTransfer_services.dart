@@ -3,13 +3,25 @@ import 'package:http/http.dart' as http;
 import '../models/material_transfer_model.dart';
 
 class MaterialTransferService {
-  static const String baseUrl = 'http://sitepilot.easy2it.in';
+  static const String baseUrl = 'https://sitepilot.easy2it.in';
 
   // Get all material transfers
-  static Future<List<MaterialTransfer>> getMaterialTransfers() async {
+  static Future<List<MaterialTransfer>> getMaterialTransfers({
+    int? siteId,
+    int? workspaceId,
+  }) async {
     try {
+      String url = '$baseUrl/api/material-transfer';
+      List<String> queryParams = [];
+      if (siteId != null) queryParams.add('site_id=$siteId');
+      if (workspaceId != null) queryParams.add('workspace_id=$workspaceId');
+      
+      if (queryParams.isNotEmpty) {
+        url += '?${queryParams.join('&')}';
+      }
+
       final response = await http.get(
-        Uri.parse('$baseUrl/api/material-transfer'),
+        Uri.parse(url),
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
@@ -327,16 +339,27 @@ class FormDataResponse {
       });
     }
 
-    // Parse sites - they come as a list
+    // Parse sites - they come as a list OR a map
     final List<Site> sitesList = [];
     if (json['sites'] is List) {
       for (var siteData in json['sites']) {
         try {
           sitesList.add(Site.fromJson(siteData));
         } catch (e) {
-          print('Error parsing site: $e');
+          print('Error parsing site from list: $e');
         }
       }
+    } else if (json['sites'] is Map) {
+      json['sites'].forEach((key, value) {
+        try {
+          sitesList.add(Site(
+            id: int.tryParse(key.toString()),
+            name: value.toString(),
+          ));
+        } catch (e) {
+          print('Error parsing site from map key $key: $e');
+        }
+      });
     }
 
     return FormDataResponse(

@@ -4,7 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class ManpowerPage extends StatefulWidget {
-  const ManpowerPage({super.key});
+  final String? selectedSiteName;
+  final int? selectedSiteId;
+  
+  const ManpowerPage({
+    super.key,
+    this.selectedSiteName,
+    this.selectedSiteId,
+  });
 
   @override
   State<ManpowerPage> createState() => _ManpowerPageState();
@@ -70,6 +77,11 @@ class _ManpowerPageState extends State<ManpowerPage> {
       setState(() {
         _records.clear();
         _records.addAll(records);
+        
+        if (widget.selectedSiteId != null) {
+          _records.removeWhere((r) => r.siteId != widget.selectedSiteId);
+        }
+
         _filteredRecords = List.from(_records);
       });
     } catch (e) {
@@ -327,9 +339,30 @@ class _ManpowerPageState extends State<ManpowerPage> {
             ],
           ),
         ),
-        title: const Text(
-          'Manpower Management',
-          style: TextStyle(color: Colors.white),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Manpower Management',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 19,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 3),
+            Text(
+              widget.selectedSiteName != null
+                  ? 'Site: ${widget.selectedSiteName}'
+                  : 'All Sites',
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.9),
+                fontSize: 16,
+                fontWeight: FontWeight.w400,
+              ),
+            ),
+          ],
         ),
         actions: [
           IconButton(
@@ -462,21 +495,18 @@ class _ManpowerCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              Text(
-                'Work Date: ${record.workDate}',
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text('Supplier: ${record.supplier}'),
-
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Site: ${record.site}'),
-                  Row(
+
+                  Text(
+                    'Work Date: ${record.workDate}',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                   Row(
                     children: [
                       IconButton(
                         onPressed: onEdit,
@@ -499,7 +529,10 @@ class _ManpowerCard extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
+             
+              Text('Supplier: ${record.supplier}'),
+              SizedBox(height: 12),
+             
 
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -537,7 +570,7 @@ class _ManpowerCard extends StatelessWidget {
                 ],
               ),
 
-              const SizedBox(height: 12),
+              
             ],
           ),
         ),

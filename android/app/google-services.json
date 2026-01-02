@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "149840621362",
+    "project_id": "sitepilot-a003c",
+    "storage_bucket": "sitepilot-a003c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:149840621362:android:0e791819aeecdc3276b12b",
+        "android_client_info": {
+          "package_name": "com.easy2it.sitepilot"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDBRXARf5YobhbSC089iU8li3YEt9AwDCw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

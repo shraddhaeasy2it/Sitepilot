@@ -5,7 +5,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class PaymentScreen extends StatefulWidget {
-  const PaymentScreen({super.key});
+  final String? selectedSiteName;
+  final int? selectedSiteId;
+
+  const PaymentScreen({super.key, this.selectedSiteName, this.selectedSiteId});
 
   @override
   State<PaymentScreen> createState() => _PaymentScreenState();
@@ -33,19 +36,23 @@ class _PaymentScreenState extends State<PaymentScreen> {
     try {
       // Load payments
       final paymentsData = await PaymentService.getPayments();
-      
+
       // Load initial dropdown data for forms (without site filter initially)
       final dropdown = await PaymentService.getDropdownData(
         workspaceId: workspaceId ?? 3,
       );
-      
+
       setState(() {
+        if (widget.selectedSiteId != null) {
+          paymentsData.removeWhere((p) => p.siteId != widget.selectedSiteId);
+        }
+
         payments = paymentsData;
         filteredPayments = paymentsData;
         dropdownData = dropdown;
         isLoading = false;
       });
-      
+
       // Log dropdown data for debugging
       if (dropdown != null) {
         print('Sites loaded: ${dropdown.sites?.length ?? 0}');
@@ -57,9 +64,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
       setState(() {
         isLoading = false;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error loading data: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error loading data: $e')));
     }
   }
 
@@ -94,9 +101,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             child: const Text('Delete', style: TextStyle(color: Colors.white)),
           ),
         ],
@@ -111,9 +116,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
           const SnackBar(content: Text('Payment deleted successfully')),
         );
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error deleting payment: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error deleting payment: $e')));
       }
     }
   }
@@ -122,24 +127,42 @@ class _PaymentScreenState extends State<PaymentScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Payments',style: TextStyle(color: Colors.white),),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Payments',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 19,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 3),
+            Text(
+              widget.selectedSiteName != null
+                  ? 'Site: ${widget.selectedSiteName}'
+                  : 'All Sites',
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.9),
+                fontSize: 16,
+                fontWeight: FontWeight.w400,
+              ),
+            ),
+          ],
+        ),
         iconTheme: const IconThemeData(color: Colors.white),
         toolbarHeight: 80.h,
         elevation: 0,
         backgroundColor: Colors.transparent,
         flexibleSpace: Container(
           decoration: const BoxDecoration(
-            borderRadius: BorderRadius.vertical(
-              bottom: Radius.circular(25),
-            ),
+            borderRadius: BorderRadius.vertical(bottom: Radius.circular(25)),
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: [
-                Color(0xFF4a63c0),
-                Color(0xFF3a53b0),
-                Color(0xFF2a43a0),
-              ],
+              colors: [Color(0xFF4a63c0), Color(0xFF3a53b0), Color(0xFF2a43a0)],
             ),
             boxShadow: [
               BoxShadow(
@@ -171,9 +194,11 @@ class _PaymentScreenState extends State<PaymentScreen> {
             padding: const EdgeInsets.all(16.0),
             child: TextField(
               decoration: InputDecoration(
+                
                 hintText: 'Search payments...',
                 prefixIcon: const Icon(Icons.search),
                 border: OutlineInputBorder(
+                  
                   borderRadius: BorderRadius.circular(10),
                 ),
                 filled: true,
@@ -182,7 +207,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
               onChanged: _filterPayments,
             ),
           ),
-          
+
           // Total Count
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -205,39 +230,42 @@ class _PaymentScreenState extends State<PaymentScreen> {
               ],
             ),
           ),
-          
+
           const SizedBox(height: 8),
-          
+
           // Payment Cards List
           Expanded(
             child: isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : filteredPayments.isEmpty
-                    ? const Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.receipt_long, size: 80, color: Colors.grey),
-                            SizedBox(height: 16),
-                            Text(
-                              'No payments found',
-                              style: TextStyle(fontSize: 18, color: Colors.grey),
-                            ),
-                          ],
+                ? const Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.receipt_long, size: 80, color: Colors.grey),
+                        SizedBox(height: 16),
+                        Text(
+                          'No payments found',
+                          style: TextStyle(fontSize: 18, color: Colors.grey),
                         ),
-                      )
-                    : ListView.builder(
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                        itemCount: filteredPayments.length,
-                        itemBuilder: (context, index) {
-                          final payment = filteredPayments[index];
-                          return PaymentCard(
-                            payment: payment,
-                            onEdit: () => _showAddEditBottomSheet(payment: payment),
-                            onDelete: () => _deletePayment(payment.id!),
-                          );
-                        },
-                      ),
+                      ],
+                    ),
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16.0,
+                      vertical: 8.0,
+                    ),
+                    itemCount: filteredPayments.length,
+                    itemBuilder: (context, index) {
+                      final payment = filteredPayments[index];
+                      return PaymentCard(
+                        payment: payment,
+                        onEdit: () => _showAddEditBottomSheet(payment: payment),
+                        onDelete: () => _deletePayment(payment.id!),
+                      );
+                    },
+                  ),
           ),
         ],
       ),
@@ -254,13 +282,14 @@ class _PaymentScreenState extends State<PaymentScreen> {
           final paymentNumber = payment.paymentNumber?.toLowerCase() ?? '';
           final supplierName = payment.supplier?.name?.toLowerCase() ?? '';
           final referenceNumber = payment.referenceNumber?.toLowerCase() ?? '';
-          final invoiceNumber = payment.invoice?.invoiceNumber?.toLowerCase() ?? '';
+          final invoiceNumber =
+              payment.invoice?.invoiceNumber?.toLowerCase() ?? '';
           final siteName = payment.site?.name?.toLowerCase() ?? '';
           final searchLower = query.toLowerCase();
-          
+
           return paymentNumber.contains(searchLower) ||
               supplierName.contains(searchLower) ||
-              referenceNumber.contains(searchLower) ||  
+              referenceNumber.contains(searchLower) ||
               invoiceNumber.contains(searchLower) ||
               siteName.contains(searchLower);
         }).toList();
@@ -286,9 +315,7 @@ class PaymentCard extends StatelessWidget {
     return Card(
       elevation: 3,
       margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -298,20 +325,32 @@ class PaymentCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  payment.paymentNumber ?? 'N/A',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.blue,
-                  ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      payment.paymentNumber ?? 'N/A',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF2a43a0),
+                      ),
+                    ),
+                   Text(
+                      _formatDate(payment.paymentDate),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color.fromARGB(255, 136, 136, 136),
+                      ),
+                    ),
+                  ],
                 ),
                 Row(
                   children: [
                     IconButton(
                       icon: const Icon(Icons.edit, size: 20),
                       onPressed: onEdit,
-                      color: Colors.blue,
+                      color: Color(0xFF2a43a0),
                       tooltip: 'Edit',
                     ),
                     IconButton(
@@ -324,26 +363,38 @@ class PaymentCard extends StatelessWidget {
                 ),
               ],
             ),
-            
+
             const SizedBox(height: 12),
-            
+
             // Payment Details Grid
-            GridView.count(
-              crossAxisCount: 2,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              childAspectRatio: 3,
-              crossAxisSpacing: 8,
-              mainAxisSpacing: 8,
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildDetailItem('Supplier:', payment.supplier?.name ?? 'N/A'),
-                _buildDetailItem('Invoice:', payment.invoice?.invoiceNumber ?? 'N/A'),
-                _buildDetailItem('Site:', payment.site?.name ?? 'N/A'),
-                _buildDetailItem('Amount:', '\Rs ${payment.amount ?? '0.00'}'),
-                _buildDetailItem('Date:', _formatDate(payment.paymentDate)),
-                _buildDetailItem('Type:', _formatPaymentType(payment.paymentType)),
-                _buildDetailItem('Mode:', _formatMode(payment.mode)),
-                _buildDetailItem('Reference:', payment.referenceNumber ?? 'N/A'),
+                _buildDetailRow(
+                  _buildDetailItem(
+                    'Supplier:',
+                    payment.supplier?.name ?? 'N/A',
+                  ),
+                  _buildDetailItem(
+                    'Invoice:',
+                    payment.invoice?.invoiceNumber ?? 'N/A',
+                  ),
+                ),
+                _buildDetailRow(
+                   _buildDetailItem(
+                    'Type:',
+                    _formatPaymentType(payment.paymentType),
+                  ),
+                  _buildDetailItem('Amount:', '₹ ${payment.amount ?? '0.00'}'),
+                ),
+                
+                _buildDetailRow(
+                  _buildDetailItem('Mode:', _formatMode(payment.mode)),
+                  _buildDetailItem(
+                    'Reference:',
+                    payment.referenceNumber ?? 'N/A',
+                  ),
+                ),
               ],
             ),
           ],
@@ -352,24 +403,29 @@ class PaymentCard extends StatelessWidget {
     );
   }
 
+  Widget _buildDetailRow(Widget left, Widget right) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(child: left),
+          const SizedBox(width: 10),
+          Expanded(child: right),
+        ],
+      ),
+    );
+  }
+
   Widget _buildDetailItem(String label, String value) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 12,
-            color: Colors.grey,
-          ),
-        ),
+        Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey)),
         const SizedBox(height: 2),
         Text(
           value,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-          ),
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
           overflow: TextOverflow.ellipsis,
         ),
       ],
@@ -429,21 +485,18 @@ class _PaymentFormBottomSheetState extends State<PaymentFormBottomSheet> {
   String? _selectedInvoiceId;
   String? _selectedPaymentType;
   String? _selectedMode;
-  
+
   // Dynamic data
   Map<String, String> _supplierInvoices = {};
-  
+
   // Store data
   List<Site> _sites = [];
   Map<String, String> _suppliers = {};
-  
+
   double _remainingAmount = 0.0;
 
   // Payment type options
-  final List<String> _paymentTypeOptions = [
-    'against_invoice',
-    'advance'
-  ];
+  final List<String> _paymentTypeOptions = ['against_invoice', 'advance'];
 
   // Payment mode options
   final List<String> _modeOptions = [
@@ -451,13 +504,15 @@ class _PaymentFormBottomSheetState extends State<PaymentFormBottomSheet> {
     'upi',
     'cash',
     'cheque',
-    'card'
+    'card',
   ];
 
   // Text controllers
   final TextEditingController _amountController = TextEditingController();
-  final TextEditingController _paymentNumberController = TextEditingController();
-  final TextEditingController _remainingAmountController = TextEditingController();
+  final TextEditingController _paymentNumberController =
+      TextEditingController();
+  final TextEditingController _remainingAmountController =
+      TextEditingController();
   final TextEditingController _paymentDateController = TextEditingController();
 
   @override
@@ -491,8 +546,10 @@ class _PaymentFormBottomSheetState extends State<PaymentFormBottomSheet> {
       _selectedMode = widget.payment!.mode;
       _amountController.text = widget.payment!.amount ?? '';
       _paymentNumberController.text = widget.payment!.paymentNumber ?? '';
-      _paymentDateController.text = widget.payment!.paymentDate?.substring(0, 10) ?? '';
-      _remainingAmountController.text = (widget.payment!.remainingAmount ?? 0.0).toStringAsFixed(2);
+      _paymentDateController.text =
+          widget.payment!.paymentDate?.substring(0, 10) ?? '';
+      _remainingAmountController.text = (widget.payment!.remainingAmount ?? 0.0)
+          .toStringAsFixed(2);
       _remainingAmount = widget.payment!.remainingAmount ?? 0.0;
     } else {
       _formData = PaymentFormData(
@@ -503,7 +560,8 @@ class _PaymentFormBottomSheetState extends State<PaymentFormBottomSheet> {
       _selectedPaymentType = _paymentTypeOptions[0];
       _selectedMode = _modeOptions[0];
       _paymentDateController.text = DateTime.now().toString().substring(0, 10);
-      _paymentNumberController.text = widget.dropdownData?.nextPaymentNumber ?? 'PAY-0000';
+      _paymentNumberController.text =
+          widget.dropdownData?.nextPaymentNumber ?? 'PAY-0000';
       _formData.paymentNumber = _paymentNumberController.text;
     }
   }
@@ -520,9 +578,12 @@ class _PaymentFormBottomSheetState extends State<PaymentFormBottomSheet> {
       // For edit mode, load suppliers for the current site
       if (widget.payment != null && widget.payment!.siteId != null) {
         _selectedSiteId = widget.payment!.siteId.toString();
-        await _loadSuppliersForSite(widget.payment!.siteId!, isInitialLoad: true);
+        await _loadSuppliersForSite(
+          widget.payment!.siteId!,
+          isInitialLoad: true,
+        );
       }
-      
+
       // Mark initial data as loaded
       setState(() {
         _isInitialDataLoaded = true;
@@ -535,9 +596,12 @@ class _PaymentFormBottomSheetState extends State<PaymentFormBottomSheet> {
     }
   }
 
-  Future<void> _loadSuppliersForSite(int siteId, {bool isInitialLoad = false}) async {
+  Future<void> _loadSuppliersForSite(
+    int siteId, {
+    bool isInitialLoad = false,
+  }) async {
     if (siteId == 0) return;
-    
+
     setState(() {
       _isLoadingSuppliers = true;
       if (!isInitialLoad) {
@@ -551,23 +615,26 @@ class _PaymentFormBottomSheetState extends State<PaymentFormBottomSheet> {
         siteId,
         widget.workspaceId ?? 3,
       );
-      
+
       // Build new suppliers map
       final Map<String, String> newSuppliers = {};
       suppliersMap.forEach((key, supplier) {
-        newSuppliers[supplier.id?.toString() ?? key] = supplier.name ?? 'Unknown Supplier';
+        newSuppliers[supplier.id?.toString() ?? key] =
+            supplier.name ?? 'Unknown Supplier';
       });
 
       setState(() {
         _suppliers = newSuppliers;
-        
+
         // Only set selected supplier if we're in edit mode AND this is initial load
         // AND the supplier exists in the new list
-        if (isInitialLoad && widget.payment != null && widget.payment!.supplierId != null) {
+        if (isInitialLoad &&
+            widget.payment != null &&
+            widget.payment!.supplierId != null) {
           String supplierIdStr = widget.payment!.supplierId.toString();
           if (_suppliers.containsKey(supplierIdStr)) {
             _selectedSupplierId = supplierIdStr;
-            
+
             // Load invoices if needed
             if (_selectedPaymentType == 'against_invoice') {
               _loadSupplierInvoices(widget.payment!.supplierId!);
@@ -593,7 +660,7 @@ class _PaymentFormBottomSheetState extends State<PaymentFormBottomSheet> {
 
   Future<void> _loadSupplierInvoices(int supplierId) async {
     if (supplierId == 0 || _selectedPaymentType != 'against_invoice') return;
-    
+
     setState(() {
       _isLoadingInvoices = true;
     });
@@ -602,7 +669,7 @@ class _PaymentFormBottomSheetState extends State<PaymentFormBottomSheet> {
       final invoices = await PaymentService.getSupplierInvoices(supplierId);
       setState(() {
         _supplierInvoices = invoices;
-        
+
         // Check if current invoice exists
         if (widget.payment?.purchaseInvoiceId != null) {
           String invoiceIdStr = widget.payment!.purchaseInvoiceId.toString();
@@ -627,7 +694,9 @@ class _PaymentFormBottomSheetState extends State<PaymentFormBottomSheet> {
   Future<void> _updateRemainingAmount(String? invoiceId) async {
     if (invoiceId != null && invoiceId.isNotEmpty) {
       try {
-        final invoice = await PaymentService.getInvoiceDetails(int.parse(invoiceId));
+        final invoice = await PaymentService.getInvoiceDetails(
+          int.parse(invoiceId),
+        );
         setState(() {
           _remainingAmount = invoice?.remainingAmount ?? 0.0;
           _remainingAmountController.text = _remainingAmount.toStringAsFixed(2);
@@ -641,10 +710,13 @@ class _PaymentFormBottomSheetState extends State<PaymentFormBottomSheet> {
   // Helper method for title case
   String _toTitleCase(String text) {
     if (text.isEmpty) return text;
-    return text.split(' ').map((word) {
-      if (word.isEmpty) return word;
-      return word[0].toUpperCase() + word.substring(1).toLowerCase();
-    }).join(' ');
+    return text
+        .split(' ')
+        .map((word) {
+          if (word.isEmpty) return word;
+          return word[0].toUpperCase() + word.substring(1).toLowerCase();
+        })
+        .join(' ');
   }
 
   String _getPaymentTypeDisplay(String? type) {
@@ -661,7 +733,7 @@ class _PaymentFormBottomSheetState extends State<PaymentFormBottomSheet> {
     if (!_formKey.currentState!.validate()) return;
 
     _formKey.currentState!.save();
-    
+
     setState(() {
       _isSubmitting = true;
     });
@@ -669,40 +741,48 @@ class _PaymentFormBottomSheetState extends State<PaymentFormBottomSheet> {
     try {
       _formData.paymentType = _selectedPaymentType;
       _formData.mode = _selectedMode;
-      _formData.siteId = _selectedSiteId != null ? int.parse(_selectedSiteId!) : null;
-      _formData.supplierId = _selectedSupplierId != null ? int.parse(_selectedSupplierId!) : null;
-      _formData.purchaseInvoiceId = _selectedInvoiceId != null ? int.parse(_selectedInvoiceId!) : null;
+      _formData.siteId = _selectedSiteId != null
+          ? int.parse(_selectedSiteId!)
+          : null;
+      _formData.supplierId = _selectedSupplierId != null
+          ? int.parse(_selectedSupplierId!)
+          : null;
+      _formData.purchaseInvoiceId = _selectedInvoiceId != null
+          ? int.parse(_selectedInvoiceId!)
+          : null;
       _formData.amount = _amountController.text;
       _formData.paymentDate = _paymentDateController.text;
-      
+
       Payment? savedPayment;
-      
+
       if (widget.payment != null) {
-        savedPayment = await PaymentService.updatePayment(widget.payment!.id!, _formData);
+        savedPayment = await PaymentService.updatePayment(
+          widget.payment!.id!,
+          _formData,
+        );
       } else {
         savedPayment = await PaymentService.createPayment(_formData);
       }
-      
+
       widget.onSave(savedPayment);
-      
+
       if (!mounted) return;
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(widget.payment != null ? 'Payment updated!' : 'Payment created!'),
+          content: Text(
+            widget.payment != null ? 'Payment updated!' : 'Payment created!',
+          ),
           backgroundColor: Colors.green,
         ),
       );
-      
+
       Navigator.pop(context);
     } catch (e) {
       if (!mounted) return;
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: $e'),
-          backgroundColor: Colors.red,
-        ),
+        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
       );
     } finally {
       if (mounted) {
@@ -736,8 +816,13 @@ class _PaymentFormBottomSheetState extends State<PaymentFormBottomSheet> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      widget.payment != null ? 'Edit Payment' : 'Create Payment',
-                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                      widget.payment != null
+                          ? 'Edit Payment'
+                          : 'Create Payment',
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     IconButton(
                       icon: const Icon(Icons.close),
@@ -745,326 +830,435 @@ class _PaymentFormBottomSheetState extends State<PaymentFormBottomSheet> {
                     ),
                   ],
                 ),
-                
+
                 const SizedBox(height: 20),
-                
+
                 // Payment Number
                 TextFormField(
                   controller: _paymentNumberController,
                   decoration: InputDecoration(
                     labelText: 'Payment Number*',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
                   readOnly: widget.payment == null,
-                  validator: (value) => value == null || value.isEmpty ? 'Please enter payment number' : null,
+                  validator: (value) => value == null || value.isEmpty
+                      ? 'Please enter payment number'
+                      : null,
                 ),
-                
+
                 const SizedBox(height: 16),
-                
+
                 // Show loading indicator while initial data is loading (for edit mode)
                 if (widget.payment != null && !_isInitialDataLoaded)
                   const Center(child: CircularProgressIndicator()),
-                
+
                 if (widget.payment == null || _isInitialDataLoaded)
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Left Column
-                    Expanded(
-                      child: Column(
-                        children: [
-                          // Site Dropdown
-                          DropdownButtonFormField<String>(
-                            isExpanded: true,
-                            value: _selectedSiteId,
-                            decoration: InputDecoration(
-                              labelText: 'Site*',
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                            ),
-                            items: [
-                              const DropdownMenuItem(value: '', child: Text('Select Site')),
-                              ..._sites.map((site) => DropdownMenuItem(
-                                value: site.id.toString(),
-                                child: Text(site.name ?? 'Unknown Site'),
-                              )).toList(),
-                            ],
-                            onChanged: (value) {
-                              setState(() {
-                                _selectedSiteId = value;
-                                _selectedSupplierId = null; // Clear supplier when site changes
-                                _selectedInvoiceId = null;
-                                _suppliers.clear();
-                                _supplierInvoices.clear();
-                                _remainingAmount = 0.0;
-                                _remainingAmountController.text = '0.00';
-                              });
-
-                              if (value != null && value.isNotEmpty) {
-                                _loadSuppliersForSite(int.parse(value));
-                              }
-                            },
-                            validator: (value) => value == null || value.isEmpty ? 'Please select site' : null,
-                          ),
-
-                          const SizedBox(height: 16),
-
-                          // Payment Date
-                          TextFormField(
-                            controller: _paymentDateController,
-                            decoration: InputDecoration(
-                              labelText: 'Payment Date*',
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                              suffixIcon: IconButton(
-                                icon: const Icon(Icons.calendar_today),
-                                onPressed: () async {
-                                  final date = await showDatePicker(
-                                    context: context,
-                                    initialDate: DateTime.now(),
-                                    firstDate: DateTime(2020),
-                                    lastDate: DateTime(2030),
-                                  );
-                                  if (date != null) {
-                                    setState(() {
-                                      _paymentDateController.text = date.toString().substring(0, 10);
-                                    });
-                                  }
-                                },
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Left Column
+                      Expanded(
+                        child: Column(
+                          children: [
+                            // Site Dropdown
+                            DropdownButtonFormField<String>(
+                              isExpanded: true,
+                              value: _selectedSiteId,
+                              decoration: InputDecoration(
+                                labelText: 'Site*',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
                               ),
-                            ),
-                            readOnly: true,
-                            validator: (value) => value == null || value.isEmpty ? 'Please select date' : null,
-                          ),
-
-                          const SizedBox(height: 16),
-
-                          // Payment Type
-                          DropdownButtonFormField<String>(
-                            value: _selectedPaymentType,
-                            decoration: InputDecoration(
-                              labelText: 'Payment Type*',
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                            ),
-                            items: _paymentTypeOptions.map((type) => DropdownMenuItem(
-                              value: type,
-                              child: Text(_getPaymentTypeDisplay(type)),
-                            )).toList(),
-                            onChanged: (value) {
-                              setState(() {
-                                _selectedPaymentType = value;
-                                if (value == 'advance') {
+                              items: [
+                                const DropdownMenuItem(
+                                  value: '',
+                                  child: Text('Select Site'),
+                                ),
+                                ..._sites
+                                    .map(
+                                      (site) => DropdownMenuItem(
+                                        value: site.id.toString(),
+                                        child: Text(
+                                          site.name ?? 'Unknown Site',
+                                        ),
+                                      ),
+                                    )
+                                    .toList(),
+                              ],
+                              onChanged: (value) {
+                                setState(() {
+                                  _selectedSiteId = value;
+                                  _selectedSupplierId =
+                                      null; // Clear supplier when site changes
                                   _selectedInvoiceId = null;
+                                  _suppliers.clear();
                                   _supplierInvoices.clear();
                                   _remainingAmount = 0.0;
                                   _remainingAmountController.text = '0.00';
-                                } else if (value == 'against_invoice' && _selectedSupplierId != null) {
-                                  _loadSupplierInvoices(int.parse(_selectedSupplierId!));
+                                });
+
+                                if (value != null && value.isNotEmpty) {
+                                  _loadSuppliersForSite(int.parse(value));
                                 }
-                              });
-                            },
-                            validator: (value) => value == null || value.isEmpty ? 'Please select type' : null,
-                          ),
-
-                          const SizedBox(height: 16),
-
-                          // Reference Number
-                          TextFormField(
-                            initialValue: _formData.referenceNumber,
-                            decoration: InputDecoration(
-                              labelText: 'Reference Number',
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                              },
+                              validator: (value) =>
+                                  value == null || value.isEmpty
+                                  ? 'Please select site'
+                                  : null,
                             ),
-                            onSaved: (value) => _formData.referenceNumber = value,
-                          ),
-                        ],
-                      ),
-                    ),
 
-                    const SizedBox(width: 16),
+                            const SizedBox(height: 16),
 
-                    // Right Column
-                    Expanded(
-                      child: Column(
-                        children: [
-                          // Supplier Dropdown - FIXED: Use conditional value
-                          Stack(
-                            children: [
-                              DropdownButtonFormField<String>(
-                                isExpanded: true,
-                                // CRITICAL FIX: Use conditional value based on whether suppliers are loaded
-                                value: _suppliers.containsKey(_selectedSupplierId) ? _selectedSupplierId : null,
-                                decoration: InputDecoration(
-                                  labelText: 'Supplier*',
-                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                            // Payment Date
+                            TextFormField(
+                              controller: _paymentDateController,
+                              decoration: InputDecoration(
+                                labelText: 'Payment Date*',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
                                 ),
-                                items: [
-                                  const DropdownMenuItem(value: '', child: Text('Select Supplier')),
-                                  ..._suppliers.entries.map((entry) => DropdownMenuItem(
-                                    value: entry.key,
-                                    child: Text(entry.value),
-                                  )).toList(),
-                                ],
-                                onChanged: (value) {
-                                  setState(() {
-                                    _selectedSupplierId = value;
+                                suffixIcon: IconButton(
+                                  icon: const Icon(Icons.calendar_today),
+                                  onPressed: () async {
+                                    final date = await showDatePicker(
+                                      context: context,
+                                      initialDate: DateTime.now(),
+                                      firstDate: DateTime(2020),
+                                      lastDate: DateTime(2030),
+                                    );
+                                    if (date != null) {
+                                      setState(() {
+                                        _paymentDateController.text = date
+                                            .toString()
+                                            .substring(0, 10);
+                                      });
+                                    }
+                                  },
+                                ),
+                              ),
+                              readOnly: true,
+                              validator: (value) =>
+                                  value == null || value.isEmpty
+                                  ? 'Please select date'
+                                  : null,
+                            ),
+
+                            const SizedBox(height: 16),
+
+                            // Payment Type
+                            DropdownButtonFormField<String>(
+                              value: _selectedPaymentType,
+                              decoration: InputDecoration(
+                                labelText: 'Payment Type*',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                              items: _paymentTypeOptions
+                                  .map(
+                                    (type) => DropdownMenuItem(
+                                      value: type,
+                                      child: Text(_getPaymentTypeDisplay(type)),
+                                    ),
+                                  )
+                                  .toList(),
+                              onChanged: (value) {
+                                setState(() {
+                                  _selectedPaymentType = value;
+                                  if (value == 'advance') {
                                     _selectedInvoiceId = null;
                                     _supplierInvoices.clear();
                                     _remainingAmount = 0.0;
                                     _remainingAmountController.text = '0.00';
-                                  });
-
-                                  if (value != null && value.isNotEmpty && _selectedPaymentType == 'against_invoice') {
-                                    _loadSupplierInvoices(int.parse(value));
+                                  } else if (value == 'against_invoice' &&
+                                      _selectedSupplierId != null) {
+                                    _loadSupplierInvoices(
+                                      int.parse(_selectedSupplierId!),
+                                    );
                                   }
-                                },
-                                validator: (value) => value == null || value.isEmpty ? 'Please select supplier' : null,
-                              ),
-                              if (_isLoadingSuppliers)
-                                const Positioned.fill(
-                                  child: Center(child: CircularProgressIndicator()),
+                                });
+                              },
+                              validator: (value) =>
+                                  value == null || value.isEmpty
+                                  ? 'Please select type'
+                                  : null,
+                            ),
+
+                            const SizedBox(height: 16),
+
+                            // Reference Number
+                            TextFormField(
+                              initialValue: _formData.referenceNumber,
+                              decoration: InputDecoration(
+                                labelText: 'Reference Number',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
                                 ),
-                            ],
-                          ),
-
-                          const SizedBox(height: 16),
-
-                          // Payment Mode
-                          DropdownButtonFormField<String>(
-                            value: _selectedMode,
-                            decoration: InputDecoration(
-                              labelText: 'Payment Mode*',
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                              ),
+                              onSaved: (value) =>
+                                  _formData.referenceNumber = value,
                             ),
-                            items: _modeOptions.map((mode) => DropdownMenuItem(
-                              value: mode,
-                              child: Text(_getModeDisplay(mode)),
-                            )).toList(),
-                            onChanged: (value) => setState(() => _selectedMode = value),
-                            validator: (value) => value == null || value.isEmpty ? 'Please select mode' : null,
-                          ),
+                          ],
+                        ),
+                      ),
 
-                          const SizedBox(height: 16),
+                      const SizedBox(width: 16),
 
-                          // Amount
-                          TextFormField(
-                            controller: _amountController,
-                            decoration: InputDecoration(
-                              labelText: 'Amount*',
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                              prefixText: '\Rs ',
-                            ),
-                            keyboardType: TextInputType.numberWithOptions(decimal: true),
-                            inputFormatters: [
-                              FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
-                            ],
-                            validator: (value) {
-                              if (value == null || value.isEmpty) return 'Please enter amount';
-                              if (double.tryParse(value) == null) return 'Please enter valid amount';
-                              return null;
-                            },
-                          ),
-
-                          const SizedBox(height: 16),
-
-                          // Invoice Dropdown (only for against_invoice)
-                          if (_selectedPaymentType == 'against_invoice')
+                      // Right Column
+                      Expanded(
+                        child: Column(
+                          children: [
+                            // Supplier Dropdown - FIXED: Use conditional value
                             Stack(
                               children: [
                                 DropdownButtonFormField<String>(
-                                  value: _supplierInvoices.containsKey(_selectedInvoiceId) ? _selectedInvoiceId : null,
+                                  isExpanded: true,
+                                  // CRITICAL FIX: Use conditional value based on whether suppliers are loaded
+                                  value:
+                                      _suppliers.containsKey(
+                                        _selectedSupplierId,
+                                      )
+                                      ? _selectedSupplierId
+                                      : null,
                                   decoration: InputDecoration(
-                                    labelText: 'Purchase Invoice*',
-                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                    labelText: 'Supplier*',
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
                                   ),
                                   items: [
-                                    const DropdownMenuItem(value: '', child: Text('Select Invoice')),
-                                    ..._supplierInvoices.entries.map((entry) => DropdownMenuItem(
-                                      value: entry.key,
-                                      child: Text(entry.value),
-                                    )).toList(),
+                                    const DropdownMenuItem(
+                                      value: '',
+                                      child: Text('Select Supplier'),
+                                    ),
+                                    ..._suppliers.entries
+                                        .map(
+                                          (entry) => DropdownMenuItem(
+                                            value: entry.key,
+                                            child: Text(entry.value),
+                                          ),
+                                        )
+                                        .toList(),
                                   ],
                                   onChanged: (value) {
-                                    setState(() => _selectedInvoiceId = value);
-                                    _updateRemainingAmount(value);
-                                  },
-                                  validator: (value) {
-                                    if (_selectedPaymentType == 'against_invoice' && (value == null || value.isEmpty)) {
-                                      return 'Please select invoice';
+                                    setState(() {
+                                      _selectedSupplierId = value;
+                                      _selectedInvoiceId = null;
+                                      _supplierInvoices.clear();
+                                      _remainingAmount = 0.0;
+                                      _remainingAmountController.text = '0.00';
+                                    });
+
+                                    if (value != null &&
+                                        value.isNotEmpty &&
+                                        _selectedPaymentType ==
+                                            'against_invoice') {
+                                      _loadSupplierInvoices(int.parse(value));
                                     }
-                                    return null;
                                   },
+                                  validator: (value) =>
+                                      value == null || value.isEmpty
+                                      ? 'Please select supplier'
+                                      : null,
                                 ),
-                                if (_isLoadingInvoices)
+                                if (_isLoadingSuppliers)
                                   const Positioned.fill(
-                                    child: Center(child: CircularProgressIndicator()),
+                                    child: Center(
+                                      child: CircularProgressIndicator(),
+                                    ),
                                   ),
                               ],
                             ),
 
-                          if (_selectedPaymentType != 'against_invoice')
-                            const SizedBox(height: 56),
+                            const SizedBox(height: 16),
 
-                          const SizedBox(height: 16),
-
-                          // Remaining Amount
-                          TextFormField(
-                            controller: _remainingAmountController,
-                            decoration: InputDecoration(
-                              labelText: 'Remaining Amount',
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                              prefixText: '\Rs ',
+                            // Payment Mode
+                            DropdownButtonFormField<String>(
+                              value: _selectedMode,
+                              decoration: InputDecoration(
+                                labelText: 'Payment Mode*',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                              items: _modeOptions
+                                  .map(
+                                    (mode) => DropdownMenuItem(
+                                      value: mode,
+                                      child: Text(_getModeDisplay(mode)),
+                                    ),
+                                  )
+                                  .toList(),
+                              onChanged: (value) =>
+                                  setState(() => _selectedMode = value),
+                              validator: (value) =>
+                                  value == null || value.isEmpty
+                                  ? 'Please select mode'
+                                  : null,
                             ),
-                            readOnly: true,
-                          ),
-                        ],
+
+                            const SizedBox(height: 16),
+
+                            // Amount
+                            TextFormField(
+                              controller: _amountController,
+                              decoration: InputDecoration(
+                                labelText: 'Amount*',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                prefixText: '\Rs ',
+                              ),
+                              keyboardType: TextInputType.numberWithOptions(
+                                decimal: true,
+                              ),
+                              inputFormatters: [
+                                FilteringTextInputFormatter.allow(
+                                  RegExp(r'^\d+\.?\d{0,2}'),
+                                ),
+                              ],
+                              validator: (value) {
+                                if (value == null || value.isEmpty)
+                                  return 'Please enter amount';
+                                if (double.tryParse(value) == null)
+                                  return 'Please enter valid amount';
+                                return null;
+                              },
+                            ),
+
+                            const SizedBox(height: 16),
+
+                            // Invoice Dropdown (only for against_invoice)
+                            if (_selectedPaymentType == 'against_invoice')
+                              Stack(
+                                children: [
+                                  DropdownButtonFormField<String>(
+                                    value:
+                                        _supplierInvoices.containsKey(
+                                          _selectedInvoiceId,
+                                        )
+                                        ? _selectedInvoiceId
+                                        : null,
+                                    decoration: InputDecoration(
+                                      labelText: 'Purchase Invoice*',
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                    ),
+                                    items: [
+                                      const DropdownMenuItem(
+                                        value: '',
+                                        child: Text('Select Invoice'),
+                                      ),
+                                      ..._supplierInvoices.entries
+                                          .map(
+                                            (entry) => DropdownMenuItem(
+                                              value: entry.key,
+                                              child: Text(entry.value),
+                                            ),
+                                          )
+                                          .toList(),
+                                    ],
+                                    onChanged: (value) {
+                                      setState(
+                                        () => _selectedInvoiceId = value,
+                                      );
+                                      _updateRemainingAmount(value);
+                                    },
+                                    validator: (value) {
+                                      if (_selectedPaymentType ==
+                                              'against_invoice' &&
+                                          (value == null || value.isEmpty)) {
+                                        return 'Please select invoice';
+                                      }
+                                      return null;
+                                    },
+                                  ),
+                                  if (_isLoadingInvoices)
+                                    const Positioned.fill(
+                                      child: Center(
+                                        child: CircularProgressIndicator(),
+                                      ),
+                                    ),
+                                ],
+                              ),
+
+                            if (_selectedPaymentType != 'against_invoice')
+                              const SizedBox(height: 56),
+
+                            const SizedBox(height: 16),
+
+                            // Remaining Amount
+                            TextFormField(
+                              controller: _remainingAmountController,
+                              decoration: InputDecoration(
+                                labelText: 'Remaining Amount',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                prefixText: '\Rs ',
+                              ),
+                              readOnly: true,
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-                
+                    ],
+                  ),
+
                 const SizedBox(height: 16),
-                
+
                 // Notes
                 if (widget.payment == null || _isInitialDataLoaded)
-                TextFormField(
-                  initialValue: _formData.notes,
-                  decoration: InputDecoration(
-                    labelText: 'Notes',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  TextFormField(
+                    initialValue: _formData.notes,
+                    decoration: InputDecoration(
+                      labelText: 'Notes',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    maxLines: 3,
+                    onSaved: (value) => _formData.notes = value,
                   ),
-                  maxLines: 3,
-                  onSaved: (value) => _formData.notes = value,
-                ),
-                
+
                 const SizedBox(height: 24),
-                
+
                 // Buttons
                 if (widget.payment == null || _isInitialDataLoaded)
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text('Cancel'),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text('Cancel'),
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: _isSubmitting ? null : _savePayment,
-                        child: _isSubmitting
-                            ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation(Colors.white),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: _isSubmitting ? null : _savePayment,
+                          child: _isSubmitting
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation(
+                                      Colors.white,
+                                    ),
+                                  ),
+                                )
+                              : Text(
+                                  widget.payment != null ? 'Update' : 'Create',
                                 ),
-                              )
-                            : Text(widget.payment != null ? 'Update' : 'Create'),
+                        ),
                       ),
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
               ],
             ),
           ),
@@ -1087,9 +1281,11 @@ class _PaymentFormBottomSheetState extends State<PaymentFormBottomSheet> {
 extension StringExtension on String {
   String toTitleCase() {
     return split(' ')
-        .map((word) => word.isNotEmpty
-            ? '${word[0].toUpperCase()}${word.substring(1).toLowerCase()}'
-            : '')
+        .map(
+          (word) => word.isNotEmpty
+              ? '${word[0].toUpperCase()}${word.substring(1).toLowerCase()}'
+              : '',
+        )
         .join(' ');
   }
 }

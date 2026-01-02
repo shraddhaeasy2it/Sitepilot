@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 
 
 class MachineryService {
-  static const String baseUrl = 'http://sitepilot.easy2it.in/api/machineries';
+  static const String baseUrl = 'https://sitepilot.easy2it.in/api/machineries';
 
   Future<MachineryResponse> getMachineries() async {
     final response = await http.get(Uri.parse(baseUrl));

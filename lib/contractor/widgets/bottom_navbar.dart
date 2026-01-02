@@ -16,7 +16,7 @@ class CustomBottomNavBar extends StatelessWidget {
     this.selectedItemColor = const Color.fromARGB(255, 66, 98, 214),
     this.unselectedItemColor = const Color.fromARGB(255, 109, 109, 109),
     this.backgroundColor = Colors.white,
-    this.labelFontSize = 11,
+    this.labelFontSize = 10,
   });
 
   @override
@@ -26,7 +26,7 @@ class CustomBottomNavBar extends StatelessWidget {
          border: Border(
           top: BorderSide(
             color: Colors.grey.withOpacity(0.2),
-            width: 0.5,
+            width: 0.4,
           ),
         ),
        
@@ -64,13 +64,13 @@ class CustomBottomNavBar extends StatelessWidget {
             
             destinations: [
               _buildNavigationDestination(0, Icons.dashboard_outlined, Icons.dashboard, 'Dashboard'),
-              _buildNavigationDestination(1, FontAwesomeIcons.screwdriverWrench, FontAwesomeIcons.screwdriverWrench, 'Material'),
-              // _buildNavigationDestination(2, Icons.task_alt_outlined, Icons.task, 'Task'),
+              _buildNavigationDestination(1, FontAwesomeIcons.clipboardList, FontAwesomeIcons.clipboardList, 'Tasks'),
+              _buildNavigationDestination(2, FontAwesomeIcons.fileInvoiceDollar, FontAwesomeIcons.fileInvoiceDollar, 'Materials'),
               _buildNavigationDestination(3, FontAwesomeIcons.tractor, FontAwesomeIcons.tractor, 'Machinary'),
-              _buildNavigationDestination(4, FontAwesomeIcons.ellipsis, FontAwesomeIcons.ellipsis, 'More'),
+              _buildNavigationDestination(4, FontAwesomeIcons.userGear, FontAwesomeIcons.userGear, 'Profile'),
             ],
-          ),
         ),
+      ),
       ),
     );
   }
@@ -80,6 +80,7 @@ class CustomBottomNavBar extends StatelessWidget {
     IconData icon, 
     IconData selectedIcon, 
     String label,
+   
   ) {
     final isSelected = currentIndex == index;
     return NavigationDestination(
@@ -92,7 +93,7 @@ class CustomBottomNavBar extends StatelessWidget {
         child: Icon(
           icon, 
           color: unselectedItemColor, 
-          size: 21,
+          size: 20,
         ),
       ),
       selectedIcon: Container(
@@ -100,7 +101,7 @@ class CustomBottomNavBar extends StatelessWidget {
         child: Icon(
           selectedIcon, 
           color: selectedItemColor, 
-          size: 22,
+          size: 21,
         ),
       ),
       label: label,

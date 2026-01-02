@@ -1,15 +1,18 @@
+import 'dart:convert';
 import 'package:ecoteam_app/admin/Screens/Dashboard/HRM_dashboard.dart';
 import 'package:ecoteam_app/admin/Screens/Master/Material/all_material_page.dart'
     hide AdminColors;
-import 'package:ecoteam_app/admin/Screens/Master/Assets/Allmachinery_screen.dart' hide Site;
+import 'package:ecoteam_app/admin/Screens/Master/Assets/Allmachinery_screen.dart'
+    hide Site;
 import 'package:ecoteam_app/admin/Screens/Payment/payment.dart';
 import 'package:ecoteam_app/admin/Screens/Transaction/consumptionLog_screen.dart';
-import 'package:ecoteam_app/admin/Screens/HRM/employee_screen.dart';
+import 'package:ecoteam_app/admin/Screens/HRM/employee_admin_screen.dart';
 import 'package:ecoteam_app/admin/Screens/Master/Assets/machineryCategory_screen.dart';
 import 'package:ecoteam_app/admin/Screens/project_sites/Project-site_screen.dart';
 import 'package:ecoteam_app/admin/Screens/Master/Supplier/manpowerType_screen.dart';
 import 'package:ecoteam_app/admin/Screens/Transaction/manpower_screen.dart';
-import 'package:ecoteam_app/admin/Screens/Transaction/materialTransfer_screen.dart';
+import 'package:ecoteam_app/admin/Screens/Transaction/Admin_materialTransfer_screen.dart'
+    hide Site;
 import 'package:ecoteam_app/admin/Screens/Transaction/purchase_invoice_screen.dart';
 import 'package:ecoteam_app/admin/Screens/User_management/role_management_page.dart'
     hide AdminColors;
@@ -19,6 +22,19 @@ import 'package:ecoteam_app/admin/Screens/Master/Supplier/supplier_categary_scre
 import 'package:ecoteam_app/admin/Screens/Master/Assets/tools_screen.dart';
 import 'package:ecoteam_app/admin/Screens/Master/Material/unit_management_page.dart';
 import 'package:ecoteam_app/admin/Screens/Master/Supplier/all_supplier_page.dart';
+import 'package:ecoteam_app/contractor/provider/activity_provider.dart';
+import 'package:ecoteam_app/contractor/view/contractor_dashboard/DPR_screen.dart';
+import 'package:ecoteam_app/contractor/view/contractor_dashboard/activity_screen.dart';
+import 'package:ecoteam_app/contractor/view/contractor_dashboard/chat_screen.dart';
+import 'package:ecoteam_app/contractor/view/contractor_dashboard/dashboard_page.dart'
+    as _companyProvider;
+import 'package:ecoteam_app/contractor/view/contractor_dashboard/employee_screen.dart';
+import 'package:ecoteam_app/contractor/view/contractor_dashboard/mancount.dart';
+import 'package:ecoteam_app/admin/Screens/Transaction/Admin_materialTransfer_screen.dart';
+import 'package:ecoteam_app/contractor/view/contractor_dashboard/paymentreq.dart';
+import 'package:ecoteam_app/contractor/view/contractor_dashboard/docstorage.dart';
+import 'package:ecoteam_app/contractor/view/contractor_dashboard/notification.dart';
+import 'package:ecoteam_app/contractor/view/contractor_dashboard/profilepage.dart';
 import 'package:ecoteam_app/main.dart';
 import 'package:ecoteam_app/contractor/models/birthday_model.dart';
 import 'package:ecoteam_app/contractor/models/dashboard_model.dart';
@@ -28,165 +44,27 @@ import 'package:ecoteam_app/contractor/services/company_site_provider.dart';
 import 'package:ecoteam_app/contractor/view/contractor_dashboard/attendance_screen.dart';
 import 'package:ecoteam_app/contractor/view/contractor_dashboard/machinary.dart';
 import 'package:ecoteam_app/contractor/view/contractor_dashboard/material_screen.dart';
-
 import 'package:ecoteam_app/contractor/view/contractor_dashboard/more/more_screen.dart';
-import 'package:ecoteam_app/contractor/view/contractor_dashboard/more/supplier.dart';
-import 'package:ecoteam_app/contractor/view/contractor_dashboard/more/tools_screen.dart';
-import 'package:ecoteam_app/contractor/view/contractor_dashboard/worker_screen.dart';
+import 'package:ecoteam_app/contractor/view/contractor_dashboard/supplier.dart';
+import 'package:ecoteam_app/contractor/view/contractor_dashboard/tools_screen.dart';
 import 'package:ecoteam_app/contractor/widgets/bottom_navbar.dart';
+import 'package:ecoteam_app/admin/Screens/Report/DPR_screen.dart';
+import 'package:ecoteam_app/admin/services/DPR_services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:lottie/lottie.dart';
 import 'package:provider/provider.dart';
-
-// Activity Update Model
-class ActivityUpdate {
-  final int quantityCompleted;
-  final DateTime date;
-
-  ActivityUpdate({required this.quantityCompleted, required this.date});
-}
-
-// Activity Model
-class Activity {
-  final String id;
-  String title;
-  String scope;
-  int quantity;
-  String unit;
-  int completedQuantity;
-  String priority;
-  String status;
-  DateTime createdAt;
-  List<ActivityUpdate> updates;
-
-  int get balanceQuantity => quantity - completedQuantity;
-
-  Activity({
-    required this.id,
-    required this.title,
-    required this.scope,
-    required this.quantity,
-    required this.unit,
-    required this.completedQuantity,
-    required this.priority,
-    required this.status,
-    required this.createdAt,
-    List<ActivityUpdate>? updates,
-  }) : updates = updates ?? [];
-
-  Activity copyWith({
-    String? id,
-    String? title,
-    String? scope,
-    int? quantity,
-    String? unit,
-    int? completedQuantity,
-    String? priority,
-    String? status,
-    DateTime? createdAt,
-    List<ActivityUpdate>? updates,
-  }) {
-    return Activity(
-      id: id ?? this.id,
-      title: title ?? this.title,
-      scope: scope ?? this.scope,
-      quantity: quantity ?? this.quantity,
-      unit: unit ?? this.unit,
-      completedQuantity: completedQuantity ?? this.completedQuantity,
-      priority: priority ?? this.priority,
-      status: status ?? this.status,
-      createdAt: createdAt ?? this.createdAt,
-      updates: updates ?? this.updates,
-    );
-  }
-}
-
-// Activity Provider
-class ActivityProvider with ChangeNotifier {
-  final List<Activity> _activities = [
-    Activity(
-      id: '1',
-      title: 'Foundation Progress',
-      scope: 'Foundation work',
-      quantity: 100,
-      unit: 'sq ft',
-      completedQuantity: 85,
-      priority: 'high',
-      status: 'pending',
-      createdAt: DateTime.now().subtract(const Duration(hours: 2)),
-    ),
-    Activity(
-      id: '2',
-      title: 'Material Delivery',
-      scope: 'Steel beams delivery',
-      quantity: 50,
-      unit: 'tons',
-      completedQuantity: 50,
-      priority: 'medium',
-      status: 'pending',
-      createdAt: DateTime.now().subtract(const Duration(hours: 6)),
-    ),
-
-    Activity(
-      id: '3',
-      title: 'Team Meeting',
-      scope: 'Weekly coordination meeting',
-      quantity: 1,
-      unit: 'meeting',
-      completedQuantity: 1,
-      priority: 'low',
-      status: 'completed',
-      createdAt: DateTime.now().subtract(const Duration(days: 2)),
-    ),
-  ];
-
-  List<Activity> get activities => _activities;
-
-  List<Activity> get pendingActivities =>
-      _activities.where((activity) => activity.status == 'pending').toList();
-
-  List<Activity> get completedActivities =>
-      _activities.where((activity) => activity.status == 'completed').toList();
-
-  void addActivity(Activity activity) {
-    _activities.insert(0, activity);
-    notifyListeners();
-  }
-
-  void updateActivity(String id, Activity updatedActivity) {
-    final index = _activities.indexWhere((activity) => activity.id == id);
-    if (index != -1) {
-      _activities[index] = updatedActivity;
-      notifyListeners();
-    }
-  }
-
-  void markComplete(String id) {
-    final index = _activities.indexWhere((activity) => activity.id == id);
-    if (index != -1) {
-      _activities[index] = _activities[index].copyWith(
-        status: 'completed',
-        completedQuantity: _activities[index].quantity,
-      );
-      notifyListeners();
-    }
-  }
-
-  void markPending(String id) {
-    final index = _activities.indexWhere((activity) => activity.id == id);
-    if (index != -1) {
-      _activities[index] = _activities[index].copyWith(status: 'pending');
-      notifyListeners();
-    }
-  }
-
-  void deleteActivity(String id) {
-    _activities.removeWhere((activity) => activity.id == id);
-    notifyListeners();
-  }
-}
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
+import 'package:location/location.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as path;
 
 class DashboardScreen extends StatefulWidget {
   final Site? selectedSite;
@@ -197,14 +75,24 @@ class DashboardScreen extends StatefulWidget {
   State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
+List<Map<String, dynamic>> get companies => _companyProvider.companies;
+String? currentCompanyId;
+String? currentCompanyName;
+
 class _DashboardScreenState extends State<DashboardScreen> {
+  late CompanySiteProvider _companyProvider;
   int _currentIndex = 0;
   String? _selectedSiteId;
   List<Site> _sites = [];
   DashboardData? _dashboardData;
   bool _isLoading = true;
   String? _searchQuery;
+
   List<Widget> _screens = [];
+  String? _authToken;
+  Map<String, dynamic>? _userData;
+  int? _userId;
+  int? _workspaceId;
 
   bool _isDashboardExpanded = false;
   bool _isUserManagementExpanded = false;
@@ -222,6 +110,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   bool _isDailyTransactionExpanded = false;
   bool _isDailyConsumptionExpanded = false;
   bool _isMaterialTransferExpanded = false;
+  bool _isDPRreportExpanded = false;
 
   @override
   void initState() {
@@ -262,6 +151,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
       print(
         'Dashboard data loaded: \n  sites: ${_dashboardData?.sites.length}, selectedSiteId: ${_dashboardData?.selectedSiteId}',
       );
+
+      final prefs = await SharedPreferences.getInstance();
+      _authToken = prefs.getString('auth_token');
+      final userDataStr = prefs.getString('user_data');
+      if (userDataStr != null) {
+        _userData = jsonDecode(userDataStr);
+        _userId = _userData?['id'];
+        _workspaceId = _userData?['workspace_id'] ?? 3;
+      }
+
       _sites = companyProvider.sites;
       if (widget.selectedSite != null) {
         _selectedSiteId = widget.selectedSite!.id;
@@ -278,25 +177,39 @@ class _DashboardScreenState extends State<DashboardScreen> {
           sites: _sites,
           onSitesUpdated: _onSitesUpdated,
           dashboardData: _dashboardData,
+          userId: _userId ?? 0,
+          workspaceId: _workspaceId ?? 3,
+          token: _authToken ?? '',
+          currentCompany: currentCompanyName,
+        ),
+        ChangeNotifierProvider(
+          create: (_) => ActivityProvider(),
+          child: ActivityScreen(
+            selectedSiteId: _selectedSiteId,
+            onSiteChanged: _onSiteChanged,
+            sites: _sites,
+            userId: _userId ?? 0,
+            workspaceId: _workspaceId ?? 3,
+            token: _authToken ?? '',
+          ),
         ),
         MaterialScreen(
           key: const PageStorageKey('materials'),
           selectedSiteId: _selectedSiteId,
           onSiteChanged: _onSiteChanged,
           sites: _sites,
+          workspaceId: _workspaceId ?? 3,
+          currentCompany: currentCompanyName,
         ),
         AllMachineryScreen(
           key: const PageStorageKey('machinery'),
           selectedSiteId: _selectedSiteId,
           onSiteChanged: _onSiteChanged,
           sites: _sites,
+          workspaceId: _workspaceId ?? 3,
+          currentCompany: currentCompanyName,
         ),
-        MoreScreen(
-          key: const PageStorageKey('more'),
-          selectedSiteId: _selectedSiteId,
-          onSiteChanged: _onSiteChanged,
-          sites: _sites,
-        ),
+        ProfileScreen(key: const PageStorageKey('profile')),
       ];
     } catch (e) {
       print('Error loading dashboard data: ${e.toString()}');
@@ -335,31 +248,45 @@ class _DashboardScreenState extends State<DashboardScreen> {
       _sites = updatedSites;
       _screens = [
         DashboardContent(
-          key: const PageStorageKey('dashboard'),
+          key: ValueKey('dashboard-${DateTime.now().millisecondsSinceEpoch}'),
           selectedSiteId: _selectedSiteId,
           onSiteChanged: _onSiteChanged,
           sites: _sites,
           onSitesUpdated: _onSitesUpdated,
           dashboardData: _dashboardData,
+          userId: _userId ?? 0,
+          workspaceId: _workspaceId ?? 3,
+          token: _authToken ?? '',
+          currentCompany: currentCompanyName,
+        ),
+        ChangeNotifierProvider(
+          create: (_) => ActivityProvider(),
+          child: ActivityScreen(
+            selectedSiteId: _selectedSiteId, // This will be used for filtering
+            onSiteChanged: _onSiteChanged,
+            sites: _sites,
+            userId: _userId ?? 0,
+            workspaceId: _workspaceId ?? 3,
+            token: _authToken ?? '',
+          ),
         ),
         MaterialScreen(
           key: const PageStorageKey('materials'),
           selectedSiteId: _selectedSiteId,
           onSiteChanged: _onSiteChanged,
           sites: _sites,
+          workspaceId: _workspaceId ?? 3,
+          currentCompany: currentCompanyName,
         ),
         AllMachineryScreen(
           key: const PageStorageKey('machinery'),
           selectedSiteId: _selectedSiteId,
           onSiteChanged: _onSiteChanged,
           sites: _sites,
+          workspaceId: _workspaceId ?? 3,
+          currentCompany: currentCompanyName,
         ),
-        MoreScreen(
-          key: const PageStorageKey('more'),
-          selectedSiteId: _selectedSiteId,
-          onSiteChanged: _onSiteChanged,
-          sites: _sites,
-        ),
+        ProfileScreen(key: const PageStorageKey('profile')),
       ];
     });
   }
@@ -572,9 +499,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       backgroundColor: Colors.white,
       appBar: _currentIndex == 0
           ? AppBar(
-            
               iconTheme: const IconThemeData(color: Colors.white),
-              toolbarHeight: 80.h,
+              toolbarHeight: 74.h,
               elevation: 0,
               backgroundColor: Colors.transparent,
               flexibleSpace: Container(
@@ -602,49 +528,67 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
               title: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (widget.companyName != null) const SizedBox(height: 8),
-                  if (widget.companyName != null)
-                    Text(
-                      widget.companyName!,
-                      style: TextStyle(
-                        fontSize: 19.sp,
-                        fontWeight: FontWeight.w600,
-                        color: Color.fromARGB(239, 255, 255, 255),
-                      ),
+                  Text(
+                    widget.companyName ?? 'Dashboard',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 17.sp,
+                      fontWeight: FontWeight.w600,
                     ),
-                  const SizedBox(height: 3),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        _sites.isEmpty
-                            ? 'No Sites'
-                            : (_selectedSiteId == null
-                                  ? 'Select Site'
-                                  : _sites
-                                        .firstWhere(
-                                          (site) =>
-                                              site.id == _selectedSiteId,
-                                          orElse: () => Site(
-                                            id: '',
-                                            name: 'Unknown Site',
-                                            companyId: '',
-                                          ),
-                                        )
-                                        .name),
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16.sp,
-                          fontWeight: FontWeight.w400,
-                        ),
-                      ),
-                      
-                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    (_selectedSiteId != null &&
+                            widget.selectedSite != null &&
+                            widget.selectedSite!.id == _selectedSiteId)
+                        ? 'Site: ${widget.selectedSite!.name}'
+                        : (_sites.isEmpty
+                              ? 'No Sites'
+                              : (_selectedSiteId == null
+                                    ? 'Select Site'
+                                    : 'Site: ${_sites.firstWhere(
+                                        (site) => site.id == _selectedSiteId,
+                                        orElse: () => Site(id: '', name: 'Unknown Site', companyId: ''),
+                                      ).name}')),
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.9),
+                      fontSize: 13.sp,
+                      fontWeight: FontWeight.w400,
+                    ),
                   ),
                 ],
               ),
-
+              actions: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => NotificationScreen(),
+                          ),
+                        );
+                      },
+                      child: const FaIcon(FontAwesomeIcons.bell, size: 20),
+                    ),
+                    const SizedBox(width: 5),
+                    IconButton(
+                      tooltip: 'Chat',
+                      onPressed: _navigateToChatScreen,
+                      icon: const FaIcon(
+                        FontAwesomeIcons.commentDots,
+                        size: 20,
+                      ),
+                      color: Colors.white,
+                    ),
+                  ],
+                ),
+              ],
               centerTitle: false,
             )
           : null,
@@ -673,9 +617,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildNavigationDrawer() {
     return Drawer(
-       width: MediaQuery.of(context).size.width * 0.69,
+      width: MediaQuery.of(context).size.width * 0.69,
       child: Container(
-        
         color: Colors.white,
         child: Column(
           children: [
@@ -817,8 +760,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           _isMaterialExpanded = !_isMaterialExpanded;
                         });
                       },
-                      
-                      // Set your desired size
                     ),
                     if (_isMaterialExpanded) ...[
                       _buildNestedSubDrawerItem(
@@ -871,7 +812,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           _isSupplierExpanded = !_isSupplierExpanded;
                         });
                       },
-                      
                     ),
                     if (_isSupplierExpanded) ...[
                       _buildNestedSubDrawerItem(
@@ -887,7 +827,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         },
                       ),
                       _buildNestedSubDrawerItem(
-                       icon: Icons.fiber_manual_record,
+                        icon: Icons.fiber_manual_record,
                         title: 'Supplier Category',
                         onTap: () {
                           Navigator.push(
@@ -922,24 +862,36 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           _isAssetsExpanded = !_isAssetsExpanded;
                         });
                       },
-                      
                     ),
                     if (_isAssetsExpanded) ...[
                       _buildNestedSubDrawerItem(
                         icon: Icons.fiber_manual_record,
                         title: 'All machinery',
                         onTap: () {
+                          int? siteIdInt;
+                          String? siteName;
+                          if (_selectedSiteId != null) {
+                            siteIdInt = int.tryParse(_selectedSiteId!);
+                            try {
+                              siteName = _sites
+                                  .firstWhere((s) => s.id == _selectedSiteId)
+                                  .name;
+                            } catch (_) {}
+                          }
+
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) =>
-                                  const AdminAllMachineryScreen(),
+                              builder: (context) => AdminAllMachineryScreen(
+                                selectedSiteId: siteIdInt,
+                                selectedSiteName: siteName,
+                              ),
                             ),
                           );
                         },
                       ),
                       _buildNestedSubDrawerItem(
-                      icon: Icons.fiber_manual_record,
+                        icon: Icons.fiber_manual_record,
                         title: 'machinery Category',
                         onTap: () {
                           Navigator.push(
@@ -952,13 +904,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         },
                       ),
                       _buildNestedSubDrawerItem(
-                       icon: Icons.fiber_manual_record,
+                        icon: Icons.fiber_manual_record,
                         title: 'tools & equipment',
                         onTap: () {
+                          int? siteIdInt;
+                          String? siteName;
+                          if (_selectedSiteId != null) {
+                            siteIdInt = int.tryParse(_selectedSiteId!);
+                            try {
+                              siteName = _sites
+                                  .firstWhere((s) => s.id == _selectedSiteId)
+                                  .name;
+                            } catch (_) {}
+                          }
+
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => ToolsEquipmentPage(),
+                              builder: (context) => ToolsEquipmentPage(
+                                selectedSiteId: siteIdInt,
+                                selectedSiteName: siteName,
+                              ),
                             ),
                           );
                         },
@@ -988,17 +954,30 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               !_isDailyTransactionExpanded;
                         });
                       },
-                      
                     ),
                     if (_isDailyTransactionExpanded) ...[
                       _buildNestedSubDrawerItem(
                         icon: Icons.fiber_manual_record,
                         title: 'Purchase Invoice',
                         onTap: () {
+                          int? siteIdInt;
+                          String? siteName;
+                          if (_selectedSiteId != null) {
+                            siteIdInt = int.tryParse(_selectedSiteId!);
+                            try {
+                              siteName = _sites
+                                  .firstWhere((s) => s.id == _selectedSiteId)
+                                  .name;
+                            } catch (_) {}
+                          }
+
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => PurchaseInvoicesPage(),
+                              builder: (context) => PurchaseInvoicesPage(
+                                selectedSiteId: siteIdInt,
+                                selectedSiteName: siteName,
+                              ),
                             ),
                           );
                         },
@@ -1007,17 +986,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         icon: Icons.fiber_manual_record,
                         title: 'Manpower',
                         onTap: () {
+                          int? siteIdInt;
+                          String? siteName;
+                          if (_selectedSiteId != null) {
+                            siteIdInt = int.tryParse(_selectedSiteId!);
+                            try {
+                              siteName = _sites
+                                  .firstWhere((s) => s.id == _selectedSiteId)
+                                  .name;
+                            } catch (_) {}
+                          }
+
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const ManpowerPage(),
+                              builder: (context) => ManpowerPage(
+                                selectedSiteId: siteIdInt,
+                                selectedSiteName: siteName,
+                              ),
                             ),
                           );
                         },
                       ),
                     ],
                     _buildExpandableSubDrawerItem(
-                       icon: Icons.radio_button_checked,
+                      icon: Icons.radio_button_checked,
                       title: 'Daily Consumption',
                       isExpanded: _isDailyConsumptionExpanded,
                       onTap: () {
@@ -1026,11 +1019,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               !_isDailyConsumptionExpanded;
                         });
                       },
-                      
                     ),
                     if (_isDailyConsumptionExpanded) ...[
                       _buildNestedSubDrawerItem(
-                       icon: Icons.fiber_manual_record,
+                        icon: Icons.fiber_manual_record,
                         title: 'Consumption Log',
                         onTap: () {
                           Navigator.push(
@@ -1043,28 +1035,40 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                     ],
                     _buildSubDrawerItem(
-                       icon: Icons.radio_button_checked,
+                      icon: Icons.radio_button_checked,
                       title: 'Material Transfer',
                       onTap: () {
-                        final companyProvider = Provider.of<CompanySiteProvider>(
-                          context,
-                          listen: false,
-                        );
+                        int? siteIdInt;
+                        String? siteName;
+                        if (_selectedSiteId != null) {
+                          siteIdInt = int.tryParse(_selectedSiteId!);
+                          try {
+                            if (_sites.isNotEmpty) {
+                              siteName = _sites
+                                  .firstWhere((s) => s.id == _selectedSiteId)
+                                  .name;
+                            }
+                          } catch (_) {}
+                        }
+
+                        final companyProvider =
+                            Provider.of<CompanySiteProvider>(
+                              context,
+                              listen: false,
+                            );
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => MaterialTransferScreen(
-                              workspaceId: companyProvider.selectedCompanyId != null
-                                  ? int.tryParse(companyProvider.selectedCompanyId!)
-                                  : null,
-                              workspaceName: widget.companyName,
+                            builder: (context) => AdminMaterialtransferScreen(
+                              selectedSiteId: siteIdInt,
+                              selectedSiteName: siteName,
                             ),
                           ),
                         );
                       },
                     ),
                   ],
-                   _buildExpandableDrawerItem(
+                  _buildExpandableDrawerItem(
                     icon: Icons.payment,
                     title: 'Payment',
                     isExpanded: _isPaymentExpanded,
@@ -1079,7 +1083,71 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       icon: Icons.radio_button_checked,
                       title: 'All Payments',
                       onTap: () {
-                        Navigator.push(context, MaterialPageRoute(builder: (context)=>PaymentScreen()));
+                        int? siteIdInt;
+                        String? siteName;
+                        if (_selectedSiteId != null) {
+                          siteIdInt = int.tryParse(_selectedSiteId!);
+                          try {
+                            siteName = _sites
+                                .firstWhere((s) => s.id == _selectedSiteId)
+                                .name;
+                          } catch (_) {}
+                        }
+
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => PaymentScreen(
+                              selectedSiteId: siteIdInt,
+                              selectedSiteName: siteName,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                  // DPR Report
+                  _buildExpandableDrawerItem(
+                    icon: Icons.report,
+                    title: 'Daily Report',
+                    isExpanded: _isDPRreportExpanded,
+                    onTap: () {
+                      setState(() {
+                        _isDPRreportExpanded = !_isDPRreportExpanded;
+                      });
+                    },
+                  ),
+                  if (_isDPRreportExpanded) ...[
+                    _buildSubDrawerItem(
+                      icon: Icons.radio_button_checked,
+                      title: 'DPR Reports',
+                      onTap: () {
+                        int? siteIdInt;
+                        String? siteName;
+                        if (_selectedSiteId != null) {
+                          siteIdInt = int.tryParse(_selectedSiteId!);
+                          try {
+                            siteName = _sites
+                                .firstWhere((s) => s.id == _selectedSiteId)
+                                .name;
+                          } catch (_) {}
+                        }
+
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => AdminDPRScreen(
+                              selectedSiteId: _selectedSiteId,
+                              onSiteChanged: (siteId) {
+                                _onSiteChanged(siteId);
+                              },
+                              sites: _sites,
+                              token: _authToken ?? '',
+                              workspaceId: _workspaceId ?? 3,
+                              createdBy: _userId ?? 0,
+                            ),
+                          ),
+                        );
                       },
                     ),
                   ],
@@ -1130,19 +1198,33 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                   if (_isHRMExpanded) ...[
                     _buildSubDrawerItem(
-                     icon: Icons.radio_button_checked,
+                      icon: Icons.radio_button_checked,
                       title: 'Employee',
                       onTap: () {
+                        int? siteIdInt;
+                        String? siteName;
+                        if (_selectedSiteId != null) {
+                          siteIdInt = int.tryParse(_selectedSiteId!);
+                          try {
+                            siteName = _sites
+                                .firstWhere((s) => s.id == _selectedSiteId)
+                                .name;
+                          } catch (_) {}
+                        }
+
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => EmployeePage(),
+                            builder: (context) => EmployeeAdminPage(
+                              selectedSiteId: siteIdInt,
+                              selectedSiteName: siteName,
+                            ),
                           ),
                         );
                       },
                     ),
                     _buildExpandableSubDrawerItem(
-                     icon: Icons.radio_button_checked,
+                      icon: Icons.radio_button_checked,
                       title: 'Attendance',
                       isExpanded: _isAttendanceExpanded,
                       onTap: () {
@@ -1150,7 +1232,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           _isAttendanceExpanded = !_isAttendanceExpanded;
                         });
                       },
-                      
                     ),
                     if (_isAttendanceExpanded) ...[
                       _buildNestedSubDrawerItem(
@@ -1179,7 +1260,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       },
                     ),
                     _buildSubDrawerItem(
-                     icon: Icons.radio_button_checked,
+                      icon: Icons.radio_button_checked,
                       title: 'Document',
                       onTap: () {
                         Navigator.pop(context);
@@ -1195,7 +1276,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           _isReportExpanded = !_isReportExpanded;
                         });
                       },
-                     
                     ),
                     if (_isReportExpanded) ...[
                       _buildNestedSubDrawerItem(
@@ -1275,7 +1355,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     required VoidCallback onTap,
   }) {
     return ListTile(
-      leading: Icon(icon, color: AdminColors.primary,size: 20,),
+      leading: Icon(icon, color: AdminColors.primary, size: 20),
       title: Text(
         title,
         style: TextStyle(
@@ -1287,7 +1367,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       onTap: onTap,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
       horizontalTitleGap: 10,
-        dense: true,
+      dense: true,
     );
   }
 
@@ -1298,7 +1378,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     required VoidCallback onTap,
   }) {
     return ListTile(
-      leading: Icon(icon, color: AdminColors.primary,size: 20,),
+      leading: Icon(icon, color: AdminColors.primary, size: 20),
       title: Text(
         title,
         style: TextStyle(
@@ -1314,7 +1394,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       onTap: onTap,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
       horizontalTitleGap: 10,
-        dense: true,
+      dense: true,
     );
   }
 
@@ -1353,7 +1433,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     required String title,
     required bool isExpanded,
     required VoidCallback onTap,
-   
   }) {
     return Container(
       margin: EdgeInsets.only(left: 16.w),
@@ -1389,7 +1468,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     required IconData icon,
     required String title,
     required VoidCallback onTap,
-  
   }) {
     return Container(
       margin: EdgeInsets.only(left: 32.w),
@@ -1423,6 +1501,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
         duration: const Duration(seconds: 2),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
+      ),
+    );
+  }
+
+  void _navigateToChatScreen() {
+    final siteList = _sites;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ChatScreen(
+          selectedSiteId: siteList.isNotEmpty ? siteList.first.id : null,
+          onSiteChanged: (String siteId) {
+            debugPrint('Site changed to: $siteId');
+          },
+          sites: siteList,
+          currentCompany: currentCompanyName,
+          workspaceId: _workspaceId,
+        ),
       ),
     );
   }
@@ -1866,12 +1962,17 @@ class _SitesManagementModalState extends State<SitesManagementModal> {
   }
 }
 
-class DashboardContent extends StatelessWidget {
+class DashboardContent extends StatefulWidget {
   final String? selectedSiteId;
   final Function(String) onSiteChanged;
   final List<Site> sites;
   final Function(List<Site>)? onSitesUpdated;
   final DashboardData? dashboardData;
+  final int userId;
+  final int workspaceId;
+  final String token;
+  final String? currentCompany;
+
   const DashboardContent({
     super.key,
     required this.selectedSiteId,
@@ -1879,48 +1980,697 @@ class DashboardContent extends StatelessWidget {
     required this.sites,
     this.onSitesUpdated,
     required this.dashboardData,
+    required this.userId,
+    required this.workspaceId,
+    required this.token,
+    this.currentCompany,
   });
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: const Color.fromARGB(255, 255, 255, 255),
-      child: Expanded(
-        child: dashboardData == null
-            ? _buildEmptyState()
-            : _buildDashboardContent(context),
+  State<DashboardContent> createState() => _DashboardContentState();
+}
+
+class _DashboardContentState extends State<DashboardContent> {
+  bool _isLoadingLocation = false;
+  bool _isClockingIn = false;
+  bool _isClockedIn = false;
+  String? _currentAttendanceId;
+  File? _capturedImage;
+  final ImagePicker _picker = ImagePicker();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAttendanceStatus();
+  }
+
+  Future<void> _loadAttendanceStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    _currentAttendanceId = prefs.getString('current_attendance_id');
+    
+    // Load persisted image if clocked in
+    String? imagePath = prefs.getString('current_attendance_image_path');
+    if (imagePath != null) {
+      final file = File(imagePath);
+      if (await file.exists()) {
+        _capturedImage = file;
+      }
+    }
+
+    // You can also check with API to verify current status
+    setState(() {
+      _isClockedIn = _currentAttendanceId != null;
+    });
+  }
+
+  Future<void> _checkPermissionAndClockInOut(String type) async {
+    setState(() => _isLoadingLocation = true);
+
+    try {
+      // 1. Check Permissions
+      var status = await Permission.location.status;
+      if (!status.isGranted) {
+        status = await Permission.location.request();
+        if (!status.isGranted) {
+          _showSnackBar(
+            'Location permission is required to $type',
+            isError: true,
+          );
+          return;
+        }
+      }
+
+      // 2. Check Service
+      Location location = Location();
+      bool serviceEnabled = await location.serviceEnabled();
+      if (!serviceEnabled) {
+        serviceEnabled = await location.requestService();
+        if (!serviceEnabled) {
+          _showSnackBar('Location service is disabled', isError: true);
+          return;
+        }
+      }
+
+      // 3. Get Location
+      final locationData = await location.getLocation();
+
+      // 4. Retrieve stored attendanceId if clocking out
+      String? attendanceId;
+      final prefs = await SharedPreferences.getInstance();
+      if (type == 'clockout') {
+        attendanceId = _currentAttendanceId;
+        if (attendanceId == null) {
+          _showSnackBar(
+            'No active attendance found. Please clock in first.',
+            isError: true,
+          );
+          return;
+        }
+      }
+
+      // 5. Call API
+      if (!mounted) return;
+      setState(() => _isClockingIn = true);
+
+      // Determine Site ID
+      String? siteId = widget.selectedSiteId;
+      if (siteId == null && widget.sites.isNotEmpty) {
+        siteId = widget.sites.first.id;
+      }
+      
+      if (siteId == null) {
+         _showSnackBar(
+            'Please select a site first.',
+            isError: true,
+          );
+          setState(() {
+            _isLoadingLocation = false;
+            _isClockingIn = false;
+          });
+          return;
+      }
+
+      final result = await ApiService().clockInOut(
+        type: type, // 'clockin' or 'clockout'
+        userId: widget.userId.toString(),
+        workspaceId: widget.workspaceId.toString(),
+        siteId: siteId,
+        latitude: locationData.latitude.toString(),
+        longitude: locationData.longitude.toString(),
+        attendanceId: attendanceId,
+        imageFile: _capturedImage,
+      );
+
+      if (!mounted) return;
+
+      if (result['success']) {
+        final msg =
+            result['data']['message'] ??
+            'Successfully ${type == 'clockin' ? 'Clocked In' : 'Clocked Out'}';
+        _showSnackBar(msg, isError: false);
+
+        // Update local state
+        if (type == 'clockin') {
+          if (result['data']['data'] != null) {
+            final data = result['data']['data'];
+            if (data['attendence_id'] != null) {
+              _currentAttendanceId = data['attendence_id'].toString();
+              await prefs.setString(
+                'current_attendance_id',
+                _currentAttendanceId!,
+              );
+            }
+          }
+          // Persist image on clock in
+          if (_capturedImage != null) {
+            final directory = await getApplicationDocumentsDirectory();
+            final fileName = 'clockin_${DateTime.now().millisecondsSinceEpoch}.jpg';
+            final savedImage = await _capturedImage!.copy('${directory.path}/$fileName');
+            await prefs.setString('current_attendance_image_path', savedImage.path);
+            _capturedImage = savedImage; // Update reference to persisted file
+          }
+          
+          setState(() {
+            _isClockedIn = true;
+            // Do NOT clear image on clock in, keep it displayed
+          });
+        } else if (type == 'clockout') {
+          _currentAttendanceId = null;
+          await prefs.remove('current_attendance_id');
+          await prefs.remove('current_attendance_image_path'); // Remove persisted image path
+          
+          setState(() {
+            _isClockedIn = false;
+            _capturedImage = null; // Clear image after clock out
+          });
+        }
+      } else {
+        _showSnackBar(result['message'] ?? 'Failed to $type', isError: true);
+      }
+    } catch (e) {
+      _showSnackBar('Error: ${e.toString()}', isError: true);
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingLocation = false;
+          _isClockingIn = false;
+        });
+      }
+    }
+  }
+
+  void _showSnackBar(String message, {bool isError = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Colors.red : const Color(0xFF4a63c0),
+        behavior: SnackBarBehavior.floating,
       ),
     );
   }
 
-  Widget _buildDashboardContent(BuildContext context) {
-    return RefreshIndicator(
-      onRefresh: () async {},
-      color: const Color(0xFF4a63c0),
-      backgroundColor: Colors.white,
-      child: Stack(
+  Future<void> _showImageSourceDialog() async {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Wrap(
+            children: <Widget>[
+              ListTile(
+                leading: const Icon(Icons.photo_camera),
+                title: const Text('Camera'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _pickImage(ImageSource.camera);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library),
+                title: const Text('Photo Library'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _pickImage(ImageSource.gallery);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: source,
+        imageQuality: 50, // Compress image
+        maxWidth: 800,
+      );
+
+      if (image != null) {
+        setState(() {
+          _capturedImage = File(image.path);
+        });
+      }
+    } catch (e) {
+      _showSnackBar('Failed to pick image: $e', isError: true);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final dashboardData = widget.dashboardData;
+    if (dashboardData == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    return SingleChildScrollView(
+      padding: EdgeInsets.symmetric(horizontal: 22.w, vertical: 18.h),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          _buildSummaryGrid(dashboardData),
+          SizedBox(height: 24.h),
+
+          // Clock In/Out Section - Updated with single toggle button
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24.r),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF1F2937).withOpacity(0.06),
+                  blurRadius: 24.r,
+                  spreadRadius: -8,
+                  offset: const Offset(0, 8),
+                ),
+                BoxShadow(
+                  color: const Color(0xFF1F2937).withOpacity(0.04),
+                  blurRadius: 4.r,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+              border: Border.all(color: const Color(0xFFF1F5F9), width: 1.5),
+            ),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildSummaryGrid(dashboardData!),
-                const SizedBox(height: 24),
-                _buildRecentActivities(),
-                const SizedBox(height: 24),
-                _buildBirthdayReminders(),
-                const SizedBox(height: 120), // Space for FABs
+                // Header
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.schedule_rounded,
+                              size: 16.sp,
+                              color: const Color(0xFF4a63c0),
+                            ),
+                            SizedBox(width: 6.w),
+                            Text(
+                              'DAILY ATTENDANCE',
+                              style: TextStyle(
+                                fontSize: 13.sp,
+                                fontWeight: FontWeight.w700,
+                                color: const Color(0xFF4a63c0),
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 4.h),
+                        Text(
+                          "Mark your presence for today",
+                          style: TextStyle(
+                            fontSize: 12.sp,
+                            color: const Color(0xFF6B7280),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    
+                  ],
+                ),
+
+                SizedBox(height: 20.h),
+
+                // Main card content
+                Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20.r),
+                    color: const Color(0xFFF8FAFC),
+                    border: Border.all(
+                      color: const Color(0xFFF1F5F9),
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      // Left side - Camera/Profile section
+                      Container(
+                        width: 100.w,
+                        padding: EdgeInsets.all(16.w),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF4a63c0).withOpacity(0.08),
+                          borderRadius: BorderRadius.only(
+                            topLeft: Radius.circular(20.r),
+                            bottomLeft: Radius.circular(20.r),
+                          ),
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            GestureDetector(
+                              onTap: _showImageSourceDialog,
+                              child: _capturedImage != null
+                                  ? Stack(
+                                      alignment: Alignment.topRight,
+                                      children: [
+                                        ClipRRect(
+                                          borderRadius:
+                                              BorderRadius.circular(12.r),
+                                          child: Image.file(
+                                            _capturedImage!,
+                                            width: 80.w,
+                                            height: 80.w,
+                                            fit: BoxFit.cover,
+                                          ),
+                                        ),
+                                        GestureDetector(
+                                          onTap: () {
+                                            setState(() {
+                                              _capturedImage = null;
+                                            });
+                                          },
+                                          child: Container(
+                                            margin: const EdgeInsets.all(4),
+                                            decoration: const BoxDecoration(
+                                              color: Colors.white,
+                                              shape: BoxShape.circle,
+                                            ),
+                                            child: const Icon(
+                                              Icons.close,
+                                              size: 16,
+                                              color: Colors.red,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    )
+                                  : Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          Icons.camera_alt_rounded,
+                                          size: 24.sp,
+                                          color: const Color(0xFF4a63c0),
+                                        ),
+                                        SizedBox(height: 4.h),
+                                        Text(
+                                          'Capture',
+                                          style: TextStyle(
+                                            fontSize: 10.sp,
+                                            color: const Color(0xFF4a63c0),
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // Right side - Clock in/out section
+                      Expanded(
+                        child: Container(
+                          padding: EdgeInsets.all(16.w),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Status indicator
+                              SizedBox(height: 12.h),
+
+                              // Toggle button
+                              _buildToggleAttendanceButton(),
+
+                              SizedBox(height: 12.h),
+
+                              // Start time display (if clocked in)
+                              if (_isClockedIn && _currentAttendanceId != null)
+                                Text(
+                                  'Clock Started at: ${DateFormat('hh:mm a').format(DateTime.now())}',
+                                  style: TextStyle(
+                                    fontSize: 12.sp,
+                                    fontWeight: FontWeight.w500,
+                                    color: const Color.fromARGB(
+                                      255,
+                                      39,
+                                      39,
+                                      39,
+                                    ),
+                                  ),
+                                )
+                              else
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.info_outline_rounded,
+                                      size: 14.sp,
+                                      color: const Color(0xFF4a63c0),
+                                    ),
+                                    SizedBox(width: 6.w),
+                                    Text(
+                                      'Ready to clock in',
+                                      style: TextStyle(
+                                        fontSize: 13.sp,
+                                        fontWeight: FontWeight.w500,
+                                        color: const Color(0xFF4a63c0),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+
+                              SizedBox(height: 16.h),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+              
               ],
             ),
           ),
-          Positioned(
-            bottom: 10,
-            right: 16,
-            child: FloatingActionButton(
-              onPressed: () => _showAddActivityBottomSheet(context),
-              backgroundColor: const Color(0xFF4a63c0),
-              child: const Icon(Icons.add, color: Colors.white),
-              tooltip: 'Add Activity',
+
+          // Helper methods
+          SizedBox(height: 24.h),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildToggleAttendanceButton() {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          if (_isLoadingLocation || _isClockingIn) return;
+
+          if (_isClockedIn) {
+            // Clock Out
+            _checkPermissionAndClockInOut('clockout');
+          } else {
+            // Clock In
+            _checkPermissionAndClockInOut('clockin');
+          }
+        },
+        borderRadius: BorderRadius.circular(16.r),
+        child: Container(
+          width: 140,
+          padding: EdgeInsets.symmetric(vertical: 12.h,horizontal: 12),
+          decoration: BoxDecoration(
+            gradient: _isClockedIn
+                ? LinearGradient(
+                    colors: [Colors.red.shade500, Colors.red.shade700],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  )
+                : LinearGradient(
+                    colors: [Colors.green.shade500, Colors.green.shade600],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+            borderRadius: BorderRadius.circular(16.r),
+            boxShadow: [
+              BoxShadow(
+                color: (_isClockedIn ? Colors.red : Colors.green).withOpacity(
+                  0.3,
+                ),
+                blurRadius: 12.r,
+                offset: const Offset(0, 4),
+                spreadRadius: -4,
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Icon or loading indicator
+              Container(
+             
+                height: 20.h,
+                child: _isLoadingLocation || _isClockingIn
+                    ? SizedBox(
+                        width: 16.w,
+                        height: 16.h,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.5,
+                          color: Colors.white,
+                          backgroundColor: Colors.white.withOpacity(0.2),
+                        ),
+                      )
+                    : Icon(
+                        _isClockedIn
+                            ? Icons.logout_rounded
+                            : Icons.login_rounded,
+                        size: 18.sp,
+                        color: Colors.white,
+                      ),
+              ),
+
+              SizedBox(width: 10.w),
+
+              // Text
+              Text(
+                _isClockedIn ? 'CLOCK OUT' : 'CLOCK IN',
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Add this method for camera/image handling
+
+  Widget _buildActionTile(
+    BuildContext context, {
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Gradient gradient,
+    required Color iconColor,
+    required bool isLoading,
+    required VoidCallback onTap,
+    required bool isFirst,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: isLoading ? null : onTap,
+        borderRadius: BorderRadius.vertical(
+          top: isFirst ? Radius.circular(20.r) : Radius.zero,
+          bottom: !isFirst ? Radius.circular(20.r) : Radius.zero,
+        ),
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 18.h),
+          child: Row(
+            children: [
+              // Icon container with gradient
+              Container(
+                width: 44.w,
+                height: 44.h,
+                decoration: BoxDecoration(
+                  gradient: gradient,
+                  borderRadius: BorderRadius.circular(12.r),
+                ),
+                child: isLoading
+                    ? Center(
+                        child: SizedBox(
+                          width: 20.w,
+                          height: 20.h,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            color: Colors.white,
+                            backgroundColor: Colors.white.withOpacity(0.2),
+                          ),
+                        ),
+                      )
+                    : Icon(icon, size: 22.sp, color: iconColor),
+              ),
+              SizedBox(width: 16.w),
+
+              // Text content
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 16.sp,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF1E293B),
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                    SizedBox(height: 2.h),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 12.sp,
+                        fontWeight: FontWeight.w400,
+                        color: const Color(0xFF64748B),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Arrow indicator
+              Container(
+                width: 32.w,
+                height: 32.h,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8FAFC),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
+                ),
+                child: Icon(
+                  Icons.arrow_forward_rounded,
+                  size: 16.sp,
+                  color: const Color(0xFF64748B),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoChip({
+    required IconData icon,
+    required String text,
+    required Color color,
+  }) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(20.r),
+        border: Border.all(color: color.withOpacity(0.15), width: 1),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12.sp, color: color),
+          SizedBox(width: 4.w),
+          Text(
+            text,
+            style: TextStyle(
+              fontSize: 10.sp,
+              fontWeight: FontWeight.w600,
+              color: color,
             ),
           ),
         ],
@@ -1931,54 +2681,61 @@ class DashboardContent extends StatelessWidget {
   Widget _buildSummaryGrid(DashboardData data) {
     final summaryItems = [
       {
-        'icon': Icons.groups_outlined,
-        'title': 'Workers',
+        'icon': Icons.person,
+        'title': 'Employees',
         'value': data.totalWorkers.toString(),
-        'subtitle': 'Active today',
-        'color': const Color(0xFF10B981),
+        'color': const Color.fromARGB(255, 243, 187, 207), // Darker Pastel Pink
       },
       {
-        'icon': Icons.fact_check_outlined,
-        'title': 'Machinary',
+        'icon': Icons.engineering,
+        'title': 'Manpower',
         'value': data.totalInspection.toString(),
-        'subtitle': 'Total Count',
-        'color': const Color(0xFFF59E0B),
+        'color': const Color.fromARGB(255, 196, 221, 241), // Darker Pastel Blue
       },
       {
-        'icon': Icons.badge_outlined,
+        'icon': Icons.calendar_today,
         'title': 'Attendance',
         'value': data.totalPicking.toString(),
-        'subtitle': 'This month',
-        'color': const Color.fromARGB(255, 238, 105, 43),
+        'color': const Color.fromARGB(255, 219, 198, 240), // Darker Lavender
       },
       {
-        'icon': Icons.shopping_bag_outlined,
-        'title': 'Material',
-        'value': data.totalPicking.toString(),
-        'subtitle': 'Total Items',
-        'color': const Color.fromARGB(255, 55, 140, 189),
-      },
-      {
-        'icon': Icons.people_alt_outlined,
+        'icon': Icons.local_shipping,
         'title': 'Supplier',
         'value': data.totalPicking.toString(),
-        'subtitle': 'Status',
-        'color': const Color.fromARGB(255, 184, 55, 162),
+        'color': const Color.fromARGB(255, 199, 236, 220), // Darker Mint
       },
       {
-        'icon': Icons.build_outlined,
+        'icon': Icons.build,
         'title': 'Assets',
         'value': data.totalInspection.toString(),
-        'subtitle': 'Total Items',
-        'color': const Color(0xFF00ACC1),
+        'color': const Color.fromARGB(255, 236, 192, 192), // Darker Peach
+      },
+      {
+        'icon': Icons.description,
+        'title': 'DPR',
+        'value': data.totalInspection.toString(),
+        'color': const Color.fromARGB(255, 255, 210, 182), // Darker Apricot
+      },
+      {
+        'icon': Icons.payment,
+        'title': 'Payment',
+        'value': data.totalInspection.toString(),
+        'color': const Color.fromARGB(255, 240, 230, 177), // Darker Mauve
+      },
+      {
+        'icon': Icons.folder,
+        'title': 'Documents',
+        'value': data.totalInspection.toString(),
+        'color': const Color.fromARGB(255, 200, 205, 235), // Darker Periwinkle
       },
     ];
+
     return GridView.builder(
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 3,
-        mainAxisSpacing: 10,
-        crossAxisSpacing: 10,
-        childAspectRatio: 1.05,
+        mainAxisSpacing: 14,
+        crossAxisSpacing: 16,
+        childAspectRatio: 1.1,
       ),
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -1986,10 +2743,12 @@ class DashboardContent extends StatelessWidget {
       itemBuilder: (context, index) {
         final item = summaryItems[index];
         final color = item['color'] as Color;
+
         final int targetValue = int.tryParse(item['value'] as String) ?? 0;
+
         return TweenAnimationBuilder<double>(
-          tween: Tween<double>(begin: 0.8, end: 1.0),
-          duration: const Duration(seconds: 3),
+          tween: Tween<double>(begin: 0.95, end: 1.0),
+          duration: const Duration(milliseconds: 300),
           curve: Curves.easeOutBack,
           builder: (context, double scale, child) {
             return Transform.scale(
@@ -1998,35 +2757,26 @@ class DashboardContent extends StatelessWidget {
                 onTap: () {
                   // Navigate to respective page based on index
                   switch (index) {
-                    // case 0: // Inventory
-                    //   Navigator.push(
-                    //     context,
-                    //     MaterialPageRoute(
-                    //       builder: (context) =>
-                    //         InventoryDetailScreen(selectedSiteId: selectedSiteId, onSiteChanged: onSiteChanged, sites: sites)
-                    //     ),
-                    //   );
-                    //   break;
-                    case 0: // Workers
+                    case 0: //Employee
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => WorkersScreen(
-                            selectedSiteId: selectedSiteId,
-                            onSiteChanged: onSiteChanged,
-                            sites: sites,
+                          builder: (context) => EmployeePage(
+                            selectedSiteId: widget.selectedSiteId,
+                            onSiteChanged: widget.onSiteChanged,
+                            sites: widget.sites,
                           ),
                         ),
                       );
                       break;
-                    case 1: // Machinary
+                    case 1: // Manpower
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => AllMachineryScreen(
-                            selectedSiteId: selectedSiteId,
-                            onSiteChanged: onSiteChanged,
-                            sites: sites,
+                          builder: (context) => ManpowerCountScreen(
+                            selectedSiteId: widget.selectedSiteId,
+                            onSiteChanged: widget.onSiteChanged,
+                            sites: widget.sites,
                           ),
                         ),
                       );
@@ -2036,2056 +2786,230 @@ class DashboardContent extends StatelessWidget {
                         context,
                         MaterialPageRoute(
                           builder: (context) => AttendanceScreen(
-                            selectedSiteId: selectedSiteId,
-                            onSiteChanged: onSiteChanged,
-                            sites: sites,
+                            selectedSiteId: widget.selectedSiteId,
+                            onSiteChanged: widget.onSiteChanged,
+                            sites: widget.sites,
                           ),
                         ),
                       );
                       break;
-                    case 3: // Material
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => MaterialScreen(
-                            selectedSiteId: selectedSiteId,
-                            onSiteChanged: onSiteChanged,
-                            sites: sites,
-                          ),
-                        ),
-                      );
-                      break;
-                    case 4: // Supplier
+
+                    case 3: // Supplier
                       Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (context) => SupplierLedger(
-                            selectedSiteId: selectedSiteId,
-                            onSiteChanged: onSiteChanged,
-                            sites: sites,
+                            selectedSiteId: widget.selectedSiteId,
+                            onSiteChanged: widget.onSiteChanged,
+                            sites: widget.sites,
                           ),
                         ),
                       );
                       break;
-                    case 5: // Assets/Tools
+                    case 4: // Assets/Tools
                       Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (context) => ToolsScreen(
-                            selectedSiteId: selectedSiteId,
-                            onSiteChanged: onSiteChanged,
-                            sites: sites,
+                            selectedSiteId: widget.selectedSiteId,
+                            onSiteChanged: widget.onSiteChanged,
+                            sites: widget.sites,
+                          ),
+                        ),
+                      );
+                      break;
+                    case 5: // DPR
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => DPRScreen(
+                            selectedSiteId: widget.selectedSiteId,
+                            onSiteChanged: widget.onSiteChanged,
+                            sites: widget.sites,
+                            token: widget.token,
+                            workspaceId: widget.workspaceId,
+                            createdBy: widget.userId,
+                            currentCompany: widget.currentCompany,
+                          ),
+                        ),
+                      );
+                      break;
+                    case 6: // Payment
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => PaymentsDetailScreen(
+                            selectedSiteId: widget.selectedSiteId != null
+                                ? int.tryParse(widget.selectedSiteId!)
+                                : null,
+                            selectedSiteName:
+                                widget.selectedSiteId != null &&
+                                    widget.sites.any(
+                                      (s) =>
+                                          s.id.toString() ==
+                                          widget.selectedSiteId,
+                                    )
+                                ? widget.sites
+                                      .firstWhere(
+                                        (s) =>
+                                            s.id.toString() ==
+                                            widget.selectedSiteId,
+                                      )
+                                      .name
+                                : null,
+                          ),
+                        ),
+                      );
+                      break;
+                    case 7: // Documents
+                      final String effectiveSiteId =
+                          widget.selectedSiteId ??
+                          (widget.sites.isNotEmpty
+                              ? widget.sites.first.id
+                              : '');
+                      final String effectiveSiteName =
+                          widget.selectedSiteId != null &&
+                              widget.sites.any(
+                                (s) => s.id == widget.selectedSiteId,
+                              )
+                          ? widget.sites
+                                .firstWhere(
+                                  (s) => s.id == widget.selectedSiteId,
+                                )
+                                .name
+                          : (widget.sites.isNotEmpty
+                                ? widget.sites.first.name
+                                : '');
+
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => DocumentStorageScreen(
+                            selectedSiteId: effectiveSiteId,
+                            siteId: effectiveSiteId,
+                            siteName: effectiveSiteName,
+                            onSiteChanged: widget.onSiteChanged,
+                            sites: widget.sites,
+                            selectedSite:
+                                widget.selectedSiteId != null &&
+                                    widget.sites.any(
+                                      (s) => s.id == widget.selectedSiteId,
+                                    )
+                                ? widget.sites.firstWhere(
+                                    (s) => s.id == widget.selectedSiteId,
+                                  )
+                                : (widget.sites.isNotEmpty
+                                      ? widget.sites.first
+                                      : null),
                           ),
                         ),
                       );
                       break;
                   }
                 },
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 1000),
-                  curve: Curves.easeInOut,
-                  decoration: BoxDecoration(
-                    color: color.withOpacity(0.02),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: color.withOpacity(0.20),
-                      width: 1,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: color.withOpacity(0.08),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                        spreadRadius: 0,
-                      ),
-                    ],
-                  ),
-                  child: Padding(
-                    padding: EdgeInsets.all(
-                      Responsive.isSmall(context)
-                          ? 6.w
-                          : Responsive.isLarge(context)
-                          ? 12.w
-                          : 9.w,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Icon(
-                              item['icon'] as IconData,
-                              color: color,
-                              size: 18.sp,
-                            ),
-                            TweenAnimationBuilder<int>(
-                              tween: IntTween(begin: 0, end: targetValue),
-                              duration: const Duration(seconds: 1),
-                              builder: (context, value, child) {
-                                return Text(
-                                  value.toString(),
-                                  style: TextStyle(
-                                    fontSize: 18.sp,
-                                    fontWeight: FontWeight.bold,
-                                    color: color,
-                                  ),
-                                );
-                              },
-                            ),
-                          ],
+                child: MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeInOut,
+                    decoration: BoxDecoration(
+                      color: color,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: color.withOpacity(0.3),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                          spreadRadius: -4,
                         ),
-                        SizedBox(height: 13.h),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              item['title'] as String,
-                              style: TextStyle(
-                                fontSize: 15.sp,
-                                fontWeight: FontWeight.w600,
-                                color: const Color(0xFF1F2937),
-                              ),
-                            ),
-                            SizedBox(height: 3.h),
-                            Text(
-                              item['subtitle'] as String,
-                              style: TextStyle(
-                                fontSize: 10.sp,
-                                color: const Color(0xFF6B7280),
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 2,
+                          offset: const Offset(0, 1),
                         ),
                       ],
                     ),
-                  ),
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Widget _buildBirthdaySection(
-    String title,
-    List<Birthday> birthdays, {
-    required bool isToday,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: TextStyle(
-            fontSize: 15.sp,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF1F2937),
-          ),
-        ),
-        SizedBox(height: 12.h),
-        ListView.separated(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: birthdays.length,
-          separatorBuilder: (context, index) => SizedBox(height: 12.h),
-          itemBuilder: (context, index) {
-            final birthday = birthdays[index];
-            return _buildBirthdayCard(birthday, isToday: isToday);
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildBirthdayCard(Birthday birthday, {required bool isToday}) {
-    return Consumer<BirthdayProvider>(
-      builder: (context, birthdayProvider, child) {
-        return Container(
-          padding: EdgeInsets.all(10.h),
-          decoration: BoxDecoration(
-            color: isToday
-                ? Colors.yellow.shade50
-                : const Color.fromARGB(255, 248, 249, 252),
-            borderRadius: BorderRadius.circular(6),
-            border: Border.all(
-              color: isToday ? Colors.yellow.shade200 : Colors.grey.shade100,
-            ),
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: EdgeInsets.all(12.h),
-                decoration: BoxDecoration(
-                  color: isToday
-                      ? const Color.fromARGB(255, 255, 225, 181)
-                      : Colors.pink.shade100,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Icon(
-                  isToday ? Icons.cake : Icons.card_giftcard,
-                  color: isToday ? Colors.orange : Colors.pink,
-                  size: 22.sp,
-                ),
-              ),
-              SizedBox(width: 16.w),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      birthday.name,
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 16.sp,
-                        color: Color(0xFF1F2937),
-                        letterSpacing: -0.3,
-                      ),
-                    ),
-                    SizedBox(height: 6.h),
-                    Row(
+                    child: Stack(
                       children: [
-                        Icon(
-                          Icons.calendar_today_rounded,
-                          size: 14.sp,
-                          color: Color(0xFF6B7280),
-                        ),
-                        SizedBox(width: 6.w),
-                        Text(
-                          DateFormat('MMM dd, yyyy').format(birthday.date),
-                          style: TextStyle(
-                            color: Color(0xFF6B7280),
-                            fontSize: 13.sp,
-                            fontWeight: FontWeight.w500,
+                        // Background pattern
+                        Positioned(
+                          top: -25,
+                          right: -25,
+                          child: Container(
+                            width: 60,
+                            height: 60,
+                            decoration: BoxDecoration(
+                              color: const Color.fromARGB(
+                                255,
+                                131,
+                                131,
+                                131,
+                              ).withOpacity(0.1),
+                              shape: BoxShape.circle,
+                            ),
                           ),
                         ),
-                      ],
-                    ),
-                    if (!isToday) ...[
-                      SizedBox(height: 6.h),
-                      Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 10.w,
-                          vertical: 4.h,
-                        ),
-                        decoration: BoxDecoration(
-                          color: _getDaysLeftColor(
-                            birthday.daysUntilBirthday,
-                          ).withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          birthday.daysUntilBirthday == 0
-                              ? '🎉 Today!'
-                              : '${birthday.daysUntilBirthday} ${birthday.daysUntilBirthday == 1 ? 'day' : 'days'} left',
-                          style: TextStyle(
-                            color: _getDaysLeftColor(
-                              birthday.daysUntilBirthday,
-                            ),
-                            fontSize: 12.sp,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ] else ...[
-                      SizedBox(height: 6.h),
-                      Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 10.w,
-                          vertical: 4.h,
-                        ),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              Colors.orange.shade400,
-                              Colors.red.shade400,
-                            ],
-                          ),
-                          borderRadius: BorderRadius.circular(20),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.orange.withOpacity(0.5),
-                              blurRadius: 4,
-                              offset: Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.celebration,
-                              color: Colors.white,
-                              size: 14.sp,
-                            ),
-                            SizedBox(width: 4.w),
-                            Text(
-                              "It's their birthday!",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 10.sp,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              IconButton(
-                icon: Icon(Icons.delete, size: 18.sp, color: Colors.red),
-                onPressed: () => birthdayProvider.deleteBirthday(birthday.id),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
 
-  Widget _buildRecentActivities() {
-    return Consumer<ActivityProvider>(
-      builder: (context, activityProvider, child) {
-        final pendingActivities = activityProvider.pendingActivities;
-        final completedActivities = activityProvider.completedActivities;
-
-        return Column(
-          children: [
-            _buildActivitySection(
-              "Pending Activities",
-              pendingActivities,
-              false,
-            ),
-            SizedBox(height: 20.h),
-            if (completedActivities.isNotEmpty)
-              _buildActivitySection(
-                "Completed Activities",
-                completedActivities,
-                true,
-              ),
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _buildBirthdayReminders() {
-    return Consumer<BirthdayProvider>(
-      builder: (context, birthdayProvider, child) {
-        final upcomingBirthdays = birthdayProvider.upcomingBirthdays;
-        final todaysBirthdays = birthdayProvider.todaysBirthdays;
-
-        if (upcomingBirthdays.isEmpty && todaysBirthdays.isEmpty) {
-          return const SizedBox.shrink();
-        }
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Birthday Reminders',
-              style: TextStyle(
-                fontSize: 20.sp,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF1F2937),
-              ),
-            ),
-            SizedBox(height: 16.h),
-            if (todaysBirthdays.isNotEmpty) ...[
-              _buildBirthdaySection(
-                "Today's Birthdays",
-                todaysBirthdays,
-                isToday: true,
-              ),
-              SizedBox(height: 20.h),
-            ],
-            if (upcomingBirthdays.isNotEmpty)
-              _buildBirthdaySection(
-                "Upcoming Birthdays",
-                upcomingBirthdays,
-                isToday: false,
-              ),
-          ],
-        );
-      },
-    );
-  }
-
-  // Section builder
-  Widget _buildActivitySection(
-    String title,
-    List<Activity> data,
-    bool completed,
-  ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: TextStyle(
-            fontSize: 20.sp,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF1F2937),
-          ),
-        ),
-        SizedBox(height: 16.h),
-        ListView.separated(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: data.length,
-          separatorBuilder: (context, index) => SizedBox(height: 16.h),
-          itemBuilder: (context, index) {
-            final activity = data[index];
-            return _buildActivityCard(activity, completed);
-          },
-        ),
-      ],
-    );
-  }
-
-  // Activity card with dynamic buttons
-  Widget _buildActivityCard(Activity activity, bool completed) {
-    IconData getIconForActivity() {
-      switch (activity.priority) {
-        case 'urgent':
-          return Icons.assignment_late;
-        case 'high':
-          return Icons.update;
-        case 'medium':
-          return Icons.local_shipping;
-        case 'low':
-          return Icons.people;
-        default:
-          return Icons.task;
-      }
-    }
-
-    Color getColorForActivity() {
-      switch (activity.priority) {
-        case 'urgent':
-          return const Color(0xFFEF4444);
-        case 'high':
-          return const Color(0xFF10B981);
-        case 'medium':
-          return const Color(0xFFF59E0B);
-        case 'low':
-          return const Color(0xFF8B5CF6);
-        default:
-          return const Color(0xFF6B7280);
-      }
-    }
-
-    String getTimeAgo(BuildContext context) {
-      final now = DateTime.now();
-      final difference = now.difference(activity.createdAt);
-      final isSmall = Responsive.isSmall(context);
-
-      if (difference.inDays >= 7) {
-        // More than a week ago, show date
-        final date = activity.createdAt;
-        final today = DateTime(now.year, now.month, now.day);
-        final yesterday = today.subtract(const Duration(days: 1));
-        final activityDate = DateTime(date.year, date.month, date.day);
-
-        if (activityDate == today) {
-          return 'Today';
-        } else if (activityDate == yesterday) {
-          return 'Yesterday';
-        } else {
-          return isSmall
-              ? '${date.day}/${date.month}'
-              : '${date.day}/${date.month}/${date.year}';
-        }
-      } else if (difference.inDays > 0) {
-        return isSmall
-            ? '${difference.inDays}d ago'
-            : '${difference.inDays} day${difference.inDays > 1 ? 's' : ''} ago';
-      } else if (difference.inHours > 0) {
-        return '${difference.inHours}h ago';
-      } else if (difference.inMinutes > 0) {
-        return '${difference.inMinutes}m ago';
-      } else {
-        return 'Now';
-      }
-    }
-
-    return Consumer<ActivityProvider>(
-      builder: (context, activityProvider, child) {
-        final progressPercentage = activity.quantity > 0
-            ? (activity.completedQuantity / activity.quantity)
-            : 0.0;
-
-        return Dismissible(
-          key: ValueKey(activity.id),
-          direction: DismissDirection.horizontal,
-          background: Container(
-            alignment: Alignment.centerLeft,
-            padding: EdgeInsets.only(left: 10.w),
-            color: Colors.blue.shade100,
-            child: Icon(Icons.edit, color: Colors.blue.shade700, size: 28.sp),
-          ),
-          secondaryBackground: Container(
-            alignment: Alignment.centerRight,
-            padding: EdgeInsets.only(right: 20.w),
-            color: Colors.red.shade100,
-            child: Icon(Icons.delete, color: Colors.red.shade700, size: 28.sp),
-          ),
-          confirmDismiss: (direction) async {
-            if (direction == DismissDirection.startToEnd) {
-              // Swipe right -> edit
-              _showAddActivityBottomSheet(context, existingActivity: activity);
-              return false;
-            } else if (direction == DismissDirection.endToStart) {
-              // Swipe left -> delete
-              _showDeleteConfirmationDialog(
-                context,
-                activity,
-                activityProvider,
-              );
-              return false;
-            }
-            return false;
-          },
-          child: InkWell(
-            onTap: () => _showActivityDetailsBottomSheet(context, activity),
-            borderRadius: BorderRadius.circular(16.r),
-            child: Container(
-              margin: EdgeInsets.only(bottom: 16.h),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16.r),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.04),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                    spreadRadius: 0,
-                  ),
-                ],
-                border: Border.all(color: Colors.grey.shade50, width: 1),
-              ),
-              child: Padding(
-                padding: EdgeInsets.all(
-                  Responsive.isSmall(context) ? 12.h : 20.h,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Header Row with Title and Time
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Priority indicator
-                        Container(
-                          width: 3.w,
-                          height: Responsive.isSmall(context) ? 30.h : 40.h,
-                          decoration: BoxDecoration(
-                            color: activity.priority == 'urgent'
-                                ? const Color(0xFFEF4444)
-                                : activity.priority == 'high'
-                                ? const Color(0xFFF59E0B)
-                                : activity.priority == 'medium'
-                                ? const Color(0xFF3B82F6)
-                                : const Color(0xFF8B5CF6),
-                            borderRadius: BorderRadius.circular(2.r),
-                          ),
-                        ),
-                        SizedBox(
-                          width: Responsive.isSmall(context) ? 12.w : 16.w,
-                        ),
-                        // Priority Icon
-                        Container(
+                        Padding(
                           padding: EdgeInsets.all(
-                            Responsive.isSmall(context) ? 6.w : 7.w,
+                            Responsive.isSmall(context)
+                                ? 14
+                                : Responsive.isLarge(context)
+                                ? 18
+                                : 16,
                           ),
-                          decoration: BoxDecoration(
-                            color: getColorForActivity().withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(10.r),
-                          ),
-                          child: Icon(
-                            getIconForActivity(),
-                            color: getColorForActivity(),
-                            size: Responsive.isSmall(context) ? 16.sp : 18.sp,
-                          ),
-                        ),
-                        SizedBox(
-                          width: Responsive.isSmall(context) ? 8.w : 12.w,
-                        ),
-                        // Title and Scope in Expanded Column
-                        Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                activity.title,
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: Responsive.isSmall(context)
-                                      ? 14.sp
-                                      : 16.sp,
-                                  color: const Color(0xFF1F2937),
-                                  letterSpacing: -0.5,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
+                              // Top row with icon
+                              Icon(
+                                item['icon'] as IconData,
+                                color: const Color.fromARGB(255, 36, 36, 36),
+                                size: 30.sp,
                               ),
-                              SizedBox(
-                                height: Responsive.isSmall(context) ? 4.h : 8.h,
-                              ),
+
+                              SizedBox(height: 8),
+
+                              // Value with animation
+                              // TweenAnimationBuilder<int>(
+                              //   tween: IntTween(begin: 0, end: targetValue),
+                              //   duration: const Duration(seconds: 1),
+                              //   curve: Curves.easeOut,
+                              //   builder: (context, value, child) {
+                              //     return Text(
+                              //       value.toString(),
+                              //       style: TextStyle(
+                              //         fontSize: 24,
+                              //         fontWeight: FontWeight.bold,
+                              //         color: Colors.white,
+                              //         height: 1,
+                              //       ),
+                              //     );
+                              //   },
+                              // ),
+                              SizedBox(height: 4),
+
+                              // Title
                               Text(
-                                activity.scope,
+                                item['title'] as String,
                                 style: TextStyle(
-                                  color: const Color(0xFF6B7280),
-                                  fontSize: Responsive.isSmall(context)
-                                      ? 12.sp
-                                      : 14.sp,
-                                  fontWeight: FontWeight.w400,
-                                  height: 1.4,
+                                  fontSize: 13.sp,
+                                  fontWeight: FontWeight.w600,
+                                  color: const Color.fromARGB(255, 31, 30, 30),
                                 ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
                               ),
                             ],
                           ),
                         ),
-                        // Time badge
-                        ConstrainedBox(
-                          constraints: BoxConstraints(
-                            maxWidth: Responsive.isSmall(context) ? 60.w : 80.w,
-                          ),
-                          child: Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: Responsive.isSmall(context)
-                                  ? 6.w
-                                  : 10.w,
-                              vertical: Responsive.isSmall(context) ? 2.h : 4.h,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF8FAFC),
-                              borderRadius: BorderRadius.circular(20.r),
-                              border: Border.all(
-                                color: Colors.grey.shade200,
-                                width: 1,
-                              ),
-                            ),
-                            child: Text(
-                              getTimeAgo(context),
-                              style: TextStyle(
-                                color: const Color(0xFF64748B),
-                                fontSize: Responsive.isSmall(context)
-                                    ? 9.sp
-                                    : 11.sp,
-                                fontWeight: FontWeight.w600,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ),
                       ],
                     ),
-
-                    SizedBox(height: Responsive.isSmall(context) ? 6.h : 10.h),
-
-                    // Progress and Mark Complete in Row
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        // Circular Progress and Progress Info
-                        Row(
-                          children: [
-                            // Circular Progress
-                            GestureDetector(
-                              onTap: () => _showQuickQuantityEditDialog(
-                                context,
-                                activity,
-                                activityProvider,
-                              ),
-                              child: Container(
-                                width: Responsive.isSmall(context)
-                                    ? 40.0
-                                    : 50.0,
-                                height: Responsive.isSmall(context)
-                                    ? 40.0
-                                    : 50.0,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      getColorForActivity().withOpacity(0.15),
-                                      getColorForActivity().withOpacity(0.08),
-                                    ],
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                  ),
-                                ),
-                                child: Stack(
-                                  alignment: Alignment.center,
-                                  children: [
-                                    SizedBox(
-                                      width: Responsive.isSmall(context)
-                                          ? 32.0
-                                          : 40.0,
-                                      height: Responsive.isSmall(context)
-                                          ? 32.0
-                                          : 40.0,
-                                      child: CircularProgressIndicator(
-                                        value: progressPercentage,
-                                        backgroundColor: Colors.grey.shade100,
-                                        valueColor:
-                                            AlwaysStoppedAnimation<Color>(
-                                              getColorForActivity(),
-                                            ),
-                                        strokeWidth: 2.w,
-                                      ),
-                                    ),
-                                    Text(
-                                      '${(progressPercentage * 100).round()}%',
-                                      style: TextStyle(
-                                        fontSize: Responsive.isSmall(context)
-                                            ? 11.sp
-                                            : 13.sp,
-                                        fontWeight: FontWeight.w800,
-                                        color: getColorForActivity(),
-                                        letterSpacing: -0.3,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-
-                            SizedBox(
-                              width: Responsive.isSmall(context) ? 6.w : 8.w,
-                            ),
-
-                            // Progress Info
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  '${activity.completedQuantity}/${activity.quantity} ${activity.unit}',
-                                  style: TextStyle(
-                                    fontSize: Responsive.isSmall(context)
-                                        ? 11.sp
-                                        : 12.sp,
-                                    fontWeight: FontWeight.w500,
-                                    color: const Color(0xFF64748B),
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-
-                        // Status Button
-                        if (!completed)
-                          InkWell(
-                            onTap: () =>
-                                activityProvider.markComplete(activity.id),
-                            borderRadius: BorderRadius.circular(25.r),
-                            child: Container(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: Responsive.isSmall(context)
-                                    ? 8.w
-                                    : 12.w,
-                                vertical: Responsive.isSmall(context)
-                                    ? 6.h
-                                    : 8.h,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.green.shade50,
-                                borderRadius: BorderRadius.circular(20.r),
-                                border: Border.all(
-                                  color: Colors.green.shade200,
-                                  width: 1,
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.check_circle_outline,
-                                    color: Colors.green.shade600,
-                                    size: Responsive.isSmall(context)
-                                        ? 14.sp
-                                        : 16.sp,
-                                  ),
-                                  SizedBox(width: 6.w),
-                                  Text(
-                                    Responsive.isSmall(context)
-                                        ? 'Complete'
-                                        : 'Mark Complete',
-                                    style: TextStyle(
-                                      fontSize: Responsive.isSmall(context)
-                                          ? 10.sp
-                                          : 11.sp,
-                                      color: Colors.green.shade700,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          )
-                        else
-                          Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: Responsive.isSmall(context)
-                                  ? 8.w
-                                  : 12.w,
-                              vertical: Responsive.isSmall(context) ? 6.h : 8.h,
-                            ),
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  Colors.orange.shade50,
-                                  Colors.orange.shade100,
-                                ],
-                                begin: Alignment.centerLeft,
-                                end: Alignment.centerRight,
-                              ),
-                              borderRadius: BorderRadius.circular(20.r),
-                              border: Border.all(
-                                color: Colors.orange.shade200,
-                                width: 1,
-                              ),
-                            ),
-                            child: InkWell(
-                              onTap: () =>
-                                  activityProvider.markPending(activity.id),
-                              borderRadius: BorderRadius.circular(20.r),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.refresh,
-                                    color: Colors.orange.shade600,
-                                    size: Responsive.isSmall(context)
-                                        ? 14.sp
-                                        : 16.sp,
-                                  ),
-                                  SizedBox(
-                                    width: Responsive.isSmall(context)
-                                        ? 4.w
-                                        : 6.w,
-                                  ),
-                                  Text(
-                                    Responsive.isSmall(context)
-                                        ? 'Reopen'
-                                        : 'Reopen Task',
-                                    style: TextStyle(
-                                      fontSize: Responsive.isSmall(context)
-                                          ? 10.sp
-                                          : 11.sp,
-                                      color: Colors.orange.shade700,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ],
+                  ),
                 ),
               ),
-            ),
-          ),
+            );
+          },
         );
       },
     );
-  }
-
-  void _showDeleteConfirmationDialog(
-    BuildContext context,
-    Activity activity,
-    ActivityProvider activityProvider,
-  ) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            Icon(Icons.delete_forever, color: Colors.red, size: 28),
-            SizedBox(width: 12),
-            Text(
-              'Delete Activity',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Colors.red.shade700,
-              ),
-            ),
-          ],
-        ),
-        content: Text(
-          'Are you sure you want to delete "${activity.title}"?\n\nThis action cannot be undone.',
-          style: TextStyle(fontSize: 16),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            style: TextButton.styleFrom(foregroundColor: Colors.grey[600]),
-            child: Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              activityProvider.deleteActivity(activity.id);
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    'Activity "${activity.title}" deleted successfully',
-                  ),
-                  backgroundColor: Colors.red,
-                  behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: Text('Delete'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showActivityDetailsBottomSheet(
-    BuildContext context,
-    Activity activity,
-  ) {
-    final screenHeight = MediaQuery.of(context).size.height;
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isSmallScreen = screenHeight < 600 || screenWidth < 400;
-    final progressPercentage = activity.quantity > 0
-        ? (activity.completedQuantity / activity.quantity)
-        : 0.0;
-
-    IconData getIconForActivity() {
-      switch (activity.priority) {
-        case 'urgent':
-          return Icons.assignment_late;
-        case 'high':
-          return Icons.update;
-        case 'medium':
-          return Icons.local_shipping;
-        case 'low':
-          return Icons.people;
-        default:
-          return Icons.task;
-      }
-    }
-
-    Color getColorForActivity() {
-      switch (activity.priority) {
-        case 'urgent':
-          return const Color(0xFFEF4444);
-        case 'high':
-          return const Color(0xFF10B981);
-        case 'medium':
-          return const Color(0xFFF59E0B);
-        case 'low':
-          return const Color(0xFF8B5CF6);
-        default:
-          return const Color(0xFF6B7280);
-      }
-    }
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        constraints: BoxConstraints(
-          maxHeight: screenHeight * (isSmallScreen ? 0.85 : 0.75),
-        ),
-        child: DraggableScrollableSheet(
-          initialChildSize: isSmallScreen ? 0.85 : 0.65,
-          minChildSize: 0.5,
-          maxChildSize: 0.95,
-          builder: (context, scrollController) {
-            return Container(
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black26,
-                    blurRadius: 25,
-                    offset: Offset(0, -8),
-                  ),
-                ],
-              ),
-              child: SafeArea(
-                child: Column(
-                  children: [
-                    // Header with gradient
-                    Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 24.w,
-                        vertical: 20.h,
-                      ),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            getColorForActivity().withOpacity(0.1),
-                            getColorForActivity().withOpacity(0.05),
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: const BorderRadius.vertical(
-                          top: Radius.circular(32),
-                        ),
-                      ),
-                      child: Column(
-                        children: [
-                          // Drag handle
-                          Center(
-                            child: Container(
-                              width: 40.w,
-                              height: 4.h,
-                              decoration: BoxDecoration(
-                                color: Colors.grey[400],
-                                borderRadius: BorderRadius.circular(2),
-                              ),
-                            ),
-                          ),
-                          SizedBox(height: 16.h),
-                          // Activity icon and title
-                          Row(
-                            children: [
-                              Container(
-                                padding: EdgeInsets.all(16.w),
-                                decoration: BoxDecoration(
-                                  color: getColorForActivity().withOpacity(
-                                    0.15,
-                                  ),
-                                  borderRadius: BorderRadius.circular(16.r),
-                                  border: Border.all(
-                                    color: getColorForActivity().withOpacity(
-                                      0.2,
-                                    ),
-                                    width: 1,
-                                  ),
-                                ),
-                                child: Icon(
-                                  getIconForActivity(),
-                                  color: getColorForActivity(),
-                                  size: 32.sp,
-                                ),
-                              ),
-                              SizedBox(width: 16.w),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      activity.title,
-                                      style: TextStyle(
-                                        fontSize: 20.sp,
-                                        fontWeight: FontWeight.bold,
-                                        color: const Color(0xFF1F2937),
-                                      ),
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    SizedBox(height: 4.h),
-                                    Container(
-                                      padding: EdgeInsets.symmetric(
-                                        horizontal: 8.w,
-                                        vertical: 4.h,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: activity.status == 'completed'
-                                            ? Colors.green.shade100
-                                            : Colors.orange.shade100,
-                                        borderRadius: BorderRadius.circular(
-                                          12.r,
-                                        ),
-                                      ),
-                                      child: Text(
-                                        activity.status.toUpperCase(),
-                                        style: TextStyle(
-                                          fontSize: 10.sp,
-                                          fontWeight: FontWeight.w600,
-                                          color: activity.status == 'completed'
-                                              ? Colors.green.shade700
-                                              : Colors.orange.shade700,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    // Content
-                    Expanded(
-                      child: SingleChildScrollView(
-                        controller: scrollController,
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 24.w,
-                          vertical: 20.h,
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Progress Section
-                            Container(
-                              padding: EdgeInsets.all(20.w),
-                              decoration: BoxDecoration(
-                                color: Colors.grey.shade50,
-                                borderRadius: BorderRadius.circular(16.r),
-                                border: Border.all(color: Colors.grey.shade100),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Icon(
-                                        Icons.trending_up,
-                                        color: getColorForActivity(),
-                                        size: 20.sp,
-                                      ),
-                                      SizedBox(width: 8.w),
-                                      Text(
-                                        'Progress',
-                                        style: TextStyle(
-                                          fontSize: 16.sp,
-                                          fontWeight: FontWeight.w600,
-                                          color: const Color(0xFF1F2937),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  SizedBox(height: 16.h),
-                                  Row(
-                                    children: [
-                                      // Circular Progress
-                                      Container(
-                                        width: 60.w,
-                                        height: 60.h,
-                                        decoration: BoxDecoration(
-                                          shape: BoxShape.circle,
-                                          gradient: LinearGradient(
-                                            colors: [
-                                              getColorForActivity().withOpacity(
-                                                0.15,
-                                              ),
-                                              getColorForActivity().withOpacity(
-                                                0.08,
-                                              ),
-                                            ],
-                                            begin: Alignment.topLeft,
-                                            end: Alignment.bottomRight,
-                                          ),
-                                        ),
-                                        child: Stack(
-                                          alignment: Alignment.center,
-                                          children: [
-                                            SizedBox(
-                                              width: 50.w,
-                                              height: 50.h,
-                                              child: CircularProgressIndicator(
-                                                value: progressPercentage,
-                                                backgroundColor:
-                                                    Colors.grey.shade200,
-                                                valueColor:
-                                                    AlwaysStoppedAnimation<
-                                                      Color
-                                                    >(getColorForActivity()),
-                                                strokeWidth: 3.w,
-                                              ),
-                                            ),
-                                            Text(
-                                              '${(progressPercentage * 100).round()}%',
-                                              style: TextStyle(
-                                                fontSize: 12.sp,
-                                                fontWeight: FontWeight.bold,
-                                                color: getColorForActivity(),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      SizedBox(width: 16.w),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              '${activity.completedQuantity}/${activity.quantity} ${activity.unit}',
-                                              style: TextStyle(
-                                                fontSize: 18.sp,
-                                                fontWeight: FontWeight.bold,
-                                                color: const Color(0xFF1F2937),
-                                              ),
-                                            ),
-                                            SizedBox(height: 4.h),
-                                            Text(
-                                              '${activity.balanceQuantity} ${activity.unit} remaining',
-                                              style: TextStyle(
-                                                fontSize: 12.sp,
-                                                color: const Color(0xFF6B7280),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-
-                            SizedBox(height: 20.h),
-
-                            // Scope Section
-                            Container(
-                              padding: EdgeInsets.all(20.w),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(16.r),
-                                border: Border.all(color: Colors.grey.shade200),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.grey.shade100,
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Icon(
-                                        Icons.description,
-                                        color: const Color(0xFF6B7280),
-                                        size: 20.sp,
-                                      ),
-                                      SizedBox(width: 8.w),
-                                      Text(
-                                        'Scope',
-                                        style: TextStyle(
-                                          fontSize: 16.sp,
-                                          fontWeight: FontWeight.w600,
-                                          color: const Color(0xFF1F2937),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  SizedBox(height: 8.h),
-                                  Text(
-                                    activity.scope,
-                                    style: TextStyle(
-                                      fontSize: 14.sp,
-                                      color: const Color(0xFF374151),
-                                      height: 1.5,
-                                    ),
-                                  ),
-                                  SizedBox(height: 20),
-
-                                  Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          Icon(
-                                            Icons.access_time,
-                                            color: const Color(0xFF6B7280),
-                                            size: 20.sp,
-                                          ),
-                                          SizedBox(width: 4.w), // Added spacing
-                                          Text(
-                                            'Created',
-                                            style: TextStyle(
-                                              fontSize: 12.sp,
-                                              color: const Color(0xFF6B7280),
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      SizedBox(height: 4.h), // Added spacing
-                                      Row(
-                                        children: [
-                                          Text(
-                                            DateFormat(
-                                              'MMM dd, yyyy • hh:mm a',
-                                            ).format(activity.createdAt),
-                                            style: TextStyle(
-                                              fontSize: 14.sp,
-                                              color: const Color(0xFF1F2937),
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-
-                            if (activity.updates.isNotEmpty) ...[
-                              SizedBox(height: 20.h),
-
-                              // Update History
-                              Container(
-                                padding: EdgeInsets.all(20.w),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(16.r),
-                                  border: Border.all(
-                                    color: Colors.grey.shade200,
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.grey.shade100,
-                                      blurRadius: 8,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ],
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Icon(
-                                          Icons.history,
-                                          color: const Color(0xFF6B7280),
-                                          size: 20.sp,
-                                        ),
-                                        SizedBox(width: 8.w),
-                                        Text(
-                                          'Update History',
-                                          style: TextStyle(
-                                            fontSize: 16.sp,
-                                            fontWeight: FontWeight.w600,
-                                            color: const Color(0xFF1F2937),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    SizedBox(height: 16.h),
-                                    ListView.separated(
-                                      shrinkWrap: true,
-                                      physics:
-                                          const NeverScrollableScrollPhysics(),
-                                      itemCount: activity.updates.length,
-                                      separatorBuilder: (context, index) =>
-                                          Divider(
-                                            height: 16.h,
-                                            color: Colors.grey.shade200,
-                                          ),
-                                      itemBuilder: (context, index) {
-                                        final update = activity.updates[index];
-                                        return Row(
-                                          children: [
-                                            Container(
-                                              padding: EdgeInsets.all(8.w),
-                                              decoration: BoxDecoration(
-                                                color: getColorForActivity()
-                                                    .withOpacity(0.1),
-                                                borderRadius:
-                                                    BorderRadius.circular(8.r),
-                                              ),
-                                              child: Icon(
-                                                Icons.check_circle,
-                                                color: getColorForActivity(),
-                                                size: 16.sp,
-                                              ),
-                                            ),
-                                            SizedBox(width: 12.w),
-                                            Expanded(
-                                              child: Column(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
-                                                children: [
-                                                  Text(
-                                                    '${update.quantityCompleted} ${activity.unit} completed',
-                                                    style: TextStyle(
-                                                      fontSize: 14.sp,
-                                                      fontWeight:
-                                                          FontWeight.w600,
-                                                      color: const Color(
-                                                        0xFF1F2937,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                  Text(
-                                                    DateFormat(
-                                                      'MMM dd, yyyy • hh:mm a',
-                                                    ).format(update.date),
-                                                    style: TextStyle(
-                                                      fontSize: 12.sp,
-                                                      color: const Color(
-                                                        0xFF6B7280,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ],
-                                        );
-                                      },
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        ),
-      ),
-    );
-  }
-
-  void _showAddActivityBottomSheet(
-    BuildContext context, {
-    Activity? existingActivity,
-  }) {
-    final screenHeight = MediaQuery.of(context).size.height;
-    final screenWidth = MediaQuery.of(context).size.width;
-    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
-    final isKeyboardOpen = keyboardHeight > 0;
-    final isSmallScreen = screenHeight < 600 || screenWidth < 400;
-    final isEditing = existingActivity != null;
-    final titleController = TextEditingController(
-      text: isEditing ? existingActivity.title : '',
-    );
-    final scopeController = TextEditingController(
-      text: isEditing ? existingActivity.scope : '',
-    );
-    final quantityController = TextEditingController(
-      text: isEditing ? existingActivity.quantity.toString() : '',
-    );
-    final unitController = TextEditingController(
-      text: isEditing ? existingActivity.unit : '',
-    );
-    final completedQuantityController = TextEditingController(
-      text: isEditing ? existingActivity.completedQuantity.toString() : '0',
-    );
-    String selectedPriority = isEditing ? existingActivity.priority : 'medium';
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        constraints: BoxConstraints(
-          maxHeight:
-              screenHeight *
-              (isKeyboardOpen ? 0.98 : (isSmallScreen ? 0.85 : 0.9)),
-        ),
-        child: DraggableScrollableSheet(
-          initialChildSize: isKeyboardOpen ? 0.95 : (isSmallScreen ? 0.9 : 0.7),
-          minChildSize: isKeyboardOpen ? 0.8 : (isSmallScreen ? 0.7 : 0.5),
-          maxChildSize: 0.98,
-          builder: (context, scrollController) {
-            return StatefulBuilder(
-              builder: (context, setSheetState) {
-                return Container(
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.vertical(
-                      top: Radius.circular(28),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black26,
-                        blurRadius: 20,
-                        offset: Offset(0, -5),
-                      ),
-                    ],
-                  ),
-                  child: SafeArea(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 20.w,
-                        vertical: 24.h,
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Center(
-                            child: Container(
-                              width: 40.w,
-                              height: 4.h,
-                              decoration: BoxDecoration(
-                                color: Colors.grey[300],
-                                borderRadius: BorderRadius.circular(2),
-                              ),
-                            ),
-                          ),
-                          SizedBox(height: 16.h),
-                          Row(
-                            children: [
-                              Icon(
-                                isEditing ? Icons.edit : Icons.add_task,
-                                color: Color(0xFF4a63c0),
-                                size: 28.sp,
-                              ),
-                              SizedBox(width: 16.w),
-                              Expanded(
-                                child: Text(
-                                  isEditing
-                                      ? 'Edit Activity'
-                                      : 'Add New Activity',
-                                  style: TextStyle(
-                                    fontSize: 24.sp,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.black87,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          SizedBox(height: 32.h),
-                          Flexible(
-                            child: SingleChildScrollView(
-                              controller: scrollController,
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  TextField(
-                                    controller: titleController,
-                                    decoration: InputDecoration(
-                                      labelText: 'Activity Title',
-                                      hintText: 'e.g. Foundation Work',
-                                      border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.all(
-                                          Radius.circular(12.r),
-                                        ),
-                                      ),
-                                      prefixIcon: Icon(
-                                        Icons.title,
-                                        color: Color.fromARGB(255, 46, 74, 179),
-                                        size: 20.sp,
-                                      ),
-                                      contentPadding: EdgeInsets.symmetric(
-                                        vertical: 8.h,
-                                        horizontal: 12.w,
-                                      ),
-                                    ),
-                                  ),
-                                  SizedBox(height: 12.h),
-                                  TextField(
-                                    controller: scopeController,
-                                    decoration: InputDecoration(
-                                      labelText: 'Scope',
-                                      hintText:
-                                          'e.g. Foundation work for building A',
-                                      border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.all(
-                                          Radius.circular(12.r),
-                                        ),
-                                      ),
-                                      prefixIcon: Icon(
-                                        Icons.description,
-                                        color: Color.fromARGB(255, 46, 74, 179),
-                                        size: 20.sp,
-                                      ),
-                                      contentPadding: EdgeInsets.symmetric(
-                                        vertical: 8.h,
-                                        horizontal: 12.w,
-                                      ),
-                                    ),
-                                    maxLines: 1,
-                                  ),
-                                  SizedBox(height: 12.h),
-                                  TextField(
-                                    controller: quantityController,
-                                    keyboardType: TextInputType.number,
-                                    decoration: InputDecoration(
-                                      labelText: 'Quantity',
-                                      hintText: 'e.g. 100',
-                                      border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.all(
-                                          Radius.circular(12.r),
-                                        ),
-                                      ),
-                                      prefixIcon: Icon(
-                                        Icons.numbers,
-                                        color: Color.fromARGB(255, 46, 74, 179),
-                                        size: 20.sp,
-                                      ),
-                                      contentPadding: EdgeInsets.symmetric(
-                                        vertical: 8.h,
-                                        horizontal: 12.w,
-                                      ),
-                                    ),
-                                  ),
-                                  SizedBox(height: 12.h),
-                                  TextField(
-                                    controller: unitController,
-                                    decoration: InputDecoration(
-                                      labelText: 'Unit',
-                                      hintText: 'e.g. sq ft, tons',
-                                      border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.all(
-                                          Radius.circular(12.r),
-                                        ),
-                                      ),
-                                      prefixIcon: Icon(
-                                        Icons.straighten,
-                                        color: Color.fromARGB(255, 46, 74, 179),
-                                        size: 20.sp,
-                                      ),
-                                      contentPadding: EdgeInsets.symmetric(
-                                        vertical: 8.h,
-                                        horizontal: 12.w,
-                                      ),
-                                    ),
-                                  ),
-                                  SizedBox(height: 12.h),
-                                  TextField(
-                                    controller: completedQuantityController,
-                                    keyboardType: TextInputType.number,
-                                    decoration: InputDecoration(
-                                      labelText: 'Completed Quantity',
-                                      hintText: 'e.g. 85',
-                                      border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.all(
-                                          Radius.circular(12.r),
-                                        ),
-                                      ),
-                                      prefixIcon: Icon(
-                                        Icons.check_circle,
-                                        color: Color.fromARGB(255, 46, 74, 179),
-                                        size: 20.sp,
-                                      ),
-                                      contentPadding: EdgeInsets.symmetric(
-                                        vertical: 8.h,
-                                        horizontal: 12.w,
-                                      ),
-                                    ),
-                                  ),
-                                  SizedBox(height: 8.h),
-                                  StatefulBuilder(
-                                    builder: (context, setBalanceState) {
-                                      final quantity =
-                                          int.tryParse(
-                                            quantityController.text,
-                                          ) ??
-                                          0;
-                                      final completed =
-                                          int.tryParse(
-                                            completedQuantityController.text,
-                                          ) ??
-                                          0;
-                                      final balance = quantity - completed;
-                                      return Text(
-                                        'Balance Quantity: $balance',
-                                        style: TextStyle(
-                                          fontSize: 12.sp,
-                                          color: balance >= 0
-                                              ? Colors.green
-                                              : Colors.red,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                  SizedBox(height: 16.h),
-                                  DropdownButtonFormField<String>(
-                                    value: selectedPriority,
-                                    decoration: InputDecoration(
-                                      labelText: 'Priority',
-                                      border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.all(
-                                          Radius.circular(12.r),
-                                        ),
-                                      ),
-                                      prefixIcon: Icon(Icons.flag, size: 20.sp),
-                                      contentPadding: EdgeInsets.symmetric(
-                                        vertical: 8.h,
-                                        horizontal: 12.w,
-                                      ),
-                                    ),
-                                    items: const [
-                                      DropdownMenuItem(
-                                        value: 'low',
-                                        child: Text('Low Priority'),
-                                      ),
-                                      DropdownMenuItem(
-                                        value: 'medium',
-                                        child: Text('Medium Priority'),
-                                      ),
-                                      DropdownMenuItem(
-                                        value: 'high',
-                                        child: Text('High Priority'),
-                                      ),
-                                      DropdownMenuItem(
-                                        value: 'urgent',
-                                        child: Text('Urgent'),
-                                      ),
-                                    ],
-                                    onChanged: (value) {
-                                      if (value != null) {
-                                        setSheetState(
-                                          () => selectedPriority = value,
-                                        );
-                                      }
-                                    },
-                                  ),
-                                  SizedBox(height: 24.h),
-                                  Container(
-                                    height: 56.h,
-                                    decoration: BoxDecoration(
-                                      gradient: const LinearGradient(
-                                        colors: [
-                                          Color(0xFF6f88e2),
-                                          Color(0xFF4a63c0),
-                                        ],
-                                        begin: Alignment.centerLeft,
-                                        end: Alignment.centerRight,
-                                      ),
-                                      borderRadius: BorderRadius.circular(16.r),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: const Color(
-                                            0xFF4a63c0,
-                                          ).withOpacity(0.3),
-                                          blurRadius: 12,
-                                          offset: const Offset(0, 6),
-                                        ),
-                                      ],
-                                    ),
-                                    child: ElevatedButton.icon(
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.transparent,
-                                        shadowColor: Colors.transparent,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            16.r,
-                                          ),
-                                        ),
-                                      ),
-                                      icon: Icon(
-                                        isEditing ? Icons.update : Icons.add,
-                                        color: Colors.white,
-                                        size: 22.sp,
-                                      ),
-                                      label: Text(
-                                        isEditing
-                                            ? 'Update Activity'
-                                            : 'Add Activity',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 16.sp,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                      onPressed: () {
-                                        if (titleController.text
-                                                .trim()
-                                                .isEmpty ||
-                                            scopeController.text
-                                                .trim()
-                                                .isEmpty ||
-                                            quantityController.text
-                                                .trim()
-                                                .isEmpty ||
-                                            unitController.text
-                                                .trim()
-                                                .isEmpty) {
-                                          ScaffoldMessenger.of(
-                                            context,
-                                          ).showSnackBar(
-                                            const SnackBar(
-                                              content: Text(
-                                                'Please fill all required fields',
-                                              ),
-                                            ),
-                                          );
-                                          return;
-                                        }
-
-                                        final quantity =
-                                            int.tryParse(
-                                              quantityController.text,
-                                            ) ??
-                                            0;
-                                        final completedQuantity =
-                                            int.tryParse(
-                                              completedQuantityController.text,
-                                            ) ??
-                                            0;
-
-                                        final activityProvider =
-                                            Provider.of<ActivityProvider>(
-                                              context,
-                                              listen: false,
-                                            );
-
-                                        final activity = Activity(
-                                          id: isEditing
-                                              ? existingActivity!.id
-                                              : DateTime.now()
-                                                    .millisecondsSinceEpoch
-                                                    .toString(),
-                                          title: titleController.text.trim(),
-                                          scope: scopeController.text.trim(),
-                                          quantity: quantity,
-                                          unit: unitController.text.trim(),
-                                          completedQuantity: completedQuantity,
-                                          priority: selectedPriority,
-                                          status: isEditing
-                                              ? existingActivity!.status
-                                              : 'pending',
-                                          createdAt: isEditing
-                                              ? existingActivity!.createdAt
-                                              : DateTime.now(),
-                                        );
-
-                                        if (isEditing) {
-                                          activityProvider.updateActivity(
-                                            activity.id,
-                                            activity,
-                                          );
-                                        } else {
-                                          activityProvider.addActivity(
-                                            activity,
-                                          );
-                                        }
-                                        Navigator.pop(context);
-
-                                        ScaffoldMessenger.of(
-                                          context,
-                                        ).showSnackBar(
-                                          SnackBar(
-                                            content: Text(
-                                              'Activity "${activity.title}" ${isEditing ? 'updated' : 'added'} successfully',
-                                            ),
-                                            backgroundColor: Colors.green,
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                );
-              },
-            );
-          },
-        ),
-      ),
-    );
-  }
-
-  Widget _buildEmptyState() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: const Color(0xFF4a63c0).withOpacity(0.1),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(
-                Icons.hourglass_empty,
-                size: 48,
-                color: Color(0xFF4a63c0),
-              ),
-            ),
-            const SizedBox(height: 24),
-            const Text(
-              'No Data Available',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF1F2937),
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Data will appear here once available',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 16, color: Color(0xFF6B7280)),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showQuickQuantityEditDialog(
-    BuildContext context,
-    Activity activity,
-    ActivityProvider activityProvider,
-  ) {
-    final remainingQuantity = activity.balanceQuantity;
-    final TextEditingController quantityController = TextEditingController(
-      text: remainingQuantity.toString(),
-    );
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(
-          'Mark Progress',
-          style: TextStyle(
-            fontSize: 18.sp,
-            fontWeight: FontWeight.bold,
-            color: const Color(0xFF1F2937),
-          ),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              '${activity.title}\nRemaining: ${remainingQuantity} ${activity.unit}',
-              style: TextStyle(fontSize: 14.sp, color: const Color(0xFF6B7280)),
-              textAlign: TextAlign.center,
-            ),
-            SizedBox(height: 16.h),
-            TextField(
-              controller: quantityController,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                labelText: 'Quantity to Complete',
-                hintText: 'Enter amount to mark complete',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                suffixText: activity.unit,
-              ),
-            ),
-            SizedBox(height: 8.h),
-            StatefulBuilder(
-              builder: (context, setState) {
-                final enteredQuantity =
-                    int.tryParse(quantityController.text) ?? 0;
-                final isValid =
-                    enteredQuantity >= 0 &&
-                    enteredQuantity <= remainingQuantity;
-
-                return Column(
-                  children: [
-                    Text(
-                      'New Remaining: ${remainingQuantity - enteredQuantity} ${activity.unit}',
-                      style: TextStyle(
-                        fontSize: 12.sp,
-                        color: (remainingQuantity - enteredQuantity) >= 0
-                            ? Colors.green
-                            : Colors.red,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    if (!isValid)
-                      Text(
-                        enteredQuantity > remainingQuantity
-                            ? 'Cannot exceed remaining quantity'
-                            : 'Must be non-negative',
-                        style: TextStyle(fontSize: 12.sp, color: Colors.red),
-                      ),
-                  ],
-                );
-              },
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Cancel', style: TextStyle(color: Colors.grey[600])),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              final quantityToComplete =
-                  int.tryParse(quantityController.text) ?? 0;
-              if (quantityToComplete >= 0 &&
-                  quantityToComplete <= remainingQuantity) {
-                // Update the current activity with the completed quantity
-                final updatedActivity = activity.copyWith(
-                  completedQuantity:
-                      activity.completedQuantity + quantityToComplete,
-                  status:
-                      (activity.completedQuantity + quantityToComplete) >=
-                          activity.quantity
-                      ? 'completed'
-                      : 'pending',
-                  updates: [
-                    ...activity.updates,
-                    ActivityUpdate(
-                      quantityCompleted: quantityToComplete,
-                      date: DateTime.now(),
-                    ),
-                  ],
-                );
-                activityProvider.updateActivity(activity.id, updatedActivity);
-
-                Navigator.pop(context);
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF4a63c0),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: const Text('Update', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Color _getDaysLeftColor(int daysLeft) {
-    if (daysLeft == 0) return Colors.red;
-    if (daysLeft <= 3) return Colors.red.shade600;
-    if (daysLeft <= 7) return Colors.orange.shade600;
-    return Colors.green.shade600;
   }
 }

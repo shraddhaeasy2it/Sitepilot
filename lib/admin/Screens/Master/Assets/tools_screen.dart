@@ -2,9 +2,20 @@ import 'package:ecoteam_app/admin/models/tools_model.dart';
 import 'package:ecoteam_app/admin/services/tools_services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:ecoteam_app/admin/services/transfer_tool_services.dart';
+import 'package:ecoteam_app/admin/services/purchase_services.dart';
+import 'package:ecoteam_app/admin/models/purchase_model.dart' hide MaterialModel; // Assuming SiteModel is here or similar
+import 'package:intl/intl.dart'; // For date formatting
 
 class ToolsEquipmentPage extends StatefulWidget {
-  const ToolsEquipmentPage({super.key});
+  final String? selectedSiteName;
+  final int? selectedSiteId;
+
+  const ToolsEquipmentPage({
+    super.key,
+    this.selectedSiteName,
+    this.selectedSiteId,
+  });
 
   @override
   State<ToolsEquipmentPage> createState() => _ToolsEquipmentPageState();
@@ -17,6 +28,7 @@ class _ToolsEquipmentPageState extends State<ToolsEquipmentPage> {
   List<ToolModel> _tools = [];
   List<ToolModel> _filteredTools = [];
   List<MaterialModel> _materials = [];
+  List<SiteModel> _sites = []; // Add sites list
   bool _isLoading = true;
   String _searchQuery = '';
 
@@ -24,6 +36,18 @@ class _ToolsEquipmentPageState extends State<ToolsEquipmentPage> {
   void initState() {
     super.initState();
     _loadData();
+    _loadSites(); // Load sites
+  }
+
+  Future<void> _loadSites() async {
+    try {
+      final sites = await ApiServicePurchaseInvoice.getSites();
+      setState(() {
+        _sites = sites;
+      });
+    } catch (e) {
+      print('Failed to load sites: $e');
+    }
   }
 
   Future<void> _loadData() async {
@@ -40,6 +64,11 @@ class _ToolsEquipmentPageState extends State<ToolsEquipmentPage> {
         _tools = tools;
         // Sort by createdAt in descending order (newest first) to show new cards at top
         _tools.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        
+        if (widget.selectedSiteId != null) {
+          _tools = _tools.where((t) => t.siteId == widget.selectedSiteId).toList();
+        }
+
         _filteredTools = _tools;
         _materials = materials;
         _isLoading = false;
@@ -126,6 +155,7 @@ class _ToolsEquipmentPageState extends State<ToolsEquipmentPage> {
             _showErrorSnackBar('Failed to create tool: $e');
           }
         },
+        selectedSiteId: widget.selectedSiteId,
       ),
     );
   }
@@ -190,11 +220,244 @@ class _ToolsEquipmentPageState extends State<ToolsEquipmentPage> {
     }
   }
 
+  String _getSiteName(int siteId) {
+    try {
+      final site = _sites.firstWhere((s) => s.id == siteId);
+      return site.name;
+    } catch (e) {
+      if (widget.selectedSiteId == siteId && widget.selectedSiteName != null) {
+        return widget.selectedSiteName!;
+      }
+      return 'Unknown Site';
+    }
+  }
+
+  void _showToolTransferSheet(ToolModel tool) {
+    final TextEditingController transferDateController = TextEditingController(
+      text: DateFormat('yyyy-MM-dd').format(DateTime.now()),
+    );
+
+    String? selectedToSite;
+    bool loading = true;
+    String error = '';
+    Map<String, String> siteMap = {};
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            Future<void> loadSites() async {
+              try {
+                final result = await TransfertoolService.fetchToSites(
+                  siteId: tool.siteId,
+                  workspaceId: tool.workspaceId,
+                  machineryId: tool.materialId,
+                  userId: 1, // Using 1 as default/admin user ID
+                );
+
+                result.remove(tool.siteId.toString());
+
+                setSheetState(() {
+                  siteMap = result;
+                  loading = false;
+                });
+              } catch (e) {
+                setSheetState(() {
+                  loading = false;
+                  error = 'Failed to load sites';
+                });
+              }
+            }
+
+            if (loading) loadSites();
+
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+              ),
+              child: SingleChildScrollView(
+                child: Container(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text(
+                        'Transfer Tool / Equipment',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+
+                      _readOnlyField(
+                        label: 'Transfer Type',
+                        value: 'Tools & Equipment',
+                        icon: Icons.swap_horiz,
+                      ),
+
+                      _readOnlyField(
+                        label: 'Tool',
+                        value: _getMaterialName(tool.materialId),
+                        icon: Icons.build,
+                      ),
+
+                      _readOnlyField(
+                        label: 'From Site',
+                        value: _getSiteName(tool.siteId),
+                        icon: Icons.location_on,
+                      ),
+
+                      _readOnlyTextField(
+                        controller: transferDateController,
+                        label: 'Transfer Date',
+                        icon: Icons.calendar_today,
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      if (loading)
+                        const CircularProgressIndicator()
+                      else if (error.isNotEmpty)
+                        Text(error, style: const TextStyle(color: Colors.red))
+                      else
+                        DropdownButtonFormField<String>(
+                          isExpanded: true,
+                          hint: const Text('Select To Site'),
+                          value: selectedToSite,
+                          items: siteMap.entries.map((e) {
+                            return DropdownMenuItem(
+                              value: e.key,
+                              child: Text(
+                                e.value,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (val) =>
+                              setSheetState(() => selectedToSite = val),
+                          decoration: const InputDecoration(
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+
+                      const SizedBox(height: 24),
+
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: selectedToSite == null
+                              ? null
+                              : () async {
+                                  try {
+                                    await TransfertoolService.createTransfer(
+                                      {
+                                        'transfer_type': 'tools_and_equipment',
+                                        'machinery_id': tool.materialId.toString(),
+                                        'transfer_date': transferDateController.text,
+                                        'from_site_id': tool.siteId.toString(),
+                                        'to_site_id': selectedToSite!,
+                                        'created_by': '1',
+                                      },
+                                    );
+
+                                    Navigator.pop(context);
+                                    _showSuccessSnackBar(
+                                      'Tool transferred successfully',
+                                    );
+                                    _loadData();
+                                  } catch (_) {
+                                    _showErrorSnackBar('Transfer failed');
+                                  }
+                                },
+                          child: const Text('Transfer'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _readOnlyField({
+    required String label,
+    required String value,
+    required IconData icon,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: TextFormField(
+        initialValue: value,
+        readOnly: true,
+        decoration: InputDecoration(
+          labelText: label,
+          prefixIcon: Icon(icon),
+          filled: true,
+          fillColor: Colors.grey.shade100,
+          border: const OutlineInputBorder(),
+        ),
+      ),
+    );
+  }
+
+  Widget _readOnlyTextField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: TextFormField(
+        controller: controller,
+        readOnly: true,
+        decoration: InputDecoration(
+          labelText: label,
+          prefixIcon: Icon(icon),
+          filled: true,
+          fillColor: Colors.grey.shade100,
+          border: const OutlineInputBorder(),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Tools & Equipment', style: TextStyle(color: Colors.white,  fontSize: 20)),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Tools & Equipment',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 19,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            SizedBox(height: 3),
+            Text(
+              widget.selectedSiteName != null 
+                  ? 'Site: ${widget.selectedSiteName}' 
+                  : 'Manage your tools and equipment',
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.9),
+                fontSize: 16,
+                fontWeight: FontWeight.w400,
+              ),
+            ),
+          ],
+        ),
         iconTheme: const IconThemeData(color: Colors.white),
         toolbarHeight: 80.h,
         elevation: 0,
@@ -291,6 +554,7 @@ class _ToolsEquipmentPageState extends State<ToolsEquipmentPage> {
                             return _ToolCard(
                               tool: tool,
                               material: material,
+                              onTransfer: () => _showToolTransferSheet(tool),
                               onEdit: () => _openEditToolSheet(tool),
                               onDelete: () => _deleteTool(tool.id),
                             );
@@ -306,12 +570,14 @@ class _ToolsEquipmentPageState extends State<ToolsEquipmentPage> {
 class _ToolCard extends StatelessWidget {
   final ToolModel tool;
   final MaterialModel? material;
+  final VoidCallback onTransfer;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
   const _ToolCard({
     required this.tool,
     required this.material,
+    required this.onTransfer,
     required this.onEdit,
     required this.onDelete,
   });
@@ -354,12 +620,19 @@ class _ToolCard extends StatelessWidget {
                 Row(
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.edit, color: Colors.blue),
-                      onPressed: onEdit,
+                      icon: const Icon(Icons.swap_horiz, size: 20, color: Color(0xFF2a43a0)),
+                      onPressed: onTransfer,
+                      tooltip: 'Transfer',
                     ),
                     IconButton(
-                      icon: const Icon(Icons.delete, color: Colors.red),
+                      icon: const Icon(Icons.edit, color: Color(0xFF2a43a0), size: 20),
+                      onPressed: onEdit,
+                      tooltip: 'Edit',
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete, color: Colors.red, size: 20),
                       onPressed: onDelete,
+                      tooltip: 'Delete',
                     ),
                   ],
                 ),
@@ -404,7 +677,7 @@ class _InfoChip extends StatelessWidget {
   const _InfoChip({
     required this.icon,
     required this.label,
-    this.color = Colors.blue,
+    this.color = const Color.fromARGB(255, 21, 61, 170),
   });
 
   @override
@@ -430,12 +703,14 @@ class ToolBottomSheet extends StatefulWidget {
   final List<MaterialModel> materials;
   final ToolModel? tool;
   final Function(ToolModel) onSave;
+  final int? selectedSiteId;
 
   const ToolBottomSheet({
     super.key,
     required this.materials,
     this.tool,
     required this.onSave,
+    this.selectedSiteId,
   });
 
   @override
@@ -448,7 +723,7 @@ class _ToolBottomSheetState extends State<ToolBottomSheet> {
   MaterialModel? _selectedMaterial;
   final TextEditingController _quantityController = TextEditingController();
   String _selectedStatus = 'active';
-  final int _siteId = 1;
+  late int _siteId;
   final int _createdBy = 1;
   final int _workspaceId = 1;
 
@@ -457,6 +732,7 @@ class _ToolBottomSheetState extends State<ToolBottomSheet> {
   @override
   void initState() {
     super.initState();
+    _siteId = widget.selectedSiteId ?? 1; // Use selected site or default
     if (widget.tool != null) {
       // Edit mode
       _selectedMaterial = widget.materials.firstWhere(

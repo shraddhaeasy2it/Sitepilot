@@ -1,10 +1,11 @@
 import 'package:ecoteam_app/admin/models/tools_model.dart';
 import 'package:ecoteam_app/admin/services/tools_services.dart';
+import 'package:ecoteam_app/admin/services/transfer_tool_services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 
-import '../../../models/site_model.dart';
+import '../../models/site_model.dart';
 
 class ToolsScreen extends StatefulWidget {
   final String? selectedSiteId;
@@ -355,6 +356,282 @@ class _ToolsScreenState extends State<ToolsScreen> {
     return _categoryIcons[category.toLowerCase()] ?? Icons.build;
   }
 
+  Widget _buildOptionTile({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    Color? backgroundColor,
+    required VoidCallback onTap,
+    Color color = const Color(0xFF2D3748),
+  }) {
+    return ListTile(
+      leading: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: backgroundColor ?? primaryColor.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(icon, color: iconColor, size: 20),
+      ),
+      title: Text(
+        title,
+        style: TextStyle(
+          color: color,
+          fontWeight: FontWeight.w600,
+          fontSize: 14.sp,
+        ),
+      ),
+      onTap: onTap,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
+    );
+  }
+
+  void _showToolOptionsBottomSheet(ToolModel tool) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              margin: const EdgeInsets.only(top: 8),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            _buildOptionTile(
+              icon: Icons.visibility_outlined,
+              title: 'View Full Details',
+              iconColor: const Color.fromARGB(255, 37, 49, 158),
+              backgroundColor: const Color.fromARGB(
+                255,
+                37,
+                49,
+                158,
+              ).withOpacity(0.1),
+              onTap: () {
+                Navigator.pop(context);
+                final material = _getMaterial(tool.materialId);
+                _showToolDetailsBottomSheet(tool, material);
+              },
+            ),
+            _buildOptionTile(
+              icon: Icons.swap_horiz,
+              title: 'Transfer Tool',
+              iconColor: Colors.orange,
+              backgroundColor: Colors.orange.withOpacity(0.1),
+              onTap: () {
+                Navigator.pop(context);
+                _showToolTransferSheet(tool);
+              },
+            ),
+            _buildOptionTile(
+              icon: Icons.edit_outlined,
+              title: 'Edit Tool',
+              iconColor: Colors.blue,
+              backgroundColor: Colors.blue.withOpacity(0.1),
+              onTap: () {
+                Navigator.pop(context);
+                _openEditToolSheet(tool);
+              },
+            ),
+            _buildOptionTile(
+              icon: Icons.delete_outline,
+              title: 'Delete Tool',
+              color: Colors.red,
+              iconColor: Colors.red,
+              backgroundColor: Colors.red.withOpacity(0.1),
+              onTap: () {
+                Navigator.pop(context);
+                Future.delayed(const Duration(milliseconds: 200), () {
+                  _deleteTool(tool.id);
+                });
+              },
+            ),
+            const SizedBox(height: 30),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showToolDetailsBottomSheet(ToolModel tool, MaterialModel? material) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.6,
+        minChildSize: 0.4,
+        maxChildSize: 0.85,
+        builder: (_, controller) => Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              // Header
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Tool Details',
+                          style: TextStyle(
+                            fontSize: 18.sp,
+                            fontWeight: FontWeight.bold,
+                            color: textPrimary,
+                          ),
+                        ),
+                       
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _getStatusColor(
+                        tool.operationalStatus,
+                      ).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: _getStatusColor(
+                          tool.operationalStatus,
+                        ).withOpacity(0.3),
+                      ),
+                    ),
+                    child: Text(
+                      tool.operationalStatus.toUpperCase(),
+                      style: TextStyle(
+                        color: _getStatusColor(tool.operationalStatus),
+                        fontSize: 12.sp,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const Divider(height: 30),
+              Expanded(
+                child: ListView(
+                  controller: controller,
+                  children: [
+                    _buildDetailRowInfo(
+                      Icons.build,
+                      'Material Name',
+                      material?.name ?? 'N/A',
+                    ),
+                   
+                    const SizedBox(height: 12),
+                    _buildDetailRowInfo(
+                      Icons.category,
+                      'Category',
+                      _getMaterialCategory(tool.materialId),
+                    ),
+                    const SizedBox(height: 12),
+                    if (material?.description != null &&
+                        material!.description.isNotEmpty) ...[
+                      _buildDetailRowInfo(
+                        Icons.description,
+                        'Description',
+                        material!.description,
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                   
+                    const SizedBox(height: 12),
+                    _buildDetailRowInfo(
+                      Icons.inventory_2,
+                      'Quantity',
+                      '${tool.quantity} ${material?.unit?.symbol ?? ''}'.trim(),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildDetailRowInfo(
+                      Icons.currency_rupee,
+                      'Price per unit',
+                      '₹${material?.price ?? '0.00'}',
+                    ),
+                    const SizedBox(height: 12),
+                    _buildDetailRowInfo(
+                      Icons.low_priority,
+                      'Reorder Level',
+                      '${material?.reorderLevel ?? 0}',
+                    ),
+                    const SizedBox(height: 12),
+                    _buildDetailRowInfo(
+                      Icons.calendar_today,
+                      'Added On',
+                      DateFormat(
+                        'MMM dd, yyyy',
+                      ).format(DateTime.parse(tool.createdAt)),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildDetailRowInfo(
+                      Icons.update,
+                      'Last Updated',
+                      DateFormat(
+                        'MMM dd, yyyy',
+                      ).format(DateTime.parse(tool.updatedAt)),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDetailRowInfo(IconData icon, String label, String value) {
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: textSecondary),
+        const SizedBox(width: 8),
+        Text('$label: ', style: const TextStyle(color: textSecondary)),
+        Expanded(
+          child: Text(
+            value,
+            style: const TextStyle(
+              fontWeight: FontWeight.w500,
+              color: textPrimary,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   // Enhanced search and filter bar
   Widget _buildSearchBar() {
     return LayoutBuilder(
@@ -431,8 +708,6 @@ class _ToolsScreenState extends State<ToolsScreen> {
                     ),
                     const SizedBox(height: 12),
 
-                   
-
                     // Stats row
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -455,7 +730,6 @@ class _ToolsScreenState extends State<ToolsScreen> {
                             ),
                           ],
                         ),
-                        
                       ],
                     ),
                   ],
@@ -645,11 +919,11 @@ class _ToolsScreenState extends State<ToolsScreen> {
         child: Material(
           color: Colors.white,
           child: InkWell(
-            onTap: () => _openEditToolSheet(tool),
+           
             splashColor: primaryColor.withOpacity(0.1),
             highlightColor: Colors.transparent,
             child: Padding(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(15),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -658,7 +932,7 @@ class _ToolsScreenState extends State<ToolsScreen> {
                     children: [
                       // Category icon
                       Container(
-                        padding: const EdgeInsets.all(10),
+                        padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
                           color: primaryColor.withOpacity(0.08),
                           borderRadius: BorderRadius.circular(12),
@@ -666,7 +940,7 @@ class _ToolsScreenState extends State<ToolsScreen> {
                         child: Icon(
                           categoryIcon,
                           color: primaryColor,
-                          size: 24,
+                          size: 16,
                         ),
                       ),
 
@@ -680,7 +954,7 @@ class _ToolsScreenState extends State<ToolsScreen> {
                             Text(
                               material?.name ?? 'Unknown Material',
                               style: const TextStyle(
-                                fontSize: 18,
+                                fontSize: 17,
                                 fontWeight: FontWeight.w700,
                                 color: textPrimary,
                               ),
@@ -691,8 +965,8 @@ class _ToolsScreenState extends State<ToolsScreen> {
                             Text(
                               categoryName,
                               style: TextStyle(
-                                fontSize: 13,
-                                color: primaryColor.withOpacity(0.8),
+                                fontSize: 11,
+                                color: const Color.fromARGB(255, 66, 66, 66).withOpacity(0.8),
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -701,128 +975,59 @@ class _ToolsScreenState extends State<ToolsScreen> {
                       ),
 
                       // Status badge
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 5,
-                        ),
-                        decoration: BoxDecoration(
-                          color: statusColor.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          tool.operationalStatus.toUpperCase(),
-                          style: TextStyle(
-                            color: statusColor,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // Info grid
-                  GridView.count(
-                    crossAxisCount: 2,
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    crossAxisSpacing: 6,
-                    mainAxisSpacing: 6,
-                    childAspectRatio: 4.0,
-                    children: [
-
-                      // Quantity
-                      _buildInfoItem(
-                        Icons.inventory_2,
-                        'Quantity',
-                        '${tool.quantity}',
-                        Colors.green,
-                      ),
-
-                      // SKU
-                      _buildInfoItem(
-                        Icons.code,
-                        'SKU',
-                        material?.sku ?? 'N/A',
-                        Colors.orange,
-                      ),
-
-                      // Price
-                      _buildInfoItem(
-                        Icons.currency_rupee,
-                        'Price',
-                        '₹${material?.price ?? '0.00'}',
-                        Colors.purple,
-                      ),
-                    ],
-                  ),
-
-                  // Description and actions row
-                  if ((material?.description?.isNotEmpty ?? false) &&
-                      material!.description!.length < 100)
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(height: 12),
-                        Text(
-                          material.description!,
-                          style: TextStyle(color: textSecondary, fontSize: 13),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-
-                  const SizedBox(height: 16),
-
-                  Row(
-                    children: [
-                      // Last updated
-                      Expanded(
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.access_time,
-                              size: 14,
-                              color: textSecondary.withOpacity(0.7),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 5,
                             ),
-                            const SizedBox(width: 4),
-                            Expanded(
-                              child: Text(
-                                'Updated ${DateFormat('MMM dd, yyyy').format(DateTime.parse(tool.updatedAt))}',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: textSecondary.withOpacity(0.8),
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
+                            decoration: BoxDecoration(
+                              color: statusColor.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              tool.operationalStatus.toUpperCase(),
+                              style: TextStyle(
+                                color: statusColor,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
-                          ],
-                        ),
-                      ),
-
-                      // Delete button
-                      GestureDetector(
-                        onTap: () => _deleteTool(tool.id),
-                        child: Container(
-                          padding: const EdgeInsets.all(6),
-                          decoration: BoxDecoration(
-                            color: Colors.red.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(8),
                           ),
-                          child: Icon(
-                            Icons.delete_outline,
-                            color: Colors.red,
-                            size: 22,
-                          ),
-                        ),
+                          
+                             // More Options Button
+                             Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(20),
+                                onTap: () => _showToolOptionsBottomSheet(tool),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: Icon(
+                                    Icons.more_vert,
+                                    color: textSecondary,
+                                    size: 24,
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                     ],
                   ),
+
+                  const SizedBox(height: 16),
+
+                  Text(
+                    'Quantity : ${tool.quantity} ${material?.unit?.symbol ?? ''}'.trim(),
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: Color.fromARGB(255, 54, 65, 85),
+                    ),
+                  ),
+                  
                 ],
               ),
             ),
@@ -833,63 +1038,46 @@ class _ToolsScreenState extends State<ToolsScreen> {
   }
 
   // Info item widget
-  Widget _buildInfoItem(
-    IconData icon,
-    String label,
-    String value,
-    Color color,
-  ) {
-    return Container(
-      constraints: const BoxConstraints(
-        minHeight: 40,
-      ),
-      padding: const EdgeInsets.all(6),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.1), width: 1),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            icon,
-            size: 14,
-            color: color,
-          ),
-          const SizedBox(width: 4),
-          Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 9,
-                    color: textSecondary.withOpacity(0.7),
-                    fontWeight: FontWeight.w500,
-                    height: 1.0,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+  Widget _buildInfoItem(IconData icon, String label, String value) {
+    return Row(
+      children: [
+        Icon(icon, size: 14, color: Colors.grey[700]),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 9,
+                  color: const Color.fromARGB(
+                    255,
+                    79,
+                    92,
+                    110,
+                  ).withOpacity(0.7),
+                  fontWeight: FontWeight.w500,
                 ),
-                const SizedBox(height: 1),
-                Text(
-                  value,
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: textPrimary,
-                    height: 1.0,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 3),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Color.fromARGB(255, 54, 65, 85),
                 ),
-              ],
-            ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -967,7 +1155,7 @@ class _ToolsScreenState extends State<ToolsScreen> {
       backgroundColor: backgroundColor,
       appBar: AppBar(
         elevation: 0,
-        toolbarHeight: 80.h,
+        toolbarHeight: 74.h,
         backgroundColor: Colors.transparent,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -976,16 +1164,17 @@ class _ToolsScreenState extends State<ToolsScreen> {
               'Assets Management',
               style: TextStyle(
                 color: Colors.white,
-                fontSize: 19,
+                fontSize: 17.sp,
                 fontWeight: FontWeight.w600,
               ),
             ),
-            SizedBox(height: 3),
+            SizedBox(height: 4.h),
             Text(
-              _getCurrentSiteName(),
+              "Site: ${_getCurrentSiteName()}",
+
               style: TextStyle(
                 color: Colors.white.withOpacity(0.9),
-                fontSize: 16,
+                fontSize: 13.sp,
                 fontWeight: FontWeight.w400,
               ),
             ),
@@ -1008,13 +1197,13 @@ class _ToolsScreenState extends State<ToolsScreen> {
             ),
           ),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadData,
-            tooltip: 'Refresh',
-          ),
-        ],
+        // actions: [
+        //   IconButton(
+        //     icon: const Icon(Icons.refresh),
+        //     onPressed: _loadData,
+        //     tooltip: 'Refresh',
+        //   ),
+        // ],
       ),
       body: _isLoading
           ? Center(
@@ -1041,26 +1230,289 @@ class _ToolsScreenState extends State<ToolsScreen> {
                 ),
               ],
             ),
-      floatingActionButton: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: primaryColor.withOpacity(0.3),
-              blurRadius: 20,
-              offset: const Offset(0, 8),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _openAddToolSheet,
+        child: const Icon(Icons.add, color: Colors.white),
+        backgroundColor: const Color.fromRGBO(
+          42,
+          67,
+          160,
+          1,
+        ), // Any color you want
+        tooltip: 'Add New Invoice',
+      ),
+    );
+  }
+
+  void _showToolTransferSheet(ToolModel tool) {
+    final TextEditingController transferDateController = TextEditingController(
+      text: DateFormat('yyyy-MM-dd').format(DateTime.now()),
+    );
+
+    String? selectedToSite;
+    bool loading = true;
+    String error = '';
+    Map<String, String> siteMap = {};
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            Future<void> loadSites() async {
+              try {
+                final result = await TransfertoolService.fetchToSites(
+                  siteId: tool.siteId,
+                  workspaceId: tool.workspaceId,
+                  machineryId: tool.materialId, // backend expects id
+                  userId: 1,
+                );
+
+                /// ❌ remove FROM SITE
+                result.remove(tool.siteId.toString());
+
+                setSheetState(() {
+                  siteMap = result;
+                  loading = false;
+                });
+              } catch (e) {
+                setSheetState(() {
+                  loading = false;
+                  error = 'Failed to load sites';
+                });
+              }
+            }
+
+            if (loading) loadSites();
+
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+              ),
+              child: SingleChildScrollView(
+                child: Container(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text(
+                        'Transfer Tool / Equipment',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+
+                      /// 🔒 TYPE
+                      _readOnlyField(
+                        label: 'Transfer Type',
+                        value: 'Tools & Equipment',
+                        icon: Icons.swap_horiz,
+                      ),
+
+                      /// 🔒 TOOL NAME
+                      _readOnlyField(
+                        label: 'Tool',
+                        value: _getMaterialName(tool.materialId),
+                        icon: Icons.build,
+                      ),
+
+                      /// 🔒 FROM SITE
+                      _readOnlyField(
+                        label: 'From Site',
+                        value: _getSiteName(tool.siteId.toString()),
+                        icon: Icons.location_on,
+                      ),
+
+                      /// 🔒 DATE
+                      _readOnlyTextField(
+                        controller: transferDateController,
+                        label: 'Transfer Date',
+                        icon: Icons.calendar_today,
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      /// ✅ TO SITE
+                      if (loading)
+                        const CircularProgressIndicator()
+                      else if (error.isNotEmpty)
+                        Text(error, style: const TextStyle(color: Colors.red))
+                      else
+                        DropdownButtonFormField<String>(
+                          isExpanded: true,
+                          hint: const Text('Select To Site'),
+                          value: selectedToSite,
+                          items: siteMap.entries.map((e) {
+                            return DropdownMenuItem(
+                              value: e.key,
+                              child: Text(
+                                e.value,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (val) =>
+                              setSheetState(() => selectedToSite = val),
+                          decoration: InputDecoration(
+                            labelText: 'To Site',
+                            prefixIcon: Icon(
+                              Icons.location_on,
+                              color: Color(0xFF4a63c0),
+                              size: 20.sp,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12.r),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12.r),
+                              borderSide: BorderSide(
+                                color: Color.fromARGB(255, 214, 215, 216),
+                                width: 1.5,
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12.r),
+                              borderSide: BorderSide(
+                                color: Color.fromARGB(255, 189, 190, 197),
+                                width: 1.0,
+                              ),
+                            ),
+                            contentPadding: EdgeInsets.symmetric(
+                              vertical: 2,
+                            ),
+                          ),
+                        ),
+
+                      const SizedBox(height: 24),
+
+                      /// ✅ SUBMIT
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: selectedToSite == null
+                              ? null
+                              : () async {
+                                  try {
+                                    await TransfertoolService.createTransfer({
+                                      'transfer_type': 'tools_and_equipment',
+                                      'machinery_id': tool.materialId
+                                          .toString(),
+                                      'transfer_date':
+                                          transferDateController.text,
+                                      'from_site_id': tool.siteId.toString(),
+                                      'to_site_id': selectedToSite!,
+                                      'created_by': '1',
+                                    });
+
+                                    Navigator.pop(context);
+                                    _showSuccessSnackBar(
+                                      'Tool transferred successfully',
+                                    );
+                                    _loadData();
+                                  } catch (_) {
+                                    _showErrorSnackBar('Transfer failed');
+                                  }
+                                },
+                          child: const Text('Transfer'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _readOnlyField({
+    required String label,
+    required String value,
+    required IconData icon,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: TextFormField(
+        initialValue: value,
+        readOnly: true,
+        decoration: InputDecoration(
+          labelText: label,
+          prefixIcon: Icon(
+            icon,
+            color: Color(0xFF4a63c0),
+            size: 20.sp,
+          ),
+          filled: true,
+          fillColor: Colors.grey.shade100,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12.r),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12.r),
+            borderSide: BorderSide(
+              color: Color.fromARGB(255, 214, 215, 216),
+              width: 1.5,
             ),
-          ],
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12.r),
+            borderSide: BorderSide(
+              color: Color.fromARGB(255, 189, 190, 197),
+              width: 1.0,
+            ),
+          ),
+          contentPadding: EdgeInsets.symmetric(
+            vertical: 2,
+          ),
         ),
-        child: FloatingActionButton.extended(
-          onPressed: _openAddToolSheet,
-          backgroundColor: primaryColor,
-          foregroundColor: Colors.white,
-          elevation: 0,
-          icon: const Icon(Icons.add),
-          label: const Text(
-            'Add Tool',
-            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+      ),
+    );
+  }
+
+  Widget _readOnlyTextField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: TextFormField(
+        controller: controller,
+        readOnly: true,
+        decoration: InputDecoration(
+          labelText: label,
+          prefixIcon: Icon(
+            icon,
+            color: Color(0xFF4a63c0),
+            size: 20.sp,
+          ),
+          filled: true,
+          fillColor: Colors.grey.shade100,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12.r),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12.r),
+            borderSide: BorderSide(
+              color: Color.fromARGB(255, 214, 215, 216),
+              width: 1.5,
+            ),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12.r),
+            borderSide: BorderSide(
+              color: Color.fromARGB(255, 189, 190, 197),
+              width: 1.0,
+            ),
+          ),
+          contentPadding: EdgeInsets.symmetric(
+            vertical: 2,
           ),
         ),
       ),
@@ -1088,7 +1540,7 @@ class ToolBottomSheet extends StatefulWidget {
 
 class _ToolBottomSheetState extends State<ToolBottomSheet> {
   final _formKey = GlobalKey<FormState>();
-  
+
   MaterialModel? _selectedMaterial;
   final TextEditingController _quantityController = TextEditingController();
   String _selectedStatus = 'active';
@@ -1110,7 +1562,9 @@ class _ToolBottomSheetState extends State<ToolBottomSheet> {
       _selectedStatus = widget.tool!.operationalStatus;
     } else {
       // Add mode
-      _selectedMaterial = widget.materials.isNotEmpty ? widget.materials.first : null;
+      _selectedMaterial = widget.materials.isNotEmpty
+          ? widget.materials.first
+          : null;
     }
   }
 
@@ -1121,7 +1575,9 @@ class _ToolBottomSheetState extends State<ToolBottomSheet> {
   }
 
   void _saveTool() {
-    if (_formKey.currentState!.validate() && _selectedMaterial != null && widget.selectedSiteId != null) {
+    if (_formKey.currentState!.validate() &&
+        _selectedMaterial != null &&
+        widget.selectedSiteId != null) {
       final tool = ToolModel(
         id: widget.tool?.id ?? 0,
         materialId: _selectedMaterial!.id,
@@ -1154,20 +1610,45 @@ class _ToolBottomSheetState extends State<ToolBottomSheet> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              widget.tool == null ? 'Add Tool/Equipment' : 'Edit Tool/Equipment',
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
+              widget.tool == null
+                  ? 'Add Tool/Equipment'
+                  : 'Edit Tool/Equipment',
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 20),
-            
+
             // Material Dropdown
             DropdownButtonFormField<MaterialModel>(
               value: _selectedMaterial,
-              decoration: const InputDecoration(
+              isExpanded: true,
+              decoration: InputDecoration(
                 labelText: 'Material',
-                border: OutlineInputBorder(),
+                hintText: 'Select Material',
+                prefixIcon: Icon(
+                  Icons.construction,
+                  color: Color(0xFF4a63c0),
+                  size: 20.sp,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12.r),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12.r),
+                  borderSide: BorderSide(
+                    color: Color.fromARGB(255, 214, 215, 216),
+                    width: 1.5,
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12.r),
+                  borderSide: BorderSide(
+                    color: Color.fromARGB(255, 189, 190, 197),
+                    width: 1.0,
+                  ),
+                ),
+                contentPadding: EdgeInsets.symmetric(
+                  vertical: 2,
+                ),
               ),
               items: widget.materials.map((material) {
                 return DropdownMenuItem<MaterialModel>(
@@ -1187,15 +1668,40 @@ class _ToolBottomSheetState extends State<ToolBottomSheet> {
                 return null;
               },
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             // Quantity TextField
             TextFormField(
               controller: _quantityController,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Quantity',
-                border: OutlineInputBorder(),
+                hintText: 'Enter quantity',
+                prefixIcon: Icon(
+                  Icons.numbers,
+                  color: Color(0xFF4a63c0),
+                  size: 20.sp,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12.r),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12.r),
+                  borderSide: BorderSide(
+                    color: Color.fromARGB(255, 214, 215, 216),
+                    width: 1.5,
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12.r),
+                  borderSide: BorderSide(
+                    color: Color.fromARGB(255, 189, 190, 197),
+                    width: 1.0,
+                  ),
+                ),
+                contentPadding: EdgeInsets.symmetric(
+                  vertical: 2,
+                ),
               ),
               keyboardType: TextInputType.number,
               validator: (value) {
@@ -1208,15 +1714,41 @@ class _ToolBottomSheetState extends State<ToolBottomSheet> {
                 return null;
               },
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             // Operational Status Dropdown
             DropdownButtonFormField<String>(
               value: _selectedStatus,
-              decoration: const InputDecoration(
+              isExpanded: true,
+              decoration: InputDecoration(
                 labelText: 'Operational Status',
-                border: OutlineInputBorder(),
+                hintText: 'Select Status',
+                prefixIcon: Icon(
+                  Icons.info_outline,
+                  color: Color(0xFF4a63c0),
+                  size: 20.sp,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12.r),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12.r),
+                  borderSide: BorderSide(
+                    color: Color.fromARGB(255, 214, 215, 216),
+                    width: 1.5,
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12.r),
+                  borderSide: BorderSide(
+                    color: Color.fromARGB(255, 189, 190, 197),
+                    width: 1.0,
+                  ),
+                ),
+                contentPadding: EdgeInsets.symmetric(
+                  vertical: 2,
+                ),
               ),
               items: _operationalStatuses.map((status) {
                 return DropdownMenuItem<String>(
@@ -1230,14 +1762,14 @@ class _ToolBottomSheetState extends State<ToolBottomSheet> {
                 });
               },
             ),
-            
+
             const SizedBox(height: 24),
-            
+
             // Save Button
             ElevatedButton(
               onPressed: _saveTool,
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
+                backgroundColor: const Color.fromARGB(255, 38, 69, 172),
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 16),
               ),
@@ -1246,15 +1778,15 @@ class _ToolBottomSheetState extends State<ToolBottomSheet> {
                 style: const TextStyle(fontSize: 16),
               ),
             ),
-            
+
             const SizedBox(height: 8),
-            
+
             // Cancel Button
             OutlinedButton(
               onPressed: () => Navigator.pop(context),
               child: const Text('Cancel'),
             ),
-            
+
             const SizedBox(height: 16),
           ],
         ),

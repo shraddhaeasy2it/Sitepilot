@@ -10,7 +10,14 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 class PurchaseInvoicesPage extends StatefulWidget {
-  const PurchaseInvoicesPage({super.key});
+  final String? selectedSiteName;
+  final int? selectedSiteId;
+
+  const PurchaseInvoicesPage({
+    super.key,
+    this.selectedSiteName,
+    this.selectedSiteId,
+  });
 
   @override
   State<PurchaseInvoicesPage> createState() => _PurchaseInvoicesPageState();
@@ -42,6 +49,11 @@ class _PurchaseInvoicesPageState extends State<PurchaseInvoicesPage> {
       final invoices = await ApiServicePurchaseInvoice.getInvoices();
       final suppliers = await ApiServicePurchaseInvoice.getSuppliers();
       final sites = await ApiServicePurchaseInvoice.getSites();
+
+
+      if (widget.selectedSiteId != null) {
+        invoices.removeWhere((i) => i.siteId != widget.selectedSiteId);
+      }
 
       setState(() {
         _invoices = invoices;
@@ -208,9 +220,30 @@ class _PurchaseInvoicesPageState extends State<PurchaseInvoicesPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Manage Purchase Invoices',
-          style: TextStyle(color: Colors.white),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Manage Purchase Invoices',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 19,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 3),
+            Text(
+              widget.selectedSiteName != null
+                  ? 'Site: ${widget.selectedSiteName}'
+                  : 'All Sites',
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.9),
+                fontSize: 16,
+                fontWeight: FontWeight.w400,
+              ),
+            ),
+          ],
         ),
         toolbarHeight: 80.h,
         elevation: 0,

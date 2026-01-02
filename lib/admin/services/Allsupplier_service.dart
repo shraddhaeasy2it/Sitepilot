@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 
 
 class SupplierApiService {
-  static const String baseUrl = 'http://sitepilot.easy2it.in/api';
+  static const String baseUrl = 'https://sitepilot.easy2it.in/api';
   
   // Headers for API requests
   static Map<String, String> get headers => {

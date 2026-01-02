@@ -10,7 +10,7 @@ class ProjectSiteProvider extends ChangeNotifier {
   String? _selectedCompanyId;
   String? _selectedCompanyName;
   bool _isLoading = false;
-  final String _baseUrl = 'http://sitepilot.easy2it.in';
+  final String _baseUrl = 'https://sitepilot.easy2it.in';
 
   List<Map<String, dynamic>> get companies => _companies;
   List<Project> get projects => _projects;

@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 
 
 class ApiService {
-  static const String baseUrl = 'http://sitepilot.easy2it.in/api';
+  static const String baseUrl = 'https://sitepilot.easy2it.in/api';
   
   final Map<String, String> headers = {
     'Content-Type': 'application/json',

@@ -1,9 +1,13 @@
+import 'dart:convert';
+import 'dart:io';
 import 'package:ecoteam_app/contractor/models/dashboard_model.dart';
 import 'package:ecoteam_app/contractor/models/site_model.dart';
-
-
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
+  static const String baseUrl = 'https://sitepilot.easy2it.in/api';
+  
   // Static list to maintain sites across the app with company association
   static List<Site> _sites = [
     Site(id: 'site1', name: 'Site A', companyId: 'ABC Construction'),
@@ -135,99 +139,91 @@ class ApiService {
     return _companies.length < initialLength; // Return true if company was actually deleted
   }
 
-  Future<List<Map<String, dynamic>>> fetchWorkersForSite(String siteId) async {
-    await Future.delayed(const Duration(milliseconds: 500));
-    return [
-      {
-        'id': '1',
-        'name': 'John Smith',
-        'position': 'Foreman',
-        'phone': '+1234567890',
-        'email': 'john.smith@example.com',
-        'status': 'Active',
-        'siteId': 'site1',
-      },
-      {
-        'id': '2',
-        'name': 'Maria Garcia',
-        'position': 'Worker',
-        'phone': '+1234567891',
-        'email': 'maria.garcia@example.com',
-        'status': 'Active',
-        'siteId': 'site2',
-      },
-      {
-        'id': '3',
-        'name': 'Robert Johnson',
-        'position': 'Supervisor',
-        'phone': '+1234567892',
-        'email': 'robert.johnson@example.com',
-        'status': 'Active',
-        'siteId': 'site1',
-      },
-    ];
-  }
+ 
 
-  Future<List<Map<String, dynamic>>> fetchMaterialsForSite(String siteId) async {
-    await Future.delayed(const Duration(milliseconds: 500));
-    return [
-      {
-        'id': '1',
-        'name': 'Cement',
-        'quantity': '50 bags',
-        'unit': 'bags',
-        'price': 25.0,
-        'siteId': 'site1',
-      },
-      {
-        'id': '2',
-        'name': 'Steel Beams',
-        'quantity': '20 pieces',
-        'unit': 'pieces',
-        'price': 150.0,
-        'siteId': 'site2',
-      },
-      {
-        'id': '3',
-        'name': 'Bricks',
-        'quantity': '1000 pieces',
-        'unit': 'pieces',
-        'price': 0.5,
-        'siteId': 'site1',
-      },
-    ];
-  }
+  // Clock In/Out API
+  Future<Map<String, dynamic>> clockInOut({
+    required String type,
+    required String userId,
+    required String workspaceId,
+    required String siteId,
+    required String latitude,
+    required String longitude,
+    String? attendanceId,
+    File? imageFile, // Added image parameter
+  }) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      var token = prefs.getString('auth_token');
 
-  Future<List<Map<String, dynamic>>> fetchPaymentsForSite(String siteId) async {
-    await Future.delayed(const Duration(milliseconds: 500));
-    return [
-      {
-        'id': '1',
-        'description': 'Material Payment',
-        'amount': 5000.0,
-        'status': 'Pending',
-        'date': DateTime.now().subtract(const Duration(days: 5)),
-        'siteId': 'site1',
-      },
-      {
-        'id': '2',
-        'description': 'Labor Payment',
-        'amount': 3000.0,
-        'status': 'Approved',
-        'date': DateTime.now().subtract(const Duration(days: 3)),
-        'siteId': 'site2',
-      },
-      {
-        'id': '3',
-        'description': 'Equipment Rental',
-        'amount': 1500.0,
-        'status': 'Paid',
-        'date': DateTime.now().subtract(const Duration(days: 1)),
-        'siteId': 'site1',
-      },
-    ];
-  }
+      // Handle siteId that might be like "site6" or just "6"
+      var parsedSiteId = siteId;
+      if (parsedSiteId.toLowerCase().startsWith('site')) {
+        parsedSiteId = parsedSiteId.substring(4);
+      }
 
-  // This method is already defined above
-  // Removed duplicate fetchCompanies() method
+      var uri = Uri.parse('$baseUrl/Hrm/clock-in-out');
+      var request = http.MultipartRequest('POST', uri);
+
+      request.headers.addAll({
+        'Authorization': 'Bearer $token',
+        'Accept': 'application/json',
+      });
+
+      request.fields['type'] = type;
+      request.fields['user_id'] = userId;
+      request.fields['workspace_id'] = workspaceId;
+      request.fields['site_id'] = parsedSiteId;
+      request.fields['latitude'] = latitude;
+      request.fields['longitude'] = longitude;
+      if (attendanceId != null) {
+        request.fields['attendence_id'] = attendanceId;
+      }
+
+      if (imageFile != null) {
+        // Determine field name based on type
+        String imageField = type == 'clockin' ? 'clock_in_image' : 'clock_out_image';
+        
+        var stream = http.ByteStream(imageFile.openRead());
+        var length = await imageFile.length();
+        
+        var multipartFile = http.MultipartFile(
+          imageField,
+          stream,
+          length,
+          filename: imageFile.path.split('/').last,
+        );
+        request.files.add(multipartFile);
+      }
+
+      print('ClockInOut Request Fields: ${request.fields}');
+      if (imageFile != null) print('ClockInOut Image: ${imageFile.path}');
+
+      var streamedResponse = await request.send();
+      var response = await http.Response.fromStream(streamedResponse);
+
+      print('ClockInOut Response: ${response.statusCode} - ${response.body}');
+
+      if (response.statusCode == 200) {
+        return {'success': true, 'data': jsonDecode(response.body)};
+      } else {
+        String errorMessage = 'Failed to $type. Status: ${response.statusCode}';
+        try {
+          final errorData = jsonDecode(response.body);
+          if (errorData['message'] != null) {
+            errorMessage = errorData['message'];
+          }
+        } catch (_) {
+          // Parsing failed, use default message
+        }
+        return {
+          'success': false, 
+          'message': errorMessage
+        };
+      }
+    } catch (e) {
+      print('ClockInOut Error: $e');
+      return {'success': false, 'message': 'Error: $e'};
+    }
+  }
 }

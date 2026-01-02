@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:ecoteam_app/contractor/models/site_model.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:ecoteam_app/contractor/services/api_service_login.dart';
 
 class CompanySiteProvider extends ChangeNotifier {
   String? _selectedCompanyId;
@@ -10,14 +12,21 @@ class CompanySiteProvider extends ChangeNotifier {
   final Map<String, List<Site>> _companySites = {};
   
   // API Configuration
-  final String _baseUrl = 'http://sitepilot.easy2it.in';
+  final String _baseUrl = 'https://sitepilot.easy2it.in';
   bool _isLoading = false;
+  final Set<String> _permissions = {};
+  int? _currentUserId;
 
   String? get selectedCompanyId => _selectedCompanyId;
   String? get selectedCompanyName => _selectedCompanyName;
   List<String> get companyNames => _companies.map((c) => c['name'] as String).toList();
   List<Map<String, dynamic>> get companies => _companies;
   bool get isLoading => _isLoading;
+  
+  // Permissions Loading State
+  bool _isPermissionsLoading = false;
+  bool get isPermissionsLoading => _isPermissionsLoading;
+  Set<String> get permissions => _permissions;
 
   // Get sites for the currently selected company only
   List<Site> get sites => _selectedCompanyId != null 
@@ -32,6 +41,137 @@ class CompanySiteProvider extends ChangeNotifier {
     return 'ongoing';
   }
 
+  Future<void> _loadPermissions() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userDataString = prefs.getString('user_data');
+      
+      _permissions.clear();
+      
+      if (userDataString != null) {
+        final userData = json.decode(userDataString);
+        
+        // Extract Current User ID
+        if (userData['user'] != null && userData['user']['id'] != null) {
+           _currentUserId = userData['user']['id'];
+           print('DEBUG: Current User ID loaded: $_currentUserId');
+        } else if (userData['id'] != null) {
+           _currentUserId = userData['id'];
+           print('DEBUG: Current User ID loaded (from root): $_currentUserId');
+        }
+        
+        List<dynamic>? roles;
+        
+        // Check for 'roles' at root
+        if (userData['roles'] is List) {
+           roles = userData['roles'];
+        } 
+        // Check for 'roles' inside 'user'
+        else if (userData['user'] != null && userData['user']['roles'] is List) {
+           roles = userData['user']['roles'];
+        }
+        // Check for singular 'role'
+        else if (userData['role'] != null) {
+           if (userData['role'] is List) {
+              roles = userData['role'];
+           } else if (userData['role'] is Map) {
+              roles = [userData['role']];
+           }
+        }
+        
+        if (roles != null) {
+          print('DEBUG: Found ${roles.length} roles in storage.');
+          for (var role in roles) {
+            print('DEBUG: Processing role: ${role['name'] ?? 'Unknown'}');
+            final permissions = role['permissions'] as List<dynamic>?;
+            if (permissions != null) {
+              print('DEBUG: Found ${permissions.length} permissions in role.');
+              for (var permission in permissions) {
+                if (permission['name'] != null) {
+                    final permName = permission['name'].toString().trim();
+                    _permissions.add(permName);
+                    // print('DEBUG: Added Permission: "$permName"'); 
+                }
+              }
+            } else {
+               print('DEBUG: No permissions list found in role.');
+            }
+          }
+        } else {
+           print('DEBUG: No roles found in stored user data.');
+        }
+      }
+      print('DEBUG: Total Loaded Permissions: ${_permissions.length}');
+      print('DEBUG: Permission Set: $_permissions');
+      notifyListeners();
+    } catch (e) {
+      print('Error loading permissions: $e');
+    }
+  }
+
+  Future<void> refreshPermissions() async {
+    print('Refreshing permissions from API...');
+    _isPermissionsLoading = true;
+    notifyListeners();
+    
+    try {
+      // Attempt 0: Try explicit token refresh first (since user says this is the "correct" way like login)
+      // This will now update user data if the API returns it.
+      print('refreshPermissions: Attempting to refresh via auth token...');
+      bool tokenRefreshed = await ApiService.refreshToken();
+      if (tokenRefreshed) {
+         print('refreshPermissions: Token refreshed. Reloading permissions from storage...');
+         await _loadPermissions();
+         // If we have permissions now, we are good!
+         if (_permissions.isNotEmpty) {
+            print('refreshPermissions: Permissions loaded successfully from token refresh.');
+            _isPermissionsLoading = false;
+            notifyListeners();
+            return; 
+         } else {
+            print('refreshPermissions: Token refreshed but permissions still empty. Trying fallback endpoints...');
+         }
+      }
+
+      /* 
+      // DISABLED: User confirmed these endpoints are not reliable/correct.
+      // We rely SOLELY on refreshToken() or refreshUserProfile() which use standard auth.
+      
+      final prefs = await SharedPreferences.getInstance();
+      final userDataString = prefs.getString('user_data');
+      if (userDataString != null) {
+        // ... (removed/commented out logic to stop guessing endpoints)
+      }
+      */
+      
+      // Fallback to old method if no ID or individual fetch fails
+      print('Falling back to refreshUserProfile...');
+      bool success = await ApiService.refreshUserProfile();
+      if (success) {
+        await _loadPermissions();
+        print('Permissions refreshed successfully via profile.');
+      } else {
+        print('Failed to refresh user profile from API.');
+      }
+    } catch (e) {
+      print('Error refreshing permissions: $e');
+    } finally {
+       _isPermissionsLoading = false;
+       notifyListeners();
+    }
+  }
+
+  bool hasPermission(String permissionName) {
+    return _permissions.contains(permissionName);
+  }
+
+  Future<bool> _hasPermission(String permissionName) async {
+    if (_permissions.isEmpty) {
+      await _loadPermissions();
+    }
+    return _permissions.contains(permissionName);
+  }
+
   double? _parseDouble(dynamic value) {
     if (value == null) return null;
     if (value is double) return value;
@@ -40,25 +180,29 @@ class CompanySiteProvider extends ChangeNotifier {
     return null;
   }
 
+  Future<Map<String, String>> _getAuthHeaders() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('auth_token');
+    print('🔑 Getting Auth Headers. Token present: ${token != null}');
+    return {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      if (token != null) 'Authorization': 'Bearer $token',
+    };
+  }
+
   Future<void> loadCompanies() async {
     try {
+      await _loadPermissions();
       _setLoading(true);
-      print('Loading companies from API...');
+      print('Loading companies from local storage (Login Response)...');
       
-      final response = await http.get(
-        Uri.parse('$_baseUrl/api/workspaces'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-      ).timeout(const Duration(seconds: 30));
+      final prefs = await SharedPreferences.getInstance();
+      final storedWorkspaces = prefs.getString('stored_workspaces');
 
-      print('API Response Status: ${response.statusCode}');
-      print('API Response Body: ${response.body}');
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        final workspaces = data['workspaces'] as List;
+      if (storedWorkspaces != null) {
+        final workspaces = json.decode(storedWorkspaces) as List;
+        print('Found ${workspaces.length} workspaces in storage.');
         
         // Clear existing data
         _companies.clear();
@@ -69,7 +213,10 @@ class CompanySiteProvider extends ChangeNotifier {
         int inactiveCount = 0;
         
         for (var workspace in workspaces) {
-          if (workspace['status'] == 'active') {
+          // Trust the login response list. Only filter by active status.
+          // Previous strict filter (created_by == user_id) caused issues with shared workspaces or ID mismatches.
+          
+          if (workspace['status'] == 'active') { 
             final workspaceName = workspace['name'];
             final workspaceId = workspace['id'].toString();
             
@@ -111,12 +258,14 @@ class CompanySiteProvider extends ChangeNotifier {
         
         notifyListeners();
       } else {
-        throw Exception('Failed to load workspaces: ${response.statusCode}');
+        print('No stored workspaces found. Please login again.');
+        _companies.clear();
+        notifyListeners();
       }
     } catch (e) {
       print('Error loading workspaces: $e');
       _showError('Failed to load companies: $e');
-      rethrow;
+      // rethrow;
     } finally {
       _setLoading(false);
     }
@@ -130,10 +279,8 @@ class CompanySiteProvider extends ChangeNotifier {
       
       final response = await http.get(
         Uri.parse('$_baseUrl/api/projects'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
+
+        headers: await _getAuthHeaders(),
       ).timeout(const Duration(seconds: 30));
 
       print('Sites API Response Status: ${response.statusCode}');
@@ -211,17 +358,17 @@ class CompanySiteProvider extends ChangeNotifier {
         'start_date': site.startDate,
         'end_date': site.endDate,
         'status': site.status.toLowerCase(),
-        'created_by': 10, // Add the required created_by field
+        'created_by': 10,
+        if (site.latitude != null) 'latitude': site.latitude,
+        if (site.longitude != null) 'longitude': site.longitude,
       };
 
       print('Site data: $siteData');
 
       final response = await http.post(
         Uri.parse('$_baseUrl/api/projects'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
+
+        headers: await _getAuthHeaders(),
         body: json.encode(siteData),
       ).timeout(const Duration(seconds: 30));
 
@@ -279,10 +426,8 @@ class CompanySiteProvider extends ChangeNotifier {
       
       final response = await http.delete(
         Uri.parse('$_baseUrl/api/projects/$siteId'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
+
+        headers: await _getAuthHeaders(),
       ).timeout(const Duration(seconds: 30));
 
       print('Delete site response: ${response.statusCode}');
@@ -337,10 +482,8 @@ class CompanySiteProvider extends ChangeNotifier {
 
       final response = await http.put(
         Uri.parse('$_baseUrl/api/projects/${updatedSite.id}'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
+
+        headers: await _getAuthHeaders(),
         body: json.encode(updateData),
       ).timeout(const Duration(seconds: 30));
 
@@ -389,15 +532,20 @@ class CompanySiteProvider extends ChangeNotifier {
   // Company Management Methods
   Future<bool> addCompany(String companyName) async {
     try {
+      // Check permission
+      final hasPermission = await _hasPermission('workspace create');
+      if (!hasPermission) {
+        _showError('You do not have permission to create a workspace.');
+        return false;
+      }
+
       _setLoading(true);
       print('Creating new workspace: $companyName');
       
       final response = await http.post(
         Uri.parse('$_baseUrl/api/workspaces'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
+
+        headers: await _getAuthHeaders(),
         body: json.encode({
           'name': companyName,
           'created_by': 10,
@@ -441,6 +589,13 @@ class CompanySiteProvider extends ChangeNotifier {
 
   Future<bool> updateCompany(String oldCompanyId, String newCompanyName) async {
     try {
+      // Check permission
+      final hasPermission = await _hasPermission('workspace edit');
+      if (!hasPermission) {
+        _showError('You do not have permission to edit this workspace.');
+        return false;
+      }
+
       _setLoading(true);
       
       final companyIndex = _companies.indexWhere((c) => c['id'] == oldCompanyId);
@@ -453,10 +608,8 @@ class CompanySiteProvider extends ChangeNotifier {
       
       final response = await http.put(
         Uri.parse('$_baseUrl/api/workspaces/$oldCompanyId'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
+
+        headers: await _getAuthHeaders(),
         body: json.encode({
           'name': newCompanyName,
           'created_by': company['created_by'],
@@ -503,6 +656,13 @@ class CompanySiteProvider extends ChangeNotifier {
 
   Future<bool> deleteCompany(String companyId) async {
   try {
+    // Check permission
+    final hasPermission = await _hasPermission('workspace delete');
+    if (!hasPermission) {
+      _showError('You do not have permission to delete this workspace.');
+      return false;
+    }
+
     _setLoading(true);
     
     // First, check if the company has any sites/projects
@@ -551,10 +711,8 @@ Future<bool> _deleteFromApiPermanently(String companyId, Map<String, dynamic> co
     print('🔄 Attempting DELETE method for permanent deletion...');
     final deleteResponse = await http.delete(
       Uri.parse('$_baseUrl/api/workspaces/$companyId'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
+
+        headers: await _getAuthHeaders(),
     ).timeout(const Duration(seconds: 30));
 
     print('DELETE Response Status: ${deleteResponse.statusCode}');
@@ -618,10 +776,8 @@ Future<bool> _tryForceDeleteMethods(String companyId, Map<String, dynamic> compa
       print('🔄 Trying: ${method['name']}');
       final response = await http.put(
         Uri.parse('$_baseUrl/api/workspaces/$companyId'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
+
+        headers: await _getAuthHeaders(),
         body: json.encode(method['data']),
       ).timeout(const Duration(seconds: 15));
 
@@ -652,10 +808,8 @@ Future<bool> _tryForceDeleteMethods(String companyId, Map<String, dynamic> compa
     print('🔄 Trying POST to delete endpoint...');
     final postResponse = await http.post(
       Uri.parse('$_baseUrl/api/workspaces/$companyId/delete'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
+
+        headers: await _getAuthHeaders(),
       body: json.encode({
         'force': true,
         'permanent': true,
@@ -683,10 +837,8 @@ Future<bool> _verifyPermanentDeletion(String companyId, String companyName) asyn
     
     final verifyResponse = await http.get(
       Uri.parse('$_baseUrl/api/workspaces'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
+
+      headers: await _getAuthHeaders(),
     ).timeout(const Duration(seconds: 10));
 
     if (verifyResponse.statusCode == 200) {

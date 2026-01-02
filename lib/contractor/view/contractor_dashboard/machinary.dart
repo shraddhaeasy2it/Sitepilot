@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:ecoteam_app/admin/services/transfer_machinery_services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -9,16 +12,25 @@ import 'package:ecoteam_app/admin/services/Allmachinery_services.dart';
 import 'package:ecoteam_app/admin/services/machineryCategory_services.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:ecoteam_app/contractor/view/contractor_dashboard/chat_screen.dart';
+import 'package:ecoteam_app/contractor/view/contractor_dashboard/dashboard_page.dart';
+import 'package:ecoteam_app/contractor/view/contractor_dashboard/notification.dart';
+import 'package:ecoteam_app/contractor/view/contractor_dashboard/profilepage.dart';
 
 class AllMachineryScreen extends StatefulWidget {
   final String? selectedSiteId;
   final Function(String) onSiteChanged;
   final List<Site> sites;
+  final int? workspaceId;
+  final String? currentCompany;
+
   const AllMachineryScreen({
     super.key,
     required this.selectedSiteId,
     required this.onSiteChanged,
     required this.sites,
+    this.workspaceId,
+    this.currentCompany,
   });
 
   @override
@@ -160,10 +172,10 @@ class _MachineryScreenState extends State<AllMachineryScreen> {
     switch (status.toLowerCase()) {
       case 'active':
         return Colors.green;
-      case 'inactive':
+      case 'breakdown':
+        return Colors.orange; // or Colors.amber[700]
+      case 'scrap':
         return Colors.red;
-      case 'maintenance':
-        return Colors.orange;
       default:
         return Colors.grey;
     }
@@ -173,36 +185,49 @@ class _MachineryScreenState extends State<AllMachineryScreen> {
     switch (status.toLowerCase()) {
       case 'active':
         return 'Active';
-      case 'inactive':
-        return 'Inactive';
-      case 'maintenance':
-        return 'Under Maintenance';
+      case 'breakdown':
+        return 'Breakdown';
+      case 'scrap':
+        return 'Scrap';
       default:
         return status;
     }
   }
 
-  IconData _getCategoryIcon(String category) {
-    final lowerCategory = category.toLowerCase();
-    if (lowerCategory.contains('excavator') ||
-        lowerCategory.contains('loader')) {
-      return Icons.directions_car;
-    } else if (lowerCategory.contains('crane') ||
-        lowerCategory.contains('lift')) {
-      return Icons.height;
-    } else if (lowerCategory.contains('mixer') ||
-        lowerCategory.contains('concrete')) {
-      return Icons.business;
-    } else if (lowerCategory.contains('generator') ||
-        lowerCategory.contains('power')) {
-      return Icons.bolt;
-    } else if (lowerCategory.contains('compactor') ||
-        lowerCategory.contains('roller')) {
-      return Icons.tire_repair;
-    } else {
-      return Icons.build;
-    }
+ IconData _getCategoryFaIcon(String category) {
+  final lower = category.toLowerCase();
+
+  if (lower.contains('excavator') ||
+      lower.contains('digger') ||
+      lower.contains('backhoe')) {
+    return FontAwesomeIcons.personDigging;
+  } 
+  else if (lower.contains('loader') ||
+           lower.contains('bulldozer') ||
+           lower.contains('dozer')) {
+    return FontAwesomeIcons.tractor;
+  } 
+  else if (lower.contains('crane') ||
+           lower.contains('lift') ||
+           lower.contains('hoist')) {
+    return FontAwesomeIcons.towerObservation;
+  } 
+  else if (lower.contains('mixer') ||
+           lower.contains('cement') ||
+           lower.contains('concrete')) {
+    return FontAwesomeIcons.truckMonster;
+  } 
+  else if (lower.contains('truck') ||
+           lower.contains('dumper')) {
+    return FontAwesomeIcons.truckPickup;
+  } 
+  else if (lower.contains('generator') ||
+           lower.contains('power')) {
+    return FontAwesomeIcons.boltLightning;
   }
+
+  return FontAwesomeIcons.truckPickup;
+}
 
   // Method to show delete confirmation dialog
   void _showDeleteConfirmationDialog(AllMachinery machinery) {
@@ -272,393 +297,222 @@ class _MachineryScreenState extends State<AllMachineryScreen> {
     }
   }
 
-  // Method to show transfer bottom sheet
   void _showTransferSheet(AllMachinery machinery) {
-    // Get current site name
-    final fromSiteName = _getSiteName(machinery.siteId);
-    
-    // Initialize date controller with current date
-    final transferDateController = TextEditingController(
+    final TextEditingController transferDateController = TextEditingController(
       text: DateFormat('yyyy-MM-dd').format(DateTime.now()),
     );
-    
+
     String? selectedToSite;
-    List<Site> allSites = [];
-    bool isLoadingSites = true;
-    String transferError = '';
-
-    // Fetch sites by workspace ID (workspace_id is 3 based on your API docs)
-    Future<void> _loadSites() async {
-      try {
-        // Based on your API documentation, workspace_id is 3
-        final response = await http.get(
-          Uri.parse('http://sitepilot.easy2it.in/api/general-transfer?site_id=3&workspace_id=3&transfer_type=machinery'),
-        );
-
-        if (response.statusCode == 200) {
-          final data = json.decode(response.body);
-          if (data['to_site_id'] != null) {
-            final Map<String, dynamic> siteMap = data['to_site_id'];
-            allSites = siteMap.entries.map((entry) {
-              return Site(
-                id: entry.key,
-                name: entry.value.toString(),
-                companyId: '',
-              );
-            }).toList();
-            
-            // Remove current site from the list
-            allSites.removeWhere((site) => site.id == machinery.siteId.toString());
-          }
-        }
-      } catch (e) {
-        _showErrorSnackBar('Failed to load sites: $e');
-      } finally {
-        if (mounted) {
-          setState(() {
-            isLoadingSites = false;
-          });
-        }
-      }
-    }
-
-    // Initialize site loading
-    _loadSites();
+    bool loading = true;
+    String error = '';
+    Map<String, String> siteMap = {};
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      isDismissible: true,
-      enableDrag: true,
-      builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.7,
-        minChildSize: 0.5,
-        maxChildSize: 0.9,
-        builder: (context, scrollController) {
-          return StatefulBuilder(
-            builder: (context, setSheetState) {
-              return Container(
-                decoration: const BoxDecoration(
-                  color: backgroundColor,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black26,
-                      blurRadius: 20,
-                      offset: Offset(0, -5),
+      builder: (_) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            Future<void> loadSites() async {
+              try {
+                final result = await TransfermachineryService.fetchToSites(
+                  siteId: machinery.siteId,
+                  workspaceId: machinery.workspaceId,
+                  machineryId: machinery.id!,
+                  userId: 10,
+                );
+
+                /// ❌ remove FROM SITE
+                result.remove(machinery.siteId.toString());
+
+                setSheetState(() {
+                  siteMap = result;
+                  loading = false;
+                });
+              } catch (e) {
+                setSheetState(() {
+                  loading = false;
+                  error = 'Failed to load sites';
+                });
+              }
+            }
+
+            if (loading) loadSites();
+
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+              ),
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    /// 🔹 TITLE
+                    const Text(
+                      'Transfer Machinery',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ],
-                ),
-                child: Padding(
-                  padding: EdgeInsets.only(
-                    bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-                    left: 20,
-                    right: 20,
-                    top: 24,
-                  ),
-                  child: Scrollbar(
-                    controller: scrollController,
-                    thumbVisibility: false,
-                    child: SingleChildScrollView(
-                      controller: scrollController,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Center(
-                            child: Container(
-                              width: 40,
-                              height: 4,
-                              decoration: BoxDecoration(
-                                color: Colors.grey[300],
-                                borderRadius: BorderRadius.circular(2),
-                              ),
-                            ),
-                          ),
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: primaryColor.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Icon(
-                                  Icons.move_to_inbox,
-                                  color: primaryColor,
-                                  size: 28,
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text(
-                                      'Transfer Machinery',
-                                      style: TextStyle(
-                                        fontSize: 24,
-                                        fontWeight: FontWeight.bold,
-                                        color: textPrimary,
-                                      ),
-                                    ),
-                                    Text(
-                                      'Transfer ${machinery.name} to another site',
-                                      style: const TextStyle(
-                                        fontSize: 14,
-                                        color: textSecondary,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 32),
+                    const SizedBox(height: 20),
 
-                          // Transfer Type (Auto-selected)
-                          _buildReadOnlyField(
-                            label: 'Transfer Type',
-                            value: 'Machinery',
-                            icon: Icons.category,
-                          ),
-                          const SizedBox(height: 20),
+                    /// 🔒 TRANSFER TYPE (READ-ONLY)
+                    _readOnlyField(
+                      label: 'Transfer Type',
+                      value: 'Machinery',
+                      icon: Icons.swap_horiz,
+                    ),
 
-                          // Machinery Name (Auto-selected)
-                          _buildReadOnlyField(
-                            label: 'Machinery',
-                            value: machinery.name,
-                            icon: Icons.build,
-                          ),
-                          const SizedBox(height: 20),
+                    /// 🔒 MACHINERY NAME
+                    _readOnlyField(
+                      label: 'Machinery',
+                      value: machinery.name,
+                      icon: Icons.build,
+                    ),
 
-                          // From Site (Auto-selected)
-                          _buildReadOnlyField(
-                            label: 'From Site',
-                            value: fromSiteName,
-                            icon: Icons.location_on,
-                          ),
-                          const SizedBox(height: 20),
+                    /// 🔒 FROM SITE
+                    _readOnlyField(
+                      label: 'From Site',
+                      value: _getSiteName(machinery.siteId),
+                      icon: Icons.location_on,
+                    ),
 
-                          // Transfer Date
-                          InkWell(
-                            onTap: () async {
-                              final date = await showDatePicker(
-                                context: context,
-                                initialDate: DateTime.now(),
-                                firstDate: DateTime.now(),
-                                lastDate: DateTime.now().add(const Duration(days: 365)),
-                              );
-                              if (date != null) {
-                                setSheetState(() {
-                                  transferDateController.text = DateFormat('yyyy-MM-dd').format(date);
-                                });
-                              }
-                            },
-                            child: _buildDateField(
-                              controller: transferDateController,
-                              label: 'Transfer Date',
-                              icon: Icons.calendar_today,
-                              hasError: false,
-                            ),
-                          ),
-                          const SizedBox(height: 20),
+                    /// 🔒 TRANSFER DATE
+                    _readOnlyTextField(
+                      controller: transferDateController,
+                      label: 'Transfer Date',
+                      icon: Icons.calendar_today,
+                    ),
 
-                          // To Site Dropdown
-                          isLoadingSites
-                              ? Container(
-                                  padding: const EdgeInsets.all(16),
-                                  decoration: BoxDecoration(
-                                    color: cardColor,
-                                    borderRadius: BorderRadius.circular(16),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withOpacity(0.05),
-                                        blurRadius: 10,
-                                        offset: const Offset(0, 2),
-                                      ),
-                                    ],
+                    const SizedBox(height: 16),
+
+                    /// ✅ TO SITE (ONLY EDITABLE FIELD)
+                    if (loading)
+                      const CircularProgressIndicator()
+                    else if (error.isNotEmpty)
+                      Text(error, style: const TextStyle(color: Colors.red))
+                    else
+                      DropdownButtonFormField<String>(
+                        isExpanded: true, // ⭐ IMPORTANT
+                        hint: const Text('Select To Site'),
+                        value: selectedToSite,
+                        items: siteMap.entries.map((e) {
+                          return DropdownMenuItem<String>(
+                            value: e.key,
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    e.value,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis, // ⭐ FIX
                                   ),
-                                  child: const Center(
-                                    child: CircularProgressIndicator(color: primaryColor),
-                                  ),
-                                )
-                              : _buildSiteDropdown(
-                                  value: selectedToSite,
-                                  label: 'To Site',
-                                  icon: Icons.location_on,
-                                  items: allSites,
-                                  hasError: transferError.isNotEmpty,
-                                  onChanged: (val) {
-                                    setSheetState(() {
-                                      selectedToSite = val;
-                                      transferError = '';
-                                    });
-                                  },
-                                ),
-                          
-                          if (transferError.isNotEmpty) ...[
-                            const SizedBox(height: 8),
-                            Text(
-                              transferError,
-                              style: const TextStyle(
-                                color: Colors.red,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
-                          
-                          const SizedBox(height: 32),
-
-                          // Transfer Button
-                          Container(
-                            height: 56,
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [primaryColor, primaryDark],
-                                begin: Alignment.centerLeft,
-                                end: Alignment.centerRight,
-                              ),
-                              borderRadius: BorderRadius.circular(16),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: primaryColor.withOpacity(0.3),
-                                  blurRadius: 12,
-                                  offset: const Offset(0, 6),
                                 ),
                               ],
                             ),
-                            child: ElevatedButton.icon(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.transparent,
-                                shadowColor: Colors.transparent,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                              ),
-                              icon: const Icon(
-                                Icons.move_to_inbox,
-                                color: Colors.white,
-                                size: 22,
-                              ),
-                              label: const Text(
-                                'Transfer Machinery',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              onPressed: () async {
-                                if (selectedToSite == null || selectedToSite!.isEmpty) {
-                                  setSheetState(() {
-                                    transferError = 'Please select a destination site';
-                                  });
-                                  return;
-                                }
+                          );
+                        }).toList(),
+                        onChanged: (val) {
+                          setSheetState(() {
+                            selectedToSite = val;
+                          });
+                        },
+                        decoration: InputDecoration(
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 14,
+                          ),
+                        ),
+                      ),
 
+                    const SizedBox(height: 24),
+
+                    /// ✅ SUBMIT
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: selectedToSite == null
+                            ? null
+                            : () async {
                                 try {
-                                  // Prepare transfer data
-                                  final transferData = {
-                                    "transfer_type": "machinery",
-                                    "machinery_id": machinery.id,
-                                    "transfer_date": transferDateController.text,
-                                    "from_site_id": machinery.siteId,
-                                    "to_site_id": int.parse(selectedToSite!),
-                                    "created_by": machinery.createdBy,
-                                  };
-
-                                  // Make API call to create transfer
-                                  final response = await http.post(
-                                    Uri.parse('http://sitepilot.easy2it.in/api/general-transfers'),
-                                    headers: {'Content-Type': 'application/json'},
-                                    body: json.encode(transferData),
+                                  await TransfermachineryService.createTransfer(
+                                    {
+                                      'transfer_type': 'machinery',
+                                      'machinery_id': machinery.id.toString(),
+                                      'transfer_date':
+                                          transferDateController.text,
+                                      'from_site_id': machinery.siteId
+                                          .toString(),
+                                      'to_site_id': selectedToSite!,
+                                      'created_by': '1',
+                                    },
                                   );
 
-                                  if (response.statusCode == 200 || response.statusCode == 201) {
-                                    final result = json.decode(response.body);
-                                    Navigator.pop(context);
-                                    _showSuccessSnackBar('Machinery transferred successfully');
-                                    
-                                    // Refresh machinery list
-                                    await _loadMachineries();
-                                  } else {
-                                    setSheetState(() {
-                                      transferError = 'Transfer failed. Please try again.';
-                                    });
-                                  }
-                                } catch (e) {
-                                  setSheetState(() {
-                                    transferError = 'Transfer failed: $e';
-                                  });
+                                  Navigator.pop(context);
+                                  _showSuccessSnackBar(
+                                    'Machinery transferred successfully',
+                                  );
+                                  _loadMachineries();
+                                } catch (_) {
+                                  _showErrorSnackBar('Transfer failed');
                                 }
                               },
-                            ),
-                          ),
-                        ],
+                        child: const Text('Transfer Machinery'),
                       ),
                     ),
-                  ),
+                  ],
                 ),
-              );
-            },
-          );
-        },
-      ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
-  Widget _buildReadOnlyField({
+  Widget _readOnlyField({
     required String label,
     required String value,
     required IconData icon,
   }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: TextFormField(
+        initialValue: value,
+        readOnly: true,
+        decoration: InputDecoration(
+          labelText: label,
+          prefixIcon: Icon(icon),
+          filled: true,
+          fillColor: Colors.grey.shade100,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        ),
       ),
-      child: Row(
-        children: [
-          Icon(
-            icon,
-            color: primaryColor,
-            size: 20,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: TextStyle(
-                    color: textSecondary,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  value,
-                  style: const TextStyle(
-                    color: textPrimary,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+    );
+  }
+
+  Widget _readOnlyTextField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: TextFormField(
+        controller: controller,
+        readOnly: true,
+        decoration: InputDecoration(
+          labelText: label,
+          prefixIcon: Icon(icon),
+          filled: true,
+          fillColor: Colors.grey.shade100,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        ),
       ),
     );
   }
@@ -760,7 +614,7 @@ class _MachineryScreenState extends State<AllMachineryScreen> {
             builder: (context, setSheetState) {
               return Container(
                 decoration: const BoxDecoration(
-                  color: backgroundColor,
+                  color: Color.fromARGB(255, 255, 255, 255),
                   borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
                   boxShadow: [
                     BoxShadow(
@@ -854,7 +708,7 @@ class _MachineryScreenState extends State<AllMachineryScreen> {
                               }
                             },
                           ),
-                          const SizedBox(height: 20),
+                          const SizedBox(height: 10),
 
                           // Category Dropdown
                           _buildCategoryDropdown(
@@ -870,7 +724,7 @@ class _MachineryScreenState extends State<AllMachineryScreen> {
                               }
                             },
                           ),
-                          const SizedBox(height: 20),
+                          const SizedBox(height: 10),
 
                           // Vehicle Number
                           _buildEnhancedTextField(
@@ -886,7 +740,7 @@ class _MachineryScreenState extends State<AllMachineryScreen> {
                               }
                             },
                           ),
-                          const SizedBox(height: 20),
+                         const SizedBox(height: 10),
 
                           // Model Number
                           _buildEnhancedTextField(
@@ -897,7 +751,7 @@ class _MachineryScreenState extends State<AllMachineryScreen> {
                             isRequired: true,
                             onChanged: (_) {},
                           ),
-                          const SizedBox(height: 20),
+                        const SizedBox(height: 10),
 
                           // Manufacturer
                           _buildEnhancedTextField(
@@ -908,7 +762,7 @@ class _MachineryScreenState extends State<AllMachineryScreen> {
                             isRequired: true,
                             onChanged: (_) {},
                           ),
-                          const SizedBox(height: 20),
+                          const SizedBox(height: 10),
 
                           // Purchase Date
                           InkWell(
@@ -936,7 +790,7 @@ class _MachineryScreenState extends State<AllMachineryScreen> {
                               hasError: false,
                             ),
                           ),
-                          const SizedBox(height: 20),
+                          const SizedBox(height: 10),
 
                           // Maintenance Schedule
                           InkWell(
@@ -968,7 +822,7 @@ class _MachineryScreenState extends State<AllMachineryScreen> {
                               hasError: false,
                             ),
                           ),
-                          const SizedBox(height: 20),
+                          const SizedBox(height: 10),
 
                           // Capacity
                           _buildEnhancedTextField(
@@ -979,7 +833,7 @@ class _MachineryScreenState extends State<AllMachineryScreen> {
                             isRequired: true,
                             onChanged: (_) {},
                           ),
-                          const SizedBox(height: 20),
+                         const SizedBox(height: 10),
 
                           // Status Dropdown
                           _buildStatusDropdown(
@@ -988,7 +842,7 @@ class _MachineryScreenState extends State<AllMachineryScreen> {
                             icon: Icons.info_outline,
                             onChanged: (val) => selectedStatus = val!,
                           ),
-                          const SizedBox(height: 20),
+                          const SizedBox(height: 10),
 
                           // Description
                           _buildEnhancedTextField(
@@ -1000,7 +854,7 @@ class _MachineryScreenState extends State<AllMachineryScreen> {
                             maxLines: 3,
                             onChanged: (_) {},
                           ),
-                          const SizedBox(height: 20),
+                        const SizedBox(height: 10),
 
                           // Remarks
                           _buildEnhancedTextField(
@@ -1187,68 +1041,59 @@ class _MachineryScreenState extends State<AllMachineryScreen> {
     required bool hasError,
     required Function(String?) onChanged,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: DropdownButtonFormField<String>(
-        value: value,
-        decoration: InputDecoration(
-          labelText: label,
-          errorText: hasError ? 'Required' : null,
-          prefixIcon: Icon(
-            icon,
-            color: hasError ? Colors.red : primaryColor,
-            size: 22,
-          ),
-          filled: true,
-          fillColor: cardColor,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide.none,
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(color: Colors.grey.withOpacity(0.1)),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(color: primaryColor, width: 2),
-          ),
-          errorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: const BorderSide(color: Colors.red, width: 1),
-          ),
-          labelStyle: TextStyle(
-            color: hasError ? Colors.red : textSecondary,
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
+    return DropdownButtonFormField<String>(
+      value: value,
+      decoration: InputDecoration(
+        labelText: label,
+        errorText: hasError ? 'Required' : null,
+        prefixIcon: Icon(
+          icon,
+          color: hasError ? Colors.red : const Color(0xFF4a63c0),
+          size: 22.sp,
+        ),
+        filled: false,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(
+            12.r,
           ),
         ),
-        dropdownColor: cardColor,
-        style: const TextStyle(
-          color: textPrimary,
-          fontSize: 16,
-          fontWeight: FontWeight.w500,
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(
+            12.r,
+          ),
+          borderSide: BorderSide(
+            color: const Color.fromARGB(255, 214, 215, 216),
+            width: 1.5,
+          ),
         ),
-        items: items
-            .map(
-              (category) => DropdownMenuItem(
-                value: category.id.toString(),
-                child: Text(category.name),
-              ),
-            )
-            .toList(),
-        onChanged: onChanged,
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(
+            12.r,
+          ),
+          borderSide: BorderSide(
+            color: const Color.fromARGB(255, 189, 190, 197), // Different color when focused
+            width: 1.0,
+          ),
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          vertical: 2,
+        ),
       ),
+      dropdownColor: cardColor,
+      style: const TextStyle(
+        color: textPrimary,
+        fontSize: 16,
+        fontWeight: FontWeight.w500,
+      ),
+      items: items
+          .map(
+            (category) => DropdownMenuItem(
+              value: category.id.toString(),
+              child: Text(category.name),
+            ),
+          )
+          .toList(),
+      onChanged: onChanged,
     );
   }
 
@@ -1260,72 +1105,60 @@ class _MachineryScreenState extends State<AllMachineryScreen> {
     required bool hasError,
     required Function(String?) onChanged,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: DropdownButtonFormField<String>(
-        value: value,
-        decoration: InputDecoration(
-          labelText: label,
-          errorText: hasError ? 'Required' : null,
-          prefixIcon: Icon(
-            icon,
-            color: hasError ? Colors.red : primaryColor,
-            size: 22,
-          ),
-          filled: true,
-          fillColor: cardColor,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide.none,
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(color: Colors.grey.withOpacity(0.1)),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(color: primaryColor, width: 2),
-          ),
-          errorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: const BorderSide(color: Colors.red, width: 1),
-          ),
-          labelStyle: TextStyle(
-            color: hasError ? Colors.red : textSecondary,
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
+    return DropdownButtonFormField<String>(
+      value: value,
+      decoration: InputDecoration(
+        labelText: label,
+        errorText: hasError ? 'Required' : null,
+        prefixIcon: Icon(
+          icon,
+          color: hasError ? Colors.red : const Color(0xFF4a63c0),
+          size: 22.sp,
+        ),
+        filled: false,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(
+            12.r,
           ),
         ),
-        dropdownColor: cardColor,
-        style: const TextStyle(
-          color: textPrimary,
-          fontSize: 16,
-          fontWeight: FontWeight.w500,
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(
+            12.r,
+          ),
+          borderSide: BorderSide(
+            color: const Color.fromARGB(255, 214, 215, 216),
+            width: 1.5,
+          ),
         ),
-        items: [
-          const DropdownMenuItem(
-            value: null,
-            child: Text('Select Destination Site'),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(
+            12.r,
           ),
-          ...items.map(
-            (site) => DropdownMenuItem(
-              value: site.id,
-              child: Text(site.name),
-            ),
+          borderSide: BorderSide(
+            color: const Color.fromARGB(255, 189, 190, 197), // Different color when focused
+            width: 1.0,
           ),
-        ],
-        onChanged: onChanged,
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          vertical: 2,
+        ),
       ),
+      dropdownColor: cardColor,
+      style: const TextStyle(
+        color: textPrimary,
+        fontSize: 16,
+        fontWeight: FontWeight.w500,
+      ),
+      items: [
+        const DropdownMenuItem(
+          value: null,
+          child: Text('Select Destination Site'),
+        ),
+        ...items.map(
+          (site) => DropdownMenuItem(value: site.id, child: Text(site.name)),
+        ),
+      ],
+      onChanged: onChanged,
     );
   }
 
@@ -1337,63 +1170,58 @@ class _MachineryScreenState extends State<AllMachineryScreen> {
   }) {
     final statusOptions = [
       {'value': 'active', 'label': 'Active'},
-      {'value': 'inactive', 'label': 'Inactive'},
-      {'value': 'maintenance', 'label': 'Under Maintenance'},
+      {'value': 'breakdown', 'label': 'Breakdown'},
+      {'value': 'scrap', 'label': 'Scrap'},
     ];
 
-    return Container(
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: DropdownButtonFormField<String>(
-        value: value,
-        decoration: InputDecoration(
-          labelText: label,
-          prefixIcon: Icon(icon, color: primaryColor, size: 20),
-          filled: true,
-          fillColor: cardColor,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide.none,
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(color: Colors.grey.withOpacity(0.1)),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(color: primaryColor, width: 2),
-          ),
-          labelStyle: TextStyle(
-            color: textSecondary,
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
+    return DropdownButtonFormField<String>(
+      value: value,
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(icon, color: const Color(0xFF4a63c0), size: 20.sp),
+        filled: false,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(
+            12.r,
           ),
         ),
-        dropdownColor: cardColor,
-        style: const TextStyle(
-          color: textPrimary,
-          fontSize: 16,
-          fontWeight: FontWeight.w500,
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(
+            12.r,
+          ),
+          borderSide: BorderSide(
+            color: const Color.fromARGB(255, 214, 215, 216),
+            width: 1.5,
+          ),
         ),
-        items: statusOptions
-            .map(
-              (status) => DropdownMenuItem(
-                value: status['value'],
-                child: Text(status['label']!),
-              ),
-            )
-            .toList(),
-        onChanged: onChanged,
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(
+            12.r,
+          ),
+          borderSide: BorderSide(
+            color: const Color.fromARGB(255, 189, 190, 197), // Different color when focused
+            width: 1.0,
+          ),
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          vertical: 2,
+        ),
       ),
+      dropdownColor: cardColor,
+      style: const TextStyle(
+        color: textPrimary,
+        fontSize: 16,
+        fontWeight: FontWeight.w500,
+      ),
+      items: statusOptions
+          .map(
+            (status) => DropdownMenuItem(
+              value: status['value'],
+              child: Text(status['label']!),
+            ),
+          )
+          .toList(),
+      onChanged: onChanged,
     );
   }
 
@@ -1408,67 +1236,51 @@ class _MachineryScreenState extends State<AllMachineryScreen> {
     int maxLines = 1,
     Function(String)? onChanged,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
+    return TextField(
+      controller: controller,
+      keyboardType: keyboardType,
+      maxLines: maxLines,
+      onChanged: onChanged,
+      style: const TextStyle(
+        color: Color.fromARGB(255, 72, 80, 95),
+        fontSize: 16,
+        fontWeight: FontWeight.w500,
       ),
-      child: TextField(
-        controller: controller,
-        keyboardType: keyboardType,
-        maxLines: maxLines,
-        onChanged: onChanged,
-        style: const TextStyle(
-          color: textPrimary,
-          fontSize: 16,
-          fontWeight: FontWeight.w500,
-        ),
-        decoration: InputDecoration(
-          labelText: label,
-          hintText: hint,
-          prefixIcon: Icon(
-            icon,
-            color: hasError
-                ? Colors.red
-                : const Color.fromARGB(255, 105, 110, 126),
-            size: 20,
-          ),
-          errorText: hasError ? 'Required' : null,
-          filled: true,
-          fillColor: const Color.fromARGB(255, 255, 255, 255),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide.none,
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(color: Colors.grey.withOpacity(0.1)),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(color: primaryColor, width: 2),
-          ),
-          errorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: const BorderSide(color: Colors.red, width: 1),
-          ),
-          labelStyle: TextStyle(
-            color: hasError ? Colors.red : textSecondary,
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-          ),
-          hintStyle: TextStyle(
-            color: textSecondary.withOpacity(0.7),
-            fontSize: 14,
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hint,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(
+            12.r,
           ),
         ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(
+            12.r,
+          ),
+          borderSide: BorderSide(
+            color: const Color.fromARGB(255, 214, 215, 216),
+            width: 1.5,
+          ),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(
+            12.r,
+          ),
+          borderSide: BorderSide(
+            color: const Color.fromARGB(255, 189, 190, 197), // Different color when focused
+            width: 1.0,
+          ),
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          vertical: 2,
+        ),
+        prefixIcon: Icon(
+          icon,
+          color: const Color(0xFF4a63c0),
+          size: 20.sp,
+        ),
+        errorText: hasError ? 'Required' : null,
       ),
     );
   }
@@ -1479,71 +1291,357 @@ class _MachineryScreenState extends State<AllMachineryScreen> {
     required IconData icon,
     bool hasError = false,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
+    return TextField(
+      controller: controller,
+      readOnly: true,
+      style: const TextStyle(
+        color: textPrimary,
+        fontSize: 16,
+        fontWeight: FontWeight.w500,
       ),
-      child: TextField(
-        controller: controller,
-        readOnly: true,
-        style: const TextStyle(
-          color: textPrimary,
-          fontSize: 16,
-          fontWeight: FontWeight.w500,
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: 'Select date',
+        prefixIcon: Icon(
+          icon,
+          color: const Color(0xFF4a63c0),
+          size: 20.sp,
         ),
-        decoration: InputDecoration(
-          labelText: label,
-          hintText: 'Select date',
-          prefixIcon: Icon(
-            icon,
-            color: hasError
-                ? Colors.red
-                : const Color.fromARGB(255, 105, 110, 126),
-            size: 20,
+        suffixIcon: const Icon(Icons.calendar_today, size: 20),
+        errorText: hasError ? 'Required' : null,
+        filled: false,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(
+            12.r,
           ),
-          suffixIcon: const Icon(Icons.calendar_today, size: 20),
-          errorText: hasError ? 'Required' : null,
-          filled: true,
-          fillColor: const Color.fromARGB(255, 255, 255, 255),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(
+            12.r,
           ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(color: Colors.grey.withOpacity(0.1)),
+          borderSide: BorderSide(
+            color: const Color.fromARGB(255, 214, 215, 216),
+            width: 1.5,
           ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(color: primaryColor, width: 2),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(
+            12.r,
           ),
-          errorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: const BorderSide(color: Colors.red, width: 1),
+          borderSide: BorderSide(
+            color: const Color.fromARGB(255, 189, 190, 197), // Different color when focused
+            width: 1.0,
           ),
-          labelStyle: TextStyle(
-            color: hasError ? Colors.red : textSecondary,
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          vertical: 2,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOptionTile({
+    required IconData icon,
+    required Color Iconcolor,
+    required String title,
+    Color? backgroundColor,
+    required VoidCallback onTap,
+    Color color = textPrimary,
+  }) {
+    return ListTile(
+      leading: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: backgroundColor ?? primaryColor.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(icon, color: Iconcolor, size: 20),
+      ),
+      title: Text(
+        title,
+        style: TextStyle(
+          color: color,
+          fontWeight: FontWeight.w600,
+          fontSize: 14.sp,
+        ),
+      ),
+      onTap: onTap,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
+    );
+  }
+
+  void _showMachineryOptionsBottomSheet(AllMachinery machinery) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              margin: const EdgeInsets.only(top: 8),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            _buildOptionTile(
+              icon: Icons.visibility_outlined,
+              title: 'View Full Details',
+              Iconcolor: const Color.fromARGB(255, 37, 49, 158),
+              backgroundColor: const Color.fromARGB(
+                255,
+                37,
+                49,
+                158,
+              ).withOpacity(0.1),
+              onTap: () {
+                Navigator.pop(context);
+                _showMachineryDetailsBottomSheet(machinery);
+              },
+            ),
+            _buildOptionTile(
+              icon: Icons.swap_horiz,
+              title: 'Transfer Machinery',
+              Iconcolor: Colors.orange,
+              backgroundColor: Colors.orange.withOpacity(0.1),
+              onTap: () {
+                Navigator.pop(context);
+                _showTransferSheet(machinery);
+              },
+            ),
+            _buildOptionTile(
+              icon: Icons.edit_outlined,
+              title: 'Edit Machinery',
+              Iconcolor: Colors.blue,
+              backgroundColor: Colors.blue.withOpacity(0.1),
+              onTap: () {
+                Navigator.pop(context);
+                _showMachinerySheet(existingMachinery: machinery);
+              },
+            ),
+            _buildOptionTile(
+              icon: Icons.delete_outline,
+              title: 'Delete Machinery',
+              color: Colors.red,
+              Iconcolor: Colors.red,
+              backgroundColor: Colors.red.withOpacity(0.1),
+              onTap: () {
+                Navigator.pop(context);
+                Future.delayed(const Duration(milliseconds: 200), () {
+                  _showDeleteConfirmationDialog(machinery);
+                });
+              },
+            ),
+            const SizedBox(height: 30),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showMachineryDetailsBottomSheet(AllMachinery machinery) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        builder: (_, controller) => Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
           ),
-          hintStyle: TextStyle(
-            color: textSecondary.withOpacity(0.7),
-            fontSize: 14,
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              // Header
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Machinery Details',
+                          style: TextStyle(
+                            fontSize: 18.sp,
+                            fontWeight: FontWeight.bold,
+                            color: textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          machinery.vehicleNumber,
+                          style: TextStyle(
+                            fontSize: 14.sp,
+                            color: textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _getStatusColor(
+                        machinery.operationalStatus,
+                      ).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: _getStatusColor(
+                          machinery.operationalStatus,
+                        ).withOpacity(0.3),
+                      ),
+                    ),
+                    child: Text(
+                      _getStatusText(machinery.operationalStatus).toUpperCase(),
+                      style: TextStyle(
+                        color: _getStatusColor(machinery.operationalStatus),
+                        fontSize: 12.sp,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const Divider(height: 30),
+              Expanded(
+                child: ListView(
+                  controller: controller,
+                  children: [
+                    _buildDetailRowInfo(Icons.build, 'Name', machinery.name),
+                    const SizedBox(height: 12),
+                    _buildDetailRowInfo(
+                      Icons.category,
+                      'Category',
+                      _getCategoryName(machinery.categoryId),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildDetailRowInfo(
+                      Icons.tag,
+                      'Model',
+                      machinery.modelNumber,
+                    ),
+                    const SizedBox(height: 12),
+                    _buildDetailRowInfo(
+                      Icons.factory,
+                      'Manufacturer',
+                      machinery.manufacturer,
+                    ),
+                    const SizedBox(height: 12),
+                    _buildDetailRowInfo(
+                      Icons.location_on,
+                      'Current Site',
+                      _getCurrentSiteName(),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildDetailRowInfo(
+                      Icons.scale,
+                      'Capacity',
+                      machinery.capacity,
+                    ),
+                    const SizedBox(height: 12),
+                    _buildDetailRowInfo(
+                      Icons.calendar_today,
+                      'Purchase Date',
+                      machinery.purchaseDate,
+                    ),
+                    const SizedBox(height: 12),
+                    _buildDetailRowInfo(
+                      Icons.schedule,
+                      'Maintenance',
+                      machinery.maintenanceSchedule,
+                    ),
+                    if (machinery.description != null &&
+                        machinery.description!.isNotEmpty) ...[
+                      const SizedBox(height: 20),
+                      Text(
+                        'Description',
+                        style: TextStyle(
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.w600,
+                          color: textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        machinery.description!,
+                        style: TextStyle(color: textSecondary),
+                      ),
+                    ],
+                    if (machinery.remarks != null &&
+                        machinery.remarks!.isNotEmpty) ...[
+                      const SizedBox(height: 20),
+                      Text(
+                        'Remarks',
+                        style: TextStyle(
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.w600,
+                          color: textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        machinery.remarks!,
+                        style: TextStyle(color: textSecondary),
+                      ),
+                    ],
+                    const SizedBox(height: 20),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
-  // Responsive search and filter bar
+  Widget _buildDetailRowInfo(IconData icon, String label, String value) {
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: textSecondary),
+        const SizedBox(width: 8),
+        Text('$label: ', style: const TextStyle(color: textSecondary)),
+        Expanded(
+          child: Text(
+            value,
+            style: const TextStyle(
+              fontWeight: FontWeight.w500,
+              color: textPrimary,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildSearchBar() {
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -1683,7 +1781,7 @@ class _MachineryScreenState extends State<AllMachineryScreen> {
         final isSmallScreen = constraints.maxWidth < 600;
 
         return Container(
-          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
             color: cardColor,
             borderRadius: BorderRadius.circular(20),
@@ -1699,7 +1797,7 @@ class _MachineryScreenState extends State<AllMachineryScreen> {
             color: Colors.transparent,
             child: InkWell(
               borderRadius: BorderRadius.circular(20),
-              onTap: () => _showMachinerySheet(existingMachinery: machinery),
+              
               child: Padding(
                 padding: EdgeInsets.all(isSmallScreen ? 14 : 16),
                 child: Column(
@@ -1714,12 +1812,12 @@ class _MachineryScreenState extends State<AllMachineryScreen> {
                             color: primaryColor.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: Icon(
-                            _getCategoryIcon(
+                          child: FaIcon(
+                            _getCategoryFaIcon(
                               _getCategoryName(machinery.categoryId),
                             ),
                             color: primaryColor,
-                            size: 22,
+                            size: 18,
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -1730,7 +1828,7 @@ class _MachineryScreenState extends State<AllMachineryScreen> {
                               Text(
                                 machinery.name,
                                 style: TextStyle(
-                                  fontSize: isSmallScreen ? 16 : 18,
+                                  fontSize: isSmallScreen ? 15 : 16,
                                   fontWeight: FontWeight.bold,
                                   color: textPrimary,
                                 ),
@@ -1741,7 +1839,7 @@ class _MachineryScreenState extends State<AllMachineryScreen> {
                               Text(
                                 _getCategoryName(machinery.categoryId),
                                 style: TextStyle(
-                                  fontSize: isSmallScreen ? 12 : 14,
+                                  fontSize: isSmallScreen ? 11 : 13,
                                   color: textSecondary,
                                   fontWeight: FontWeight.w500,
                                 ),
@@ -1753,6 +1851,7 @@ class _MachineryScreenState extends State<AllMachineryScreen> {
                         Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
+                            // Status Badge
                             Container(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 10,
@@ -1775,46 +1874,27 @@ class _MachineryScreenState extends State<AllMachineryScreen> {
                                   color: _getStatusColor(
                                     machinery.operationalStatus,
                                   ),
-                                  fontSize: isSmallScreen ? 9 : 11,
+                                  fontSize: isSmallScreen ? 11 : 13,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
                             ),
                             const SizedBox(width: 8),
-                            // Transfer button
-                            GestureDetector(
-                              onTap: () {
-                                _showTransferSheet(machinery);
-                              },
-                              child: Container(
-                                padding: const EdgeInsets.all(4),
-                                decoration: BoxDecoration(
-                                  color: Colors.blue.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Icon(
-                                  Icons.move_to_inbox,
-                                  color: Colors.blue,
-                                  size: 18,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            // Delete button
-                            GestureDetector(
-                              onTap: () {
-                                _showDeleteConfirmationDialog(machinery);
-                              },
-                              child: Container(
-                                padding: const EdgeInsets.all(4),
-                                decoration: BoxDecoration(
-                                  color: Colors.red.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Icon(
-                                  Icons.delete,
-                                  color: Colors.red,
-                                  size: 18,
+
+                            // More Options Button
+                            Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(20),
+                                onTap: () =>
+                                    _showMachineryOptionsBottomSheet(machinery),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: Icon(
+                                    Icons.more_vert,
+                                    color: textSecondary,
+                                    size: 24,
+                                  ),
                                 ),
                               ),
                             ),
@@ -1823,7 +1903,7 @@ class _MachineryScreenState extends State<AllMachineryScreen> {
                       ],
                     ),
 
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 14),
 
                     // First row: Vehicle Number and Model side by side
                     Row(
@@ -1849,113 +1929,6 @@ class _MachineryScreenState extends State<AllMachineryScreen> {
                     ),
 
                     const SizedBox(height: 8),
-
-                    // Second row: Manufacturer and Capacity side by side
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildMaterialStyleInfoItem(
-                            icon: Icons.factory,
-                            label: 'Manufacturer',
-                            value: machinery.manufacturer,
-                            isSmallScreen: isSmallScreen,
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: _buildMaterialStyleInfoItem(
-                            icon: Icons.scale,
-                            label: 'Capacity',
-                            value: machinery.capacity,
-                            isSmallScreen: isSmallScreen,
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 8),
-
-                    // Third row: Purchase Date and Maintenance Schedule side by side
-                    Row(
-                      children: [
-                        Expanded(
-                          child: machinery.purchaseDate.isNotEmpty
-                              ? _buildMaterialStyleInfoItem(
-                                  icon: Icons.calendar_today,
-                                  label: 'Purchased',
-                                  value: DateFormat('MMM yyyy').format(
-                                    DateTime.tryParse(machinery.purchaseDate) ??
-                                        DateTime.now(),
-                                  ),
-                                  isSmallScreen: isSmallScreen,
-                                )
-                              : _buildMaterialStyleInfoItem(
-                                  icon: Icons.calendar_today,
-                                  label: 'Purchased',
-                                  value: 'Not specified',
-                                  isSmallScreen: isSmallScreen,
-                                ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: machinery.maintenanceSchedule.isNotEmpty
-                              ? _buildMaterialStyleInfoItem(
-                                  icon: Icons.schedule,
-                                  label: 'Maintenance',
-                                  value: DateFormat('MMM yyyy').format(
-                                    DateTime.tryParse(
-                                          machinery.maintenanceSchedule,
-                                        ) ??
-                                        DateTime.now(),
-                                  ),
-                                  isSmallScreen: isSmallScreen,
-                                )
-                              : _buildMaterialStyleInfoItem(
-                                  icon: Icons.schedule,
-                                  label: 'Maintenance',
-                                  value: 'Not scheduled',
-                                  isSmallScreen: isSmallScreen,
-                                ),
-                        ),
-                      ],
-                    ),
-
-                    if (machinery.description != null &&
-                        machinery.description!.isNotEmpty) ...[
-                      const SizedBox(height: 12),
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: backgroundColor,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: primaryColor.withOpacity(0.1),
-                          ),
-                        ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Icon(
-                              Icons.description,
-                              size: 16,
-                              color: primaryColor,
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                machinery.description!,
-                                style: TextStyle(
-                                  fontSize: isSmallScreen ? 12 : 13,
-                                  color: textSecondary,
-                                ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
                   ],
                 ),
               ),
@@ -1973,51 +1946,43 @@ class _MachineryScreenState extends State<AllMachineryScreen> {
     required String value,
     bool isSmallScreen = false,
   }) {
-    return Container(
-      padding: EdgeInsets.all(isSmallScreen ? 8 : 10),
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: primaryColor.withOpacity(0.1)),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            icon,
-            size: isSmallScreen ? 14 : 16,
-            color: const Color.fromARGB(255, 109, 109, 109),
-          ),
-          const SizedBox(width: 6),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: isSmallScreen ? 9 : 10,
-                    color: textSecondary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+    return Row(
+      children: [
+        Icon(
+          icon,
+          size: isSmallScreen ? 14 : 16,
+          color: const Color.fromARGB(255, 109, 109, 109),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: isSmallScreen ? 8 : 9,
+                  color: textSecondary,
+                  fontWeight: FontWeight.w600,
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  value,
-                  style: TextStyle(
-                    fontSize: isSmallScreen ? 12 : 13,
-                    fontWeight: FontWeight.bold,
-                    color: textPrimary,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: isSmallScreen ? 12 : 13,
+                  fontWeight: FontWeight.w600,
+                  color: const Color.fromARGB(255, 68, 80, 97),
                 ),
-              ],
-            ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -2077,7 +2042,7 @@ class _MachineryScreenState extends State<AllMachineryScreen> {
       backgroundColor: backgroundColor,
       appBar: AppBar(
         elevation: 0,
-        toolbarHeight: 80.h,
+        toolbarHeight: 74.h,
         backgroundColor: Colors.transparent,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
@@ -2091,16 +2056,17 @@ class _MachineryScreenState extends State<AllMachineryScreen> {
               'Machinery Management',
               style: TextStyle(
                 color: Colors.white,
-                fontSize: 19,
+                fontSize: 17.sp,
                 fontWeight: FontWeight.w600,
               ),
             ),
-            SizedBox(height: 3),
+            SizedBox(height: 4.h),
             Text(
-              _getCurrentSiteName(),
+              "Site: ${_getCurrentSiteName()}",
+
               style: TextStyle(
                 color: Colors.white.withOpacity(0.9),
-                fontSize: 16,
+                fontSize: 13.sp,
                 fontWeight: FontWeight.w400,
               ),
             ),
@@ -2108,12 +2074,39 @@ class _MachineryScreenState extends State<AllMachineryScreen> {
         ),
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
-          IconButton(onPressed: _showMachinerySheet, icon: Icon(Icons.add)),
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadMachineries,
-            tooltip: 'Refresh',
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => NotificationScreen()),
+              );
+            },
+            child: const FaIcon(FontAwesomeIcons.bell, size: 20),
           ),
+          const SizedBox(width: 5),
+          // Chat Button
+          IconButton(
+            tooltip: 'Chat',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ChatScreen(
+                    selectedSiteId: widget.selectedSiteId,
+                    onSiteChanged: (String siteId) {
+                      debugPrint('Site changed to: $siteId');
+                    },
+                    sites: widget.sites,
+                    currentCompany: widget.currentCompany,
+                    workspaceId: widget.workspaceId,
+                  ),
+                ),
+              );
+            },
+            icon: const FaIcon(FontAwesomeIcons.commentDots, size: 20),
+            color: Colors.white,
+          ),
+         
         ],
         flexibleSpace: Container(
           decoration: BoxDecoration(
@@ -2127,6 +2120,17 @@ class _MachineryScreenState extends State<AllMachineryScreen> {
             ),
           ),
         ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _showMachinerySheet,
+        child: const Icon(Icons.add, color: Colors.white),
+        backgroundColor: const Color.fromRGBO(
+          42,
+          67,
+          160,
+          1,
+        ), // Any color you want
+        tooltip: 'Add New Machinery',
       ),
       body: _isLoading
           ? Center(

@@ -73,7 +73,7 @@ class _ConsumptionLogPageState extends State<ConsumptionLogPage> {
   final List<Consumption> _allConsumptions = [];
 
   // API Configuration
-  final String baseUrl = 'http://sitepilot.easy2it.in';
+  final String baseUrl = 'https://sitepilot.easy2it.in';
   final String apiEndpoint = '/api/daily-consumptions';
 
   String _selectedFilter = 'All';

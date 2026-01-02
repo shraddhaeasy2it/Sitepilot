@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import '../models/manpower_model.dart';
 
 class ManpowerService {
-  static const String baseUrl = 'http://sitepilot.easy2it.in/api';
+  static const String baseUrl = 'https://sitepilot.easy2it.in/api';
   
   // Static maps to store dropdown data
   static Map<int, String> typeMap = {};

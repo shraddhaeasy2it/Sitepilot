@@ -1,4 +1,6 @@
 
+import 'package:ecoteam_app/admin/models/Allsupplier_model.dart';
+
 class PurchaseInvoice {
   final int id;
   final String invoiceNumber;
@@ -40,35 +42,26 @@ class PurchaseInvoice {
 
   factory PurchaseInvoice.fromJson(Map<String, dynamic> json) {
     return PurchaseInvoice(
-      id: json['id'] ?? 0,
-      invoiceNumber: json['invoice_number'] ?? '',
-      invoiceDate: json['invoice_date'] ?? '',
-      supplierInvoiceNumber: json['supplier_invoice_number'] ?? '',
-      supplierId: json['supplier_id'] is int
-          ? json['supplier_id']
-          : int.tryParse(json['supplier_id']?.toString() ?? '0') ?? 0,
-      totalAmount:
-          double.tryParse(json['total_amount']?.toString() ?? '0') ?? 0.0,
-      status: json['status'] ?? '',
-      invoiceFile: json['invoice_file'],
-      siteId: json['site_id'] is int
-          ? json['site_id']
-          : int.tryParse(json['site_id']?.toString() ?? '0') ?? 0,
-      createdBy: json['created_by'] is int
-          ? json['created_by']
-          : int.tryParse(json['created_by']?.toString() ?? '0') ?? 0,
-      workspaceId: json['workspace_id'] is int
-          ? json['workspace_id']
-          : int.tryParse(json['workspace_id']?.toString() ?? '0') ?? 0,
-      createdAt: json['created_at'] ?? '',
-      updatedAt: json['updated_at'] ?? '',
-      invoiceType: json['invoice_type'] ?? 'general_po', // Default value
+      id: int.tryParse(json['id']?.toString() ?? '0') ?? 0,
+      invoiceNumber: json['invoice_number']?.toString() ?? '',
+      invoiceDate: json['invoice_date']?.toString() ?? '',
+      supplierInvoiceNumber: json['supplier_invoice_number']?.toString() ?? '',
+      supplierId: int.tryParse(json['supplier_id']?.toString() ?? '0') ?? 0,
+      totalAmount: double.tryParse(json['total_amount']?.toString() ?? '0') ?? 0.0,
+      status: json['status']?.toString() ?? '',
+      invoiceFile: json['invoice_file']?.toString(),
+      siteId: int.tryParse(json['site_id']?.toString() ?? '0') ?? 0,
+      createdBy: int.tryParse(json['created_by']?.toString() ?? '0') ?? 0,
+      workspaceId: int.tryParse(json['workspace_id']?.toString() ?? '0') ?? 0,
+      createdAt: json['created_at']?.toString() ?? '',
+      updatedAt: json['updated_at']?.toString() ?? '',
+      invoiceType: json['invoice_type']?.toString() ?? 'general_po', // Default value
       items: json['items'] != null
           ? (json['items'] as List)
                 .map((item) => InvoiceItem.fromJson(item))
                 .toList()
           : null,
-      supplier: json['supplier'],
+      supplier: json['supplier'] != null ? Supplier.fromJson(json['supplier']) : null,
       site: json['site'],
     );
   }
@@ -98,7 +91,7 @@ class InvoiceItem {
   final double subtotal;
   final String createdAt;
   final String updatedAt;
-  final dynamic material;
+  final MaterialModel? material;
 
   InvoiceItem({
     required this.id,
@@ -115,16 +108,16 @@ class InvoiceItem {
 
   factory InvoiceItem.fromJson(Map<String, dynamic> json) {
     return InvoiceItem(
-      id: json['id'] ?? 0,
-      purchaseInvoiceId: json['purchase_invoice_id'] ?? 0,
-      materialId: json['material_id'] ?? 0,
+      id: int.tryParse(json['id']?.toString() ?? '0') ?? 0,
+      purchaseInvoiceId: int.tryParse(json['purchase_invoice_id']?.toString() ?? '0') ?? 0,
+      materialId: int.tryParse(json['material_id']?.toString() ?? '0') ?? 0,
       quantity: double.tryParse(json['quantity']?.toString() ?? '0') ?? 0.0,
-      unit: json['unit'] ?? '',
+      unit: json['unit']?.toString() ?? '',
       price: double.tryParse(json['price']?.toString() ?? '0') ?? 0.0,
       subtotal: double.tryParse(json['subtotal']?.toString() ?? '0') ?? 0.0,
-      createdAt: json['created_at'] ?? '',
-      updatedAt: json['updated_at'] ?? '',
-      material: json['material'],
+      createdAt: json['created_at']?.toString() ?? '',
+      updatedAt: json['updated_at']?.toString() ?? '',
+      material: json['material'] != null ? MaterialModel.fromJson(json['material']) : null,
     );
   }
 
@@ -155,6 +148,7 @@ class MaterialModel {
   final int workspaceId;
   final String createdAt;
   final String updatedAt;
+  final int? gstId; // Added gstId
   final UnitModel? unit;
 
   MaterialModel({
@@ -173,27 +167,43 @@ class MaterialModel {
     required this.workspaceId,
     required this.createdAt,
     required this.updatedAt,
+    this.gstId, // Added gstId
     this.unit,
   });
 
   factory MaterialModel.fromJson(Map<String, dynamic> json) {
     return MaterialModel(
-      id: json['id'] ?? 0,
-      name: json['name'] ?? '',
-      sku: json['sku'] ?? '',
-      categoryId: json['category_id'] ?? 0,
-      unitId: json['unit_id'] ?? 0,
-      description: json['description'] ?? '',
+      id: int.tryParse(json['id']?.toString() ?? '0') ?? 0,
+      name: json['name']?.toString() ?? '',
+      sku: json['sku']?.toString() ?? '',
+      categoryId: int.tryParse(json['category_id']?.toString() ?? '0') ?? 0,
+      unitId: int.tryParse(json['unit_id']?.toString() ?? '0') ?? 0,
+      description: json['description']?.toString() ?? '',
       price: double.tryParse(json['price']?.toString() ?? '0') ?? 0.0,
-      reorderLevel: json['reorder_level'] ?? 0,
-      status: json['status'] ?? '',
-      image: json['image'],
-      siteId: json['site_id'],
-      createdBy: json['created_by'] ?? 0,
-      workspaceId: json['workspace_id'] ?? 0,
-      createdAt: json['created_at'] ?? '',
-      updatedAt: json['updated_at'] ?? '',
-      unit: json['unit'] != null ? UnitModel.fromJson(json['unit']) : null,
+      reorderLevel: int.tryParse(json['reorder_level']?.toString() ?? '0') ?? 0,
+      status: json['status']?.toString() ?? '',
+      image: json['image']?.toString(),
+      siteId: json['site_id'] != null ? int.tryParse(json['site_id'].toString()) : null,
+      createdBy: int.tryParse(json['created_by']?.toString() ?? '0') ?? 0,
+      workspaceId: int.tryParse(json['workspace_id']?.toString() ?? '0') ?? 0,
+      createdAt: json['created_at']?.toString() ?? '',
+      updatedAt: json['updated_at']?.toString() ?? '',
+      gstId: json['gst_id'] != null ? int.tryParse(json['gst_id'].toString()) : null,
+      unit: json['unit'] != null
+          ? (json['unit'] is Map
+              ? UnitModel.fromJson(Map<String, dynamic>.from(json['unit']))
+              : UnitModel(
+                  id: 0,
+                  name: json['unit'].toString(),
+                  symbol: json['unit'].toString(),
+                  isActive: 1,
+                  createdBy: 0,
+                  workspaceId: 0,
+                  status: 'active',
+                  createdAt: '',
+                  updatedAt: '',
+                ))
+          : null,
     );
   }
 
@@ -237,17 +247,17 @@ class UnitModel {
 
   factory UnitModel.fromJson(Map<String, dynamic> json) {
     return UnitModel(
-      id: json['id'] ?? 0,
-      name: json['name'] ?? '',
-      symbol: json['symbol'] ?? '',
-      description: json['description'],
-      isActive: json['is_active'] ?? 0,
-      siteId: json['site_id'],
-      createdBy: json['created_by'] ?? 0,
-      workspaceId: json['workspace_id'] ?? 0,
-      status: json['status'] ?? '',
-      createdAt: json['created_at'] ?? '',
-      updatedAt: json['updated_at'] ?? '',
+      id: int.tryParse(json['id']?.toString() ?? '0') ?? 0,
+      name: json['name']?.toString() ?? '',
+      symbol: json['symbol']?.toString() ?? '',
+      description: json['description']?.toString(),
+      isActive: int.tryParse(json['is_active']?.toString() ?? '0') ?? 0,
+      siteId: json['site_id'] != null ? int.tryParse(json['site_id'].toString()) : null,
+      createdBy: int.tryParse(json['created_by']?.toString() ?? '0') ?? 0,
+      workspaceId: int.tryParse(json['workspace_id']?.toString() ?? '0') ?? 0,
+      status: json['status']?.toString() ?? '',
+      createdAt: json['created_at']?.toString() ?? '',
+      updatedAt: json['updated_at']?.toString() ?? '',
     );
   }
 
@@ -311,29 +321,29 @@ class SiteModel {
 
   factory SiteModel.fromJson(Map<String, dynamic> json) {
     return SiteModel(
-      id: json['id'] ?? 0,
-      name: json['name'] ?? '',
-      status: json['status'] ?? '',
-      range: json['range'],
-      description: json['description'] ?? '',
-      startDate: json['start_date'] ?? '',
-      endDate: json['end_date'] ?? '',
+      id: int.tryParse(json['id']?.toString() ?? '0') ?? 0,
+      name: json['name']?.toString() ?? '',
+      status: json['status']?.toString() ?? '',
+      range: json['range']?.toString(),
+      description: json['description']?.toString() ?? '',
+      startDate: json['start_date']?.toString() ?? '',
+      endDate: json['end_date']?.toString() ?? '',
       budget: double.tryParse(json['budget']?.toString() ?? '0') ?? 0.0,
-      isActive: json['is_active'] ?? 0,
-      type: json['type'] ?? '',
-      currency: json['currency'] ?? '',
-      profileProgress: json['profile_progress'] ?? '',
-      progress: json['progress'] ?? '',
-      taskProgress: json['task_progress'] ?? '',
-      test: json['test'],
+      isActive: int.tryParse(json['is_active']?.toString() ?? '0') ?? 0,
+      type: json['type']?.toString() ?? '',
+      currency: json['currency']?.toString() ?? '',
+      profileProgress: json['profile_progress']?.toString() ?? '',
+      progress: json['progress']?.toString() ?? '',
+      taskProgress: json['task_progress']?.toString() ?? '',
+      test: json['test']?.toString(),
       estimateSize:
           double.tryParse(json['estimate_size']?.toString() ?? '0') ?? 0.0,
-      copylinksetting: json['copylinksetting'] ?? '',
-      password: json['password'],
-      workspaceId: json['workspace_id'] ?? 0,
-      createdBy: json['created_by'] ?? 0,
-      createdAt: json['created_at'] ?? '',
-      updatedAt: json['updated_at'] ?? '',
+      copylinksetting: json['copylinksetting']?.toString() ?? '',
+      password: json['password']?.toString(),
+      workspaceId: int.tryParse(json['workspace_id']?.toString() ?? '0') ?? 0,
+      createdBy: int.tryParse(json['created_by']?.toString() ?? '0') ?? 0,
+      createdAt: json['created_at']?.toString() ?? '',
+      updatedAt: json['updated_at']?.toString() ?? '',
     );
   }
 

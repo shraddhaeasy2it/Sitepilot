@@ -1,26 +1,19 @@
 // services/manpower_services.dart
-import 'dart:convert';
-import 'package:http/http.dart' as http;
+import 'package:ecoteam_app/contractor/services/dio_service.dart';
 import '../models/mapowerType_model.dart';
 
 class ManpowerTypeService {
-  static const String baseUrl = 'https://sitepilot.easy2it.in/api/manpower-types';
+  // Base URL handled by DioService
 
   Future<List<ManpowerType>> getManpowerTypes() async {
     try {
-      final response = await http.get(
-        Uri.parse(baseUrl),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-      );
+      final response = await DioService.instance.dio.get('/manpower-types');
 
       print('GET Status Code: ${response.statusCode}');
-      print('GET Response: ${response.body}');
+      print('GET Response: ${response.data}');
 
       if (response.statusCode == 200) {
-        final List<dynamic> jsonResponse = json.decode(response.body);
+        final List<dynamic> jsonResponse = response.data;
         return jsonResponse.map((data) => ManpowerType.fromJson(data)).toList();
       } else {
         throw Exception('Failed to load manpower types: ${response.statusCode}');
@@ -33,23 +26,19 @@ class ManpowerTypeService {
 
   Future<ManpowerType> createManpowerType(ManpowerType manpowerType) async {
     try {
-      final response = await http.post(
-        Uri.parse(baseUrl),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: json.encode(manpowerType.toJson()),
+      final response = await DioService.instance.dio.post(
+        '/manpower-types',
+        data: manpowerType.toJson(),
       );
 
       print('POST Status Code: ${response.statusCode}');
-      print('POST Response: ${response.body}');
+      print('POST Response: ${response.data}');
 
-      if (response.statusCode == 201) {
-        final Map<String, dynamic> jsonResponse = json.decode(response.body);
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        final Map<String, dynamic> jsonResponse = response.data;
         return ManpowerType.fromJson(jsonResponse);
       } else {
-        throw Exception('Failed to create manpower type: ${response.statusCode} - ${response.body}');
+        throw Exception('Failed to create manpower type: ${response.statusCode}');
       }
     } catch (e) {
       print('POST Error: $e');
@@ -59,23 +48,19 @@ class ManpowerTypeService {
 
   Future<ManpowerType> updateManpowerType(ManpowerType manpowerType) async {
     try {
-      final response = await http.put(
-        Uri.parse('$baseUrl/${manpowerType.id}'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: json.encode(manpowerType.toUpdateJson()),
+      final response = await DioService.instance.dio.put(
+        '/manpower-types/${manpowerType.id}',
+        data: manpowerType.toUpdateJson(),
       );
 
       print('PUT Status Code: ${response.statusCode}');
-      print('PUT Response: ${response.body}');
+      print('PUT Response: ${response.data}');
 
       if (response.statusCode == 200) {
-        final Map<String, dynamic> jsonResponse = json.decode(response.body);
+        final Map<String, dynamic> jsonResponse = response.data;
         return ManpowerType.fromJson(jsonResponse);
       } else {
-        throw Exception('Failed to update manpower type: ${response.statusCode} - ${response.body}');
+        throw Exception('Failed to update manpower type: ${response.statusCode}');
       }
     } catch (e) {
       print('PUT Error: $e');
@@ -85,24 +70,17 @@ class ManpowerTypeService {
 
   Future<bool> deleteManpowerType(int id) async {
     try {
-      final response = await http.delete(
-        Uri.parse('$baseUrl/$id'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
+      final response = await DioService.instance.dio.delete(
+        '/manpower-types/$id',
       );
 
       print('DELETE Status Code: ${response.statusCode}');
-      print('DELETE Response: ${response.body}');
       print('DELETE ID: $id');
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 || response.statusCode == 204) {
         return true;
-      } else if (response.statusCode == 204) {
-        return true; // No content - successful delete
       } else {
-        throw Exception('Failed to delete manpower type: ${response.statusCode} - ${response.body}');
+        throw Exception('Failed to delete manpower type: ${response.statusCode}');
       }
     } catch (e) {
       print('DELETE Error: $e');

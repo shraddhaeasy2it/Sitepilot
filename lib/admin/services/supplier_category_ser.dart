@@ -1,32 +1,19 @@
 // services/supplier_category_service.dart
 import 'dart:convert';
 import 'package:ecoteam_app/admin/models/supplier_categary_model.dart';
-import 'package:http/http.dart' as http;
+import 'package:ecoteam_app/contractor/services/dio_service.dart';
 
 class SupplierCategoryService {
-  static const String baseUrl = 'https://sitepilot.easy2it.in/api';
-  static String? authToken;
-
-  static Future<Map<String, String>> getHeaders() async {
-    return {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      if (authToken != null && authToken!.isNotEmpty) 'Authorization': 'Bearer $authToken',
-    };
-  }
+  // Base URL handled by DioService
 
   Future<SupplierCategoryResponse> getSupplierCategories() async {
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/supplier-categories'),
-        headers: await getHeaders(),
-      );
+      final response = await DioService.instance.dio.get('/supplier-categories');
 
       print('GET Categories Response Status: ${response.statusCode}');
-      print('GET Categories Response Body: ${response.body}');
 
       if (response.statusCode == 200) {
-        final Map<String, dynamic> data = json.decode(response.body);
+        final Map<String, dynamic> data = response.data;
         return SupplierCategoryResponse.fromJson(data);
       } else {
         throw Exception('Failed to load supplier categories: ${response.statusCode}');
@@ -51,19 +38,18 @@ class SupplierCategoryService {
       };
 
       print('Creating category with data: $requestData');
-      print('URL: $baseUrl/supplier-categories');
+      print('Creating category with data: $requestData');
+      print('URL: /supplier-categories');
 
-      final response = await http.post(
-        Uri.parse('$baseUrl/supplier-categories'),
-        headers: await getHeaders(),
-        body: json.encode(requestData),
+      final response = await DioService.instance.dio.post(
+        '/supplier-categories',
+        data: requestData,
       ).timeout(const Duration(seconds: 30));
 
       print('CREATE Response Status: ${response.statusCode}');
-      print('CREATE Response Body: ${response.body}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        final Map<String, dynamic> responseData = json.decode(response.body);
+        final Map<String, dynamic> responseData = response.data;
         
         // Handle API response based on your documentation
         if (responseData['status'] == 1) {
@@ -91,7 +77,7 @@ class SupplierCategoryService {
           throw Exception('API returned error: ${responseData['message'] ?? 'Unknown error'}');
         }
       } else {
-        throw Exception('Failed to create supplier category: ${response.statusCode} - ${response.body}');
+        throw Exception('Failed to create supplier category: ${response.statusCode} - ${response.data}');
       }
     } catch (e) {
       print('Error in createSupplierCategory: $e');
@@ -113,17 +99,15 @@ class SupplierCategoryService {
 
       print('Updating category ${category.id} with data: $requestData');
 
-      final response = await http.put(
-        Uri.parse('$baseUrl/supplier-categories/${category.id}'),
-        headers: await getHeaders(),
-        body: json.encode(requestData),
+      final response = await DioService.instance.dio.put(
+        '/supplier-categories/${category.id}',
+        data: requestData,
       );
 
       print('UPDATE Response Status: ${response.statusCode}');
-      print('UPDATE Response Body: ${response.body}');
 
       if (response.statusCode == 200) {
-        final Map<String, dynamic> responseData = json.decode(response.body);
+        final Map<String, dynamic> responseData = response.data;
         
         if (responseData['status'] == 1) {
           if (responseData['data'] is Map) {
@@ -135,7 +119,7 @@ class SupplierCategoryService {
           throw Exception('API returned error: ${responseData['message']}');
         }
       } else {
-        throw Exception('Failed to update supplier category: ${response.statusCode} - ${response.body}');
+        throw Exception('Failed to update supplier category: ${response.statusCode} - ${response.data}');
       }
     } catch (e) {
       print('Error in updateSupplierCategory: $e');
@@ -145,16 +129,14 @@ class SupplierCategoryService {
 
   Future<void> deleteSupplierCategory(int id) async {
     try {
-      final response = await http.delete(
-        Uri.parse('$baseUrl/supplier-categories/$id'),
-        headers: await getHeaders(),
+      final response = await DioService.instance.dio.delete(
+        '/supplier-categories/$id',
       );
 
       print('DELETE Response Status: ${response.statusCode}');
-      print('DELETE Response Body: ${response.body}');
 
       if (response.statusCode == 200) {
-        final Map<String, dynamic> responseData = json.decode(response.body);
+        final Map<String, dynamic> responseData = response.data;
         if (responseData['status'] != 1) {
           throw Exception('API returned error: ${responseData['message']}');
         }

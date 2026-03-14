@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:ecoteam_app/contractor/models/site_model.dart';
-import 'package:http/http.dart' as http;
+import 'package:dio/dio.dart';
+import 'package:ecoteam_app/contractor/services/api_ser.dart' as api_ser;
+import 'package:ecoteam_app/contractor/services/dio_service.dart';
+import 'package:ecoteam_app/contractor/services/chat_service.dart';
+import 'package:ecoteam_app/contractor/models/chat_model.dart';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ecoteam_app/contractor/services/api_service_login.dart';
@@ -12,7 +16,7 @@ class CompanySiteProvider extends ChangeNotifier {
   final Map<String, List<Site>> _companySites = {};
   
   // API Configuration
-  final String _baseUrl = 'https://sitepilot.easy2it.in';
+  final String _baseUrl = 'https://app.ecoteamsolar.com';
   bool _isLoading = false;
   final Set<String> _permissions = {};
   int? _currentUserId;
@@ -22,11 +26,20 @@ class CompanySiteProvider extends ChangeNotifier {
   List<String> get companyNames => _companies.map((c) => c['name'] as String).toList();
   List<Map<String, dynamic>> get companies => _companies;
   bool get isLoading => _isLoading;
+  int? get currentUserId => _currentUserId;
   
   // Permissions Loading State
   bool _isPermissionsLoading = false;
   bool get isPermissionsLoading => _isPermissionsLoading;
   Set<String> get permissions => _permissions;
+
+  // Notification Count
+  int _unreadNotificationCount = 0;
+  int get unreadNotificationCount => _unreadNotificationCount;
+
+  // Chat Notification Count
+  int _unreadChatCount = 0;
+  int get unreadChatCount => _unreadChatCount;
 
   // Get sites for the currently selected company only
   List<Site> get sites => _selectedCompanyId != null 
@@ -53,10 +66,10 @@ class CompanySiteProvider extends ChangeNotifier {
         
         // Extract Current User ID
         if (userData['user'] != null && userData['user']['id'] != null) {
-           _currentUserId = userData['user']['id'];
+           _currentUserId = int.tryParse(userData['user']['id'].toString());
            print('DEBUG: Current User ID loaded: $_currentUserId');
         } else if (userData['id'] != null) {
-           _currentUserId = userData['id'];
+           _currentUserId = int.tryParse(userData['id'].toString());
            print('DEBUG: Current User ID loaded (from root): $_currentUserId');
         }
         
@@ -102,57 +115,140 @@ class CompanySiteProvider extends ChangeNotifier {
         }
       }
       print('DEBUG: Total Loaded Permissions: ${_permissions.length}');
-      print('DEBUG: Permission Set: $_permissions');
+      // Check specifically for machinery manage
+      if (_permissions.contains('machinery manage')) {
+         print('DEBUG: "machinery manage" PERMISSION FOUND in list!');
+      } else {
+         print('DEBUG: "machinery manage" PERMISSION NOT FOUND in list.');
+      }
       notifyListeners();
+
     } catch (e) {
       print('Error loading permissions: $e');
     }
   }
 
+  Future<void> fetchUnreadNotificationCount() async {
+    try {
+      final response = await api_ser.ApiService().fetchUserNotifications(page: 1);
+      if (response != null && response.status == 'success') {
+  
+        int count = 0;
+
+        for (var n in response.data.data) {
+          if (n.readAt == null) {
+            count++;
+          }
+        }
+        _unreadNotificationCount = count;
+        notifyListeners();
+      }
+    } catch (e) {
+      print('Error fetching notification count: $e');
+    }
+  }
+
+  // Active chat tracking to prevent race conditions
+  String? _activeChatId;
+  
+  void setActiveChatId(String? id) {
+    _activeChatId = id;
+  }
+  
+  void setUnreadChatCount(int count) {
+    _unreadChatCount = count;
+    notifyListeners();
+  }
+
+  Future<void> fetchUnreadChatCount() async {
+    try {
+      final result = await ChatService().getContacts(
+        workspaceId: _selectedCompanyId,
+      );
+      
+      int totalUnread = 0;
+      
+      if (result['chats'] != null) {
+        for (var chat in result['chats']) {
+           if (chat is ChatContact) {
+             // If this is the active chat, assume 0 unread locally
+             // regardless of what API says (as API might be stale)
+             if (_activeChatId != null && chat.userId == _activeChatId) {
+                print("DEBUG: Ignoring unread count for active chat: ${_activeChatId}");
+                continue;
+             }
+             totalUnread += chat.unreadCount ?? 0;
+           }
+        }
+      }
+      
+      _unreadChatCount = totalUnread;
+      notifyListeners();
+    } catch (e) {
+      print('Error fetching chat count: $e');
+    }
+  }
+
+  void reduceUnreadChatCount(int amount) {
+    if (amount > 0) {
+      _unreadChatCount = (_unreadChatCount - amount).clamp(0, 999);
+      notifyListeners();
+    }
+  }
+
   Future<void> refreshPermissions() async {
-    print('Refreshing permissions from API...');
+    // print('Refreshing permissions from API...');
     _isPermissionsLoading = true;
     notifyListeners();
     
     try {
-      // Attempt 0: Try explicit token refresh first (since user says this is the "correct" way like login)
-      // This will now update user data if the API returns it.
-      print('refreshPermissions: Attempting to refresh via auth token...');
-      bool tokenRefreshed = await ApiService.refreshToken();
-      if (tokenRefreshed) {
-         print('refreshPermissions: Token refreshed. Reloading permissions from storage...');
-         await _loadPermissions();
-         // If we have permissions now, we are good!
-         if (_permissions.isNotEmpty) {
-            print('refreshPermissions: Permissions loaded successfully from token refresh.');
-            _isPermissionsLoading = false;
-            notifyListeners();
-            return; 
-         } else {
-            print('refreshPermissions: Token refreshed but permissions still empty. Trying fallback endpoints...');
-         }
-      }
-
-      /* 
-      // DISABLED: User confirmed these endpoints are not reliable/correct.
-      // We rely SOLELY on refreshToken() or refreshUserProfile() which use standard auth.
+      // IMPROVED: Do NOT call refreshToken() here. It rotates the token and invalidates parallel requests.
+      // Instead, verify with direct permission fetch using the CURRENT token.
       
       final prefs = await SharedPreferences.getInstance();
-      final userDataString = prefs.getString('user_data');
-      if (userDataString != null) {
-        // ... (removed/commented out logic to stop guessing endpoints)
-      }
-      */
+      final token = prefs.getString('auth_token');
       
-      // Fallback to old method if no ID or individual fetch fails
-      print('Falling back to refreshUserProfile...');
-      bool success = await ApiService.refreshUserProfile();
-      if (success) {
-        await _loadPermissions();
-        print('Permissions refreshed successfully via profile.');
-      } else {
-        print('Failed to refresh user profile from API.');
+      bool permissionsUpdated = false;
+
+      if (token != null) {
+          // Attempt direct fetch first (lightweight)
+          try {
+            final permResponse = await ApiService.fetchRolePermissions(token);
+            
+            if (permResponse['status'] == 1 && permResponse['data'] != null) {
+               final userDataStr = prefs.getString('user_data');
+               if (userDataStr != null) {
+                   Map<String, dynamic> userData = json.decode(userDataStr);
+                   
+                   // Merge roles
+                   if (permResponse['data']['roles'] != null) {
+                      userData['roles'] = permResponse['data']['roles'];
+                      if (userData['user'] != null && userData['user'] is Map) {
+                         userData['user']['roles'] = permResponse['data']['roles'];
+                      }
+                      
+                      await prefs.setString('user_data', json.encode(userData));
+                      await _loadPermissions();
+                      permissionsUpdated = true;
+                      // print('Permissions refreshed via direct fetch.');
+                   }
+               }
+            }
+          } catch (e) {
+            print('refreshPermissions: Direct fetch warning: $e');
+          }
       }
+      
+      // If direct fetch didn't happen or failed to update, try refreshUserProfile (which uses DioService safe retry)
+      if (!permissionsUpdated) {
+          // print('Direct fetch skipped/failed. Trying refreshUserProfile...');
+          bool success = await ApiService.refreshUserProfile();
+          if (success) {
+            await _loadPermissions();
+            // print('Permissions refreshed via profile.');
+          }
+      }
+
     } catch (e) {
       print('Error refreshing permissions: $e');
     } finally {
@@ -180,24 +276,107 @@ class CompanySiteProvider extends ChangeNotifier {
     return null;
   }
 
-  Future<Map<String, String>> _getAuthHeaders() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('auth_token');
-    print('🔑 Getting Auth Headers. Token present: ${token != null}');
-    return {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      if (token != null) 'Authorization': 'Bearer $token',
-    };
-  }
+  // _getAuthHeaders REMOVED - Handled by DioService interceptor
 
   Future<void> loadCompanies() async {
     try {
       await _loadPermissions();
       _setLoading(true);
-      print('Loading companies from local storage (Login Response)...');
+      print('Loading companies from API...');
       
       final prefs = await SharedPreferences.getInstance();
+      
+      try {
+        final response = await DioService.instance.dio.get('/workspaces');
+        print('Workspaces API Response Status: ${response.statusCode}');
+        
+        if (response.statusCode == 200) {
+          final data = response.data;
+          final workspaces = data['workspaces'] as List;
+          print('Found ${workspaces.length} workspaces from API.');
+          
+          // Clear existing data
+          _companies.clear();
+          _companySites.clear();
+          
+          // Add ONLY active workspaces as companies
+          int activeCount = 0;
+          int inactiveCount = 0;
+          
+          for (var workspace in workspaces) {
+            if (workspace['status'] == 'active') { 
+              final workspaceName = workspace['name'];
+              final workspaceId = workspace['id'].toString();
+              
+              _companies.add({
+                'id': workspaceId,
+                'name': workspaceName,
+                'status': workspace['status'],
+                'contact_person': workspace['contact_person'],
+                'phone': workspace['phone'],
+                'email': workspace['email'],
+                'address': workspace['address'],
+                'city': workspace['city'],
+                'state': workspace['state'],
+                'pincode': workspace['pincode'],
+                'country': workspace['country'],
+                'website': workspace['website'],
+                'cin_no': workspace['cin_no'],
+                'terms_and_conditions': workspace['terms_and_conditions'],
+                'logo': workspace['logo'],
+                'gst_number': workspace['gst_number'],
+                'pan_number': workspace['pan_number'],
+                'bank_name': workspace['bank_name'],
+                'account_number': workspace['account_number'],
+                'ifsc_code': workspace['ifsc_code'],
+                'created_by': workspace['created_by'],
+              });
+              
+              // Initialize sites map for this company
+              _companySites[workspaceId] = [];
+              activeCount++;
+            } else {
+              inactiveCount++;
+            }
+          }
+          
+          print('Loaded $activeCount active companies and $inactiveCount inactive companies');
+          print('Active companies: ${_companies.map((c) => c['name'])}');
+          
+          // Save workspaces to local storage as fallback/cache
+          await prefs.setString('stored_workspaces', json.encode(workspaces));
+          
+          // Select first company if available
+          if (_companies.isNotEmpty) {
+            // Keep the selected company if it still exists
+            if (_selectedCompanyId != null && _companySites.containsKey(_selectedCompanyId)) {
+              final company = _getCompanyById(_selectedCompanyId!);
+              _selectedCompanyName = company?['name'];
+            } else {
+              _selectedCompanyId = _companies.first['id'].toString();
+              _selectedCompanyName = _companies.first['name'];
+            }
+            print('Selected company: $_selectedCompanyName (ID: $_selectedCompanyId)');
+          } else {
+            _selectedCompanyId = null;
+            _selectedCompanyName = null;
+            print('No active companies found');
+          }
+
+          notifyListeners();
+
+          // Fetch sites for the initially selected company via API
+          if (_selectedCompanyId != null) {
+            await loadSitesForCompany(_selectedCompanyId!);
+          }
+          return;
+        }
+      } catch (apiError) {
+        print('Error fetching workspaces from API: $apiError');
+        print('Falling back to local storage...');
+      }
+
+      // FALLBACK TO LOCAL STORAGE
       final storedWorkspaces = prefs.getString('stored_workspaces');
 
       if (storedWorkspaces != null) {
@@ -213,9 +392,6 @@ class CompanySiteProvider extends ChangeNotifier {
         int inactiveCount = 0;
         
         for (var workspace in workspaces) {
-          // Trust the login response list. Only filter by active status.
-          // Previous strict filter (created_by == user_id) caused issues with shared workspaces or ID mismatches.
-          
           if (workspace['status'] == 'active') { 
             final workspaceName = workspace['name'];
             final workspaceId = workspace['id'].toString();
@@ -223,6 +399,24 @@ class CompanySiteProvider extends ChangeNotifier {
             _companies.add({
               'id': workspaceId,
               'name': workspaceName,
+              'status': workspace['status'],
+              'contact_person': workspace['contact_person'],
+              'phone': workspace['phone'],
+              'email': workspace['email'],
+              'address': workspace['address'],
+              'city': workspace['city'],
+              'state': workspace['state'],
+              'pincode': workspace['pincode'],
+              'country': workspace['country'],
+              'website': workspace['website'],
+              'cin_no': workspace['cin_no'],
+              'terms_and_conditions': workspace['terms_and_conditions'],
+              'logo': workspace['logo'],
+              'gst_number': workspace['gst_number'],
+              'pan_number': workspace['pan_number'],
+              'bank_name': workspace['bank_name'],
+              'account_number': workspace['account_number'],
+              'ifsc_code': workspace['ifsc_code'],
               'created_by': workspace['created_by'],
             });
             
@@ -234,29 +428,26 @@ class CompanySiteProvider extends ChangeNotifier {
           }
         }
         
-        print('Loaded $activeCount active companies and $inactiveCount inactive companies');
-        print('Active companies: ${_companies.map((c) => c['name'])}');
+        print('Loaded $activeCount active companies and $inactiveCount inactive companies from fallback');
         
         // Select first company if available
         if (_companies.isNotEmpty) {
-          _selectedCompanyId = _companies.first['id'].toString();
-          _selectedCompanyName = _companies.first['name'];
-          print('Selected company: $_selectedCompanyName (ID: $_selectedCompanyId)');
-          
-          // FIX: Check if _selectedCompanyId is not null before calling
-          if (_selectedCompanyId != null) {
-            await loadSitesForCompany(_selectedCompanyId!);
-          } else {
-            print('Warning: _selectedCompanyId is null after selection');
+          if (_selectedCompanyId == null || !_companySites.containsKey(_selectedCompanyId)) {
+            _selectedCompanyId = _companies.first['id'].toString();
+            _selectedCompanyName = _companies.first['name'];
           }
         } else {
-          // No active companies
           _selectedCompanyId = null;
           _selectedCompanyName = null;
-          print('No active companies found');
         }
-        
+
         notifyListeners();
+
+        // Fetch sites for the initially selected company via API
+        if (_selectedCompanyId != null) {
+          await loadSitesForCompany(_selectedCompanyId!);
+        }
+
       } else {
         print('No stored workspaces found. Please login again.');
         _companies.clear();
@@ -265,7 +456,6 @@ class CompanySiteProvider extends ChangeNotifier {
     } catch (e) {
       print('Error loading workspaces: $e');
       _showError('Failed to load companies: $e');
-      // rethrow;
     } finally {
       _setLoading(false);
     }
@@ -277,33 +467,43 @@ class CompanySiteProvider extends ChangeNotifier {
       final company = _getCompanyById(companyId);
       print('Loading sites for company: ${company?['name']} (ID: $companyId)');
       
-      final response = await http.get(
-        Uri.parse('$_baseUrl/api/projects'),
-
-        headers: await _getAuthHeaders(),
-      ).timeout(const Duration(seconds: 30));
+      final response = await DioService.instance.dio.get(
+        '/projects',
+        queryParameters: {
+          'site_id': 0,
+          'workspace_id': companyId,
+        },
+      );
 
       print('Sites API Response Status: ${response.statusCode}');
+      print('🔴 FETCH PROJECTS RESPONSE: ${response.data}');
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
+        final data = response.data;
         final projects = data['projects'] as List? ?? [];
         
         // Clear existing sites for this company
         _companySites[companyId] = [];
         
-        // Filter projects by workspace ID and add as sites
+        // Filter projects: Since API already filters, we trust the response.
         int sitesCount = 0;
+        if (projects.isNotEmpty) {
+           print('🔴 FIRST PROJECT RAW JSON: ${projects.first}');
+           if (projects.first.containsKey('address')) {
+              print('🔴 Address field found: "${projects.first['address']}"');
+           } else {
+              print('🔴 Address field MISSING in response');
+           }
+        }
         for (var project in projects) {
-          final projectWorkspaceId = project['workspace']?.toString();
-          if (projectWorkspaceId == companyId) {
-            try {
-              final site = Site.fromJson(project);
-              _companySites[companyId]!.add(site);
-              sitesCount++;
-            } catch (e) {
-              print('Error parsing site: $e');
-            }
+          try {
+            final site = Site.fromJson(project);
+            _companySites[companyId]!.add(site);
+            sitesCount++;
+          } catch (e) {
+             print('🔴 Error parsing site ${project['id']}: $e');
+             // Print stack trace if needed or just the project data
+             print('Problematic Data: $project');
           }
         }
         
@@ -327,16 +527,15 @@ class CompanySiteProvider extends ChangeNotifier {
       _selectedCompanyId = companyId;
       _selectedCompanyName = company['name'];
       print('Company selected: $_selectedCompanyName (ID: $_selectedCompanyId)');
-      
-      // FIX: Safe call to loadSitesForCompany
-      if (_selectedCompanyId != null) {
-        loadSitesForCompany(_selectedCompanyId!);
-      }
+
+      // Fetch sites for this workspace from API
+      loadSitesForCompany(companyId);
       notifyListeners();
     } else {
       print('Company not found with ID: $companyId');
     }
   }
+
 
   Future<void> addSite(Site site) async {
     if (_selectedCompanyId == null) {
@@ -358,25 +557,24 @@ class CompanySiteProvider extends ChangeNotifier {
         'start_date': site.startDate,
         'end_date': site.endDate,
         'status': site.status.toLowerCase(),
-        'created_by': 10,
+        'created_by': _currentUserId ?? 10,
         if (site.latitude != null) 'latitude': site.latitude,
         if (site.longitude != null) 'longitude': site.longitude,
+        if (site.address != null) 'address': site.address,
       };
 
       print('Site data: $siteData');
 
-      final response = await http.post(
-        Uri.parse('$_baseUrl/api/projects'),
-
-        headers: await _getAuthHeaders(),
-        body: json.encode(siteData),
-      ).timeout(const Duration(seconds: 30));
+      final response = await DioService.instance.dio.post(
+        '/projects',
+        data: siteData,
+      );
 
       print('Add site response: ${response.statusCode}');
-      print('Add site body: ${response.body}');
+      print('Add site response: ${response.statusCode}');
 
       if (response.statusCode == 201 || response.statusCode == 200) {
-        final data = json.decode(response.body);
+        final data = response.data;
         
         // Handle different response formats
         dynamic projectData;
@@ -400,16 +598,12 @@ class CompanySiteProvider extends ChangeNotifier {
           description: projectData['description']?.toString() ?? site.description ?? site.name,
         );
 
-        // Add to local storage
-        if (!_companySites.containsKey(_selectedCompanyId)) {
-          _companySites[_selectedCompanyId!] = [];
-        }
-        _companySites[_selectedCompanyId!]!.add(newSite);
-        notifyListeners();
+        // Refresh the list from the server to ensure we have the latest data including IDs and any server-side processing
+        await loadSitesForCompany(_selectedCompanyId!);
         
         _showSuccess('Site "${site.name}" added successfully!');
       } else {
-        throw Exception('Failed to add site: ${response.statusCode} - ${response.body}');
+        throw Exception('Failed to add site: ${response.statusCode}');
       }
     } catch (e) {
       print('Error adding site: $e');
@@ -424,11 +618,7 @@ class CompanySiteProvider extends ChangeNotifier {
     try {
       _setLoading(true);
       
-      final response = await http.delete(
-        Uri.parse('$_baseUrl/api/projects/$siteId'),
-
-        headers: await _getAuthHeaders(),
-      ).timeout(const Duration(seconds: 30));
+      final response = await DioService.instance.dio.delete('/projects/$siteId');
 
       print('Delete site response: ${response.statusCode}');
 
@@ -475,23 +665,24 @@ class CompanySiteProvider extends ChangeNotifier {
         'start_date': updatedSite.startDate,
         'end_date': updatedSite.endDate,
         'status': updatedSite.status.toLowerCase(), // Ensure status is in correct format
-        'created_by': 10, // Add required field
+        'created_by': _currentUserId ?? 10, // Use dynamic user ID
+        if (updatedSite.latitude != null) 'latitude': updatedSite.latitude,
+        if (updatedSite.longitude != null) 'longitude': updatedSite.longitude,
+        if (updatedSite.address != null) 'address': updatedSite.address,
       };
 
       print('Updating site ${updatedSite.id} with data: $updateData');
 
-      final response = await http.put(
-        Uri.parse('$_baseUrl/api/projects/${updatedSite.id}'),
-
-        headers: await _getAuthHeaders(),
-        body: json.encode(updateData),
-      ).timeout(const Duration(seconds: 30));
+      final response = await DioService.instance.dio.put(
+        '/projects/${updatedSite.id}',
+        data: updateData,
+      );
 
       print('Update site response: ${response.statusCode}');
-      print('Update site body: ${response.body}');
+      print('Update site body: ${response.data}');
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
+        final data = response.data;
         
         if (data['success'] != null) {
           // Find which company the site belongs to and update local storage
@@ -514,11 +705,10 @@ class CompanySiteProvider extends ChangeNotifier {
             _showSuccess('Site "${updatedSite.name}" updated successfully!');
           }
         } else {
-          throw Exception('Invalid response format: ${response.body}');
+          throw Exception('Invalid response format: ${response.statusCode}');
         }
       } else {
-        final errorBody = response.body;
-        throw Exception('Failed to update site: ${response.statusCode} - $errorBody');
+        throw Exception('Failed to update site: ${response.statusCode}');
       }
     } catch (e) {
       print('Error updating site: $e');
@@ -530,7 +720,23 @@ class CompanySiteProvider extends ChangeNotifier {
   }
 
   // Company Management Methods
-  Future<bool> addCompany(String companyName) async {
+  Future<bool> addCompany({
+    required String name,
+    String status = 'active',
+    String? contactPerson,
+    String? phone,
+    String? email,
+    String? address,
+    String? city,
+    String? state,
+    String? pincode,
+    String? country,
+    String? gstNumber,
+    String? panNumber,
+    String? cinNo,
+    String? termsAndConditions,
+    String? logoPath,
+  }) async {
     try {
       // Check permission
       final hasPermission = await _hasPermission('workspace create');
@@ -540,37 +746,82 @@ class CompanySiteProvider extends ChangeNotifier {
       }
 
       _setLoading(true);
-      print('Creating new workspace: $companyName');
-      
-      final response = await http.post(
-        Uri.parse('$_baseUrl/api/workspaces'),
+      print('Creating new workspace: $name');
 
-        headers: await _getAuthHeaders(),
-        body: json.encode({
-          'name': companyName,
-          'created_by': 10,
-        }),
-      ).timeout(const Duration(seconds: 30));
+      final prefs = await SharedPreferences.getInstance();
+      final userDataString = prefs.getString('user_data');
+      String? actualUserId;
+      if (userDataString != null) {
+        final userData = json.decode(userDataString);
+        if (userData['user'] != null && userData['user']['id'] != null) {
+          actualUserId = userData['user']['id'].toString();
+        } else if (userData['id'] != null) {
+          actualUserId = userData['id'].toString();
+        }
+      }
+
+      // Build form data
+      final formDataMap = <String, dynamic>{
+        'name': name,
+        'status': status,
+        'created_by': actualUserId ?? _currentUserId?.toString() ?? '1',
+      };
+      if (contactPerson != null && contactPerson.isNotEmpty) formDataMap['contact_person'] = contactPerson;
+      if (phone != null && phone.isNotEmpty) formDataMap['phone'] = phone;
+      if (email != null && email.isNotEmpty) formDataMap['email'] = email;
+      if (address != null && address.isNotEmpty) formDataMap['address'] = address;
+      if (city != null && city.isNotEmpty) formDataMap['city'] = city;
+      if (state != null && state.isNotEmpty) formDataMap['state'] = state;
+      if (pincode != null && pincode.isNotEmpty) formDataMap['pincode'] = pincode;
+      if (country != null && country.isNotEmpty) formDataMap['country'] = country;
+      if (gstNumber != null && gstNumber.isNotEmpty) formDataMap['gst_number'] = gstNumber;
+      if (panNumber != null && panNumber.isNotEmpty) formDataMap['pan_number'] = panNumber;
+      if (cinNo != null && cinNo.isNotEmpty) formDataMap['cin_no'] = cinNo;
+      if (termsAndConditions != null && termsAndConditions.isNotEmpty) formDataMap['terms_and_conditions'] = termsAndConditions;
+      if (logoPath != null) {
+        formDataMap['logo'] = await MultipartFile.fromFile(logoPath, filename: logoPath.split('/').last);
+      }
+
+      final formData = FormData.fromMap(formDataMap);
+
+      final response = await DioService.instance.dio.post(
+        '/workspaces',
+        data: formData,
+        options: Options(contentType: 'multipart/form-data'),
+      );
 
       print('Create workspace response: ${response.statusCode}');
-      print('Create workspace body: ${response.body}');
 
       if (response.statusCode == 201 || response.statusCode == 200) {
-        final data = json.decode(response.body);
-        
+        final data = response.data;
+
         if (data['success'] != null && data['workspace'] != null) {
           final workspace = data['workspace'];
-          
+
           // Add to local lists
           _companies.add({
             'id': workspace['id'].toString(),
             'name': workspace['name'],
+            'status': workspace['status'],
+            'contact_person': workspace['contact_person'],
+            'phone': workspace['phone'],
+            'email': workspace['email'],
+            'address': workspace['address'],
+            'city': workspace['city'],
+            'state': workspace['state'],
+            'pincode': workspace['pincode'],
+            'country': workspace['country'],
+            'gst_number': workspace['gst_number'],
+            'pan_number': workspace['pan_number'],
+            'cin_no': workspace['cin_no'],
+            'terms_and_conditions': workspace['terms_and_conditions'],
+            'logo': workspace['logo'],
             'created_by': workspace['created_by'],
           });
           _companySites[workspace['id'].toString()] = [];
-          
+
           notifyListeners();
-          _showSuccess('Company "$companyName" added successfully!');
+          _showSuccess('Company "$name" added successfully!');
           return true;
         } else {
           throw Exception('Invalid response format');
@@ -587,7 +838,24 @@ class CompanySiteProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> updateCompany(String oldCompanyId, String newCompanyName) async {
+  Future<bool> updateCompany(
+    String oldCompanyId,
+    String newCompanyName, {
+    String status = 'active',
+    String? contactPerson,
+    String? phone,
+    String? email,
+    String? address,
+    String? city,
+    String? state,
+    String? pincode,
+    String? country,
+    String? gstNumber,
+    String? panNumber,
+    String? cinNo,
+    String? termsAndConditions,
+    String? logoPath,
+  }) async {
     try {
       // Check permission
       final hasPermission = await _hasPermission('workspace edit');
@@ -597,7 +865,7 @@ class CompanySiteProvider extends ChangeNotifier {
       }
 
       _setLoading(true);
-      
+
       final companyIndex = _companies.indexWhere((c) => c['id'] == oldCompanyId);
       if (companyIndex == -1) {
         _showError('Company not found');
@@ -605,29 +873,63 @@ class CompanySiteProvider extends ChangeNotifier {
       }
 
       final company = _companies[companyIndex];
-      
-      final response = await http.put(
-        Uri.parse('$_baseUrl/api/workspaces/$oldCompanyId'),
 
-        headers: await _getAuthHeaders(),
-        body: json.encode({
-          'name': newCompanyName,
-          'created_by': company['created_by'],
-        }),
-      ).timeout(const Duration(seconds: 30));
+      // Build form data
+      final formDataMap = <String, dynamic>{
+        'name': newCompanyName,
+        'status': status,
+        'created_by': company['created_by'],
+      };
+      if (contactPerson != null && contactPerson.isNotEmpty) formDataMap['contact_person'] = contactPerson;
+      if (phone != null && phone.isNotEmpty) formDataMap['phone'] = phone;
+      if (email != null && email.isNotEmpty) formDataMap['email'] = email;
+      if (address != null && address.isNotEmpty) formDataMap['address'] = address;
+      if (city != null && city.isNotEmpty) formDataMap['city'] = city;
+      if (state != null && state.isNotEmpty) formDataMap['state'] = state;
+      if (pincode != null && pincode.isNotEmpty) formDataMap['pincode'] = pincode;
+      if (country != null && country.isNotEmpty) formDataMap['country'] = country;
+      if (gstNumber != null && gstNumber.isNotEmpty) formDataMap['gst_number'] = gstNumber;
+      if (panNumber != null && panNumber.isNotEmpty) formDataMap['pan_number'] = panNumber;
+      if (cinNo != null && cinNo.isNotEmpty) formDataMap['cin_no'] = cinNo;
+      if (termsAndConditions != null && termsAndConditions.isNotEmpty) formDataMap['terms_and_conditions'] = termsAndConditions;
+      if (logoPath != null) {
+        formDataMap['logo'] = await MultipartFile.fromFile(logoPath, filename: logoPath.split('/').last);
+      }
 
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        
+      final formData = FormData.fromMap(formDataMap);
+
+      final response = await DioService.instance.dio.post(
+        '/workspaces/$oldCompanyId',
+        data: formData,
+        options: Options(contentType: 'multipart/form-data'),
+        queryParameters: {'_method': 'PUT'},
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = response.data;
+
         if (data['success'] != null) {
           // Update local data
           _companies[companyIndex]['name'] = newCompanyName;
-          
+          _companies[companyIndex]['status'] = status;
+          if (contactPerson != null) _companies[companyIndex]['contact_person'] = contactPerson;
+          if (phone != null) _companies[companyIndex]['phone'] = phone;
+          if (email != null) _companies[companyIndex]['email'] = email;
+          if (address != null) _companies[companyIndex]['address'] = address;
+          if (city != null) _companies[companyIndex]['city'] = city;
+          if (state != null) _companies[companyIndex]['state'] = state;
+          if (pincode != null) _companies[companyIndex]['pincode'] = pincode;
+          if (country != null) _companies[companyIndex]['country'] = country;
+          if (gstNumber != null) _companies[companyIndex]['gst_number'] = gstNumber;
+          if (panNumber != null) _companies[companyIndex]['pan_number'] = panNumber;
+          if (cinNo != null) _companies[companyIndex]['cin_no'] = cinNo;
+          if (termsAndConditions != null) _companies[companyIndex]['terms_and_conditions'] = termsAndConditions;
+
           // Update selected company name if it was the one being updated
           if (_selectedCompanyId == oldCompanyId) {
             _selectedCompanyName = newCompanyName;
           }
-          
+
           notifyListeners();
           _showSuccess('Company updated to "$newCompanyName" successfully!');
           return true;
@@ -709,14 +1011,12 @@ Future<bool> _deleteFromApiPermanently(String companyId, Map<String, dynamic> co
   // Method 1: Try DELETE method first (for permanent deletion)
   try {
     print('🔄 Attempting DELETE method for permanent deletion...');
-    final deleteResponse = await http.delete(
-      Uri.parse('$_baseUrl/api/workspaces/$companyId'),
-
-        headers: await _getAuthHeaders(),
-    ).timeout(const Duration(seconds: 30));
+    final deleteResponse = await DioService.instance.dio.delete(
+      '/workspaces/$companyId',
+    );
 
     print('DELETE Response Status: ${deleteResponse.statusCode}');
-    print('DELETE Response Body: ${deleteResponse.body}');
+    print('DELETE Response Body: ${deleteResponse.data}');
 
     if (deleteResponse.statusCode == 200 || deleteResponse.statusCode == 204) {
       print('✅ DELETE method successful - Company permanently deleted');
@@ -774,19 +1074,17 @@ Future<bool> _tryForceDeleteMethods(String companyId, Map<String, dynamic> compa
   for (var method in forceDeleteMethods) {
     try {
       print('🔄 Trying: ${method['name']}');
-      final response = await http.put(
-        Uri.parse('$_baseUrl/api/workspaces/$companyId'),
-
-        headers: await _getAuthHeaders(),
-        body: json.encode(method['data']),
-      ).timeout(const Duration(seconds: 15));
+      final response = await DioService.instance.dio.put(
+        '/workspaces/$companyId',
+        data: method['data'],
+      );
 
       print('${method['name']} - Status: ${response.statusCode}');
-      print('${method['name']} - Body: ${response.body}');
+      print('${method['name']} - Body: ${response.data}');
 
       if (response.statusCode == 200) {
         // Check if the response indicates actual deletion
-        final data = json.decode(response.body);
+        final data = response.data;
         if (data['workspace'] != null && 
             (data['workspace']['status'] == 'deleted' || 
              data['workspace']['is_disable'] == 1)) {
@@ -806,15 +1104,13 @@ Future<bool> _tryForceDeleteMethods(String companyId, Map<String, dynamic> compa
   // Method 3: Try POST to delete endpoint if it exists
   try {
     print('🔄 Trying POST to delete endpoint...');
-    final postResponse = await http.post(
-      Uri.parse('$_baseUrl/api/workspaces/$companyId/delete'),
-
-        headers: await _getAuthHeaders(),
-      body: json.encode({
+    final postResponse = await DioService.instance.dio.post(
+      '/workspaces/$companyId/delete',
+      data: {
         'force': true,
         'permanent': true,
-      }),
-    ).timeout(const Duration(seconds: 15));
+      },
+    );
 
     if (postResponse.statusCode == 200 || postResponse.statusCode == 204) {
       print('✅ POST delete method successful');
@@ -835,14 +1131,10 @@ Future<bool> _verifyPermanentDeletion(String companyId, String companyName) asyn
     // Wait a moment for API to process
     await Future.delayed(const Duration(seconds: 2));
     
-    final verifyResponse = await http.get(
-      Uri.parse('$_baseUrl/api/workspaces'),
-
-      headers: await _getAuthHeaders(),
-    ).timeout(const Duration(seconds: 10));
+    final verifyResponse = await DioService.instance.dio.get('/workspaces');
 
     if (verifyResponse.statusCode == 200) {
-      final data = json.decode(verifyResponse.body);
+      final data = verifyResponse.data;
       final workspaces = data['workspaces'] as List;
       
       // Check if the company still exists in the API response

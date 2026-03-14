@@ -1,260 +1,270 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:ecoteam_app/contractor/models/birthday_model.dart';
-import 'package:ecoteam_app/contractor/models/meeting_model.dart';
+import 'package:ecoteam_app/contractor/models/user_notification_model.dart';
+import 'package:ecoteam_app/contractor/services/api_ser.dart';
+import 'package:ecoteam_app/contractor/services/company_site_provider.dart';
 import 'package:intl/intl.dart';
 
+import '../../models/site_model.dart';
+
 class NotificationScreen extends StatefulWidget {
-  const NotificationScreen({super.key});
+  final String? siteId;
+  final int? workspaceId;
+
+  const NotificationScreen({
+    super.key,
+    this.siteId,
+    this.workspaceId,
+  });
 
   @override
   State<NotificationScreen> createState() => _NotificationScreenState();
 }
 
 class _NotificationScreenState extends State<NotificationScreen> {
-  late MeetingProvider _meetingProvider;
-  // Computed property to determine if it's a small mobile device
   bool get isSmallMobile => MediaQuery.of(context).size.width < 360;
+  bool _isLoading = true;
+  List<UserNotification> _notifications = [];
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _addBirthdayNotifications();
-      _addMeetingNotifications();
-    });
+    _loadApiNotifications();
   }
 
-  void _addBirthdayNotifications() {
-    final birthdayProvider = Provider.of<BirthdayProvider>(
-      context,
-      listen: false,
-    );
-    final todaysBirthdays = birthdayProvider.todaysBirthdays;
-    final upcomingBirthdays = birthdayProvider.upcomingBirthdays;
+  Future<void> _loadApiNotifications() async {
+    setState(() => _isLoading = true);
+    try {
+      final provider = Provider.of<CompanySiteProvider>(context, listen: false);
+      
+      // Determine IDs to use
+      final workspaceId = widget.workspaceId ?? int.tryParse(provider.selectedCompanyId ?? '3');
+      final siteId = widget.siteId; // Can be null if generic workspace notifications
 
-    // Add today's birthdays
-    for (var birthday in todaysBirthdays) {
-      notifications.add({
-        'title': 'Happy Birthday ${birthday.name}!',
-        'subtitle':
-            'Today is ${birthday.name}\'s birthday. Don\'t forget to wish them!',
-        'time': 'Today',
-        'isRead': false,
-        'type': 'birthday',
-        'icon': Icons.cake,
-      });
+      final response = await ApiService().fetchUserNotifications(
+        siteId: siteId,
+        workspaceId: workspaceId,
+      );
+      
+      if (response != null) {
+        setState(() {
+          _notifications = response.data.data;
+        });
+      }
+    } catch (e) {
+      print('Error loading notifications: $e');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
-
-    // Add upcoming birthdays
-    for (var birthday in upcomingBirthdays) {
-      notifications.add({
-        'title': 'Birthday Reminder: ${birthday.name}',
-        'subtitle':
-            'Birthday on ${DateFormat('MMM dd').format(birthday.date)} (${birthday.daysUntilBirthday} days left)',
-        'time': '${birthday.daysUntilBirthday} days left',
-        'isRead': false,
-        'type': 'birthday',
-        'icon': Icons.cake,
-      });
-    }
-
-    setState(() {});
   }
 
-  void _addMeetingNotifications() {
-    final meetingProvider = Provider.of<MeetingProvider>(
-      context,
-      listen: false,
-    );
-    final upcomingMeetings = meetingProvider.upcomingMeetings;
+  String _formatApiDate(String dateStr) {
+    try {
+      final date = DateTime.parse(dateStr);
+      final now = DateTime.now();
+      final difference = now.difference(date);
 
-    // Add upcoming meetings
-    for (var meeting in upcomingMeetings) {
-      notifications.add({
-        'title': 'Meeting Reminder',
-        'subtitle':
-            '${meeting.organizerCompany} wants a meeting with ${meeting.invitedWorkerCompanies}\n${meeting.title} – Scheduled at ${DateFormat('MMM dd, yyyy hh:mm a').format(meeting.dateTime)}',
-        'time': _formatMeetingTime(meeting.dateTime),
-        'isRead': false,
-        'type': 'meeting',
-        'icon': Icons.calendar_today,
-      });
+      if (difference.inDays == 0) {
+        if (difference.inHours == 0) {
+          return '${difference.inMinutes} min ago';
+        }
+        return '${difference.inHours} hours ago';
+      } else if (difference.inDays == 1) {
+        return 'Yesterday';
+      } else {
+         return DateFormat('MMM dd, yyyy').format(date);
+      }
+    } catch (e) {
+      return '';
     }
-
-    setState(() {});
   }
 
-  String _formatMeetingTime(DateTime meetingTime) {
-    final now = DateTime.now();
-    final difference = meetingTime.difference(now);
-
-    if (difference.isNegative) {
-      return 'Past due';
-    } else if (difference.inDays > 0) {
-      return '${difference.inDays} days left';
-    } else if (difference.inHours > 0) {
-      return '${difference.inHours} hours left';
-    } else if (difference.inMinutes > 0) {
-      return '${difference.inMinutes} minutes left';
+  Future<void> _markAsRead(int notificationId) async {
+    final success = await ApiService().markNotificationAsRead(notificationId);
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Notification marked as read')),
+      );
+      _loadApiNotifications(); // Refresh list
+      // Refresh global count
+      if (mounted) {
+        Provider.of<CompanySiteProvider>(context, listen: false).fetchUnreadNotificationCount();
+      }
     } else {
-      return 'Now';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to mark as read')),
+      );
     }
   }
 
-  // Notification filter options
-  final List<String> filterOptions = [
-    'All',
-    'Unread',
-    'Meeting',
-    'Birthday',
-    'Documents',
-    
-    
-  ];
-  String selectedFilter = 'All';
-
-  // Sample notifications data
-  List<Map<String, dynamic>> notifications = [
-    {
-      'title': 'New Document Added',
-      'subtitle': 'A new document has been added to Project Alpha',
-      'time': '2 min ago',
-      'isRead': false,
-      'type': 'document',
-      'icon': Icons.edit_document,
-    },
-    {
-      'title': 'Folder Created',
-      'subtitle': 'You created a new folder "Design Documents"',
-      'time': '1 hour ago',
-      'isRead': true,
-      'type': 'folder',
-      'icon': Icons.folder,
-    },
-    {
-      'title': 'Document Shared',
-      'subtitle': 'John shared a document with you',
-      'time': '3 hours ago',
-      'isRead': true,
-      'type': 'share',
-      'icon': Icons.share,
-    },
-
-    {
-      'title': 'New Comment',
-      'subtitle': 'Sarah commented on your design proposal',
-      'time': '5 min ago',
-      'isRead': false,
-      'type': 'comment',
-      'icon': Icons.message_sharp,
-    },
-  ];
-
-  // Filter notifications based on selected filter
-  List<Map<String, dynamic>> get filteredNotifications {
-    if (selectedFilter == 'All') return notifications;
-    if (selectedFilter == 'Unread') {
-      return notifications.where((n) => !n['isRead']).toList();
-    }
-    return notifications
-        .where((n) => n['type'] == selectedFilter.toLowerCase())
-        .toList();
-  }
-
-  // Mark all notifications as read
-  void _markAllAsRead() {
-    setState(() {
-      for (var notification in notifications) {
-        notification['isRead'] = true;
+  Future<void> _markAllAsRead() async {
+    final success = await ApiService().markAllNotificationsAsRead();
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('All notifications marked as read')),
+      );
+      _loadApiNotifications(); // Refresh list
+      // Refresh global count
+      if (mounted) {
+        Provider.of<CompanySiteProvider>(context, listen: false).fetchUnreadNotificationCount();
       }
-    });
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to mark all as read')),
+      );
+    }
+  }
 
-    // Show confirmation snackbar
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('All notifications marked as read'),
-        backgroundColor: Colors.green,
-        duration: Duration(seconds: 2),
-      ),
+  void _showNotificationDetails(UserNotification userNotification, bool isDarkMode) {
+    final notification = userNotification.notification;
+    
+    // Look up site name from provider if projectId is available
+    String siteName = notification.title; // Fallback
+    if (notification.projectId != null) {
+      final provider = Provider.of<CompanySiteProvider>(context, listen: false);
+      try {
+        // Try to find site with matching ID (convert both to string to be safe)
+        final site = provider.sites.firstWhere(
+          (s) => s.id.toString() == notification.projectId.toString(),
+          orElse: () => Site(id: '', name: '', companyId: ''),
+        );
+        if (site.name.isNotEmpty) {
+           siteName = site.name;
+        }
+      } catch (e) {
+        print('Error finding site name: $e');
+      }
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          backgroundColor: isDarkMode ? Color(0xFF1E1E1E) : Colors.white,
+          child: Padding(
+            padding: EdgeInsets.all(18),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        _getIconForType(notification.type),
+                        color: Color(0xFF4a63c0),
+                        size: 28,
+                      ),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          notification.title,
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: isDarkMode ? Colors.white : Color(0xFF2A2A2A),
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                          onPressed: () => Navigator.pop(context),
+                          icon: Icon(Icons.close, color: Colors.grey))
+                    ],
+                  ),
+                  SizedBox(height: 16),
+                  
+                  _buildDetailRow('Date',
+                      _formatApiDate(userNotification.createdAt), isDarkMode),
+                  SizedBox(height: 16),
+                  Text(
+                    'The following materials have reached their reorder level in project - $siteName:',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: isDarkMode ? Colors.white70 : Colors.grey[700],
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: isDarkMode ? Colors.black12 : Colors.grey[100],
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      notification.message,
+                      style: TextStyle(
+                        fontSize: 15,
+                        height: 1.4,
+                        color: isDarkMode ? Colors.white : Color(0xFF2A2A2A),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 20),
+                  if (userNotification.readAt == null)
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          _markAsRead(userNotification.id);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Color(0xFF4a63c0),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        child: Text('Mark as Read', style: TextStyle(color: Colors.white)),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
-  // Clear all notifications
-  void _clearAllNotifications() {
-    setState(() {
-      notifications.clear();
-    });
-
-    // Show confirmation snackbar
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('All notifications cleared'),
-        backgroundColor: Colors.blue,
-        duration: Duration(seconds: 2),
-      ),
+  Widget _buildDetailRow(String label, String value, bool isDarkMode) {
+    return Row(
+      children: [
+        Text(
+          '$label: ',
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            color: isDarkMode ? Colors.white60 : Colors.grey[600],
+          ),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            color: isDarkMode ? Colors.white : Colors.black87,
+          ),
+        ),
+      ],
     );
   }
 
-  void _updateMeetingNotifications(MeetingProvider meetingProvider) {
-    // Remove existing meeting notifications
-    notifications.removeWhere((n) => n['type'] == 'meeting');
+  IconData _getIconForType(String type) {
+    if (type == 'event') return Icons.event;
+    if (type == 'info') return Icons.info_outline;
+    if (type == 'warning') return Icons.warning_amber_rounded;
+    if (type == 'error') return Icons.error_outline;
+    return Icons.notifications;
+  }
 
-    // Add current meeting notifications
-    final upcomingMeetings = meetingProvider.upcomingMeetings;
-    for (var meeting in upcomingMeetings) {
-      final timeUntil = meeting.dateTime.difference(DateTime.now());
-      String timeText;
-      if (timeUntil.inDays > 0) {
-        timeText = '${timeUntil.inDays} days left';
-      } else if (timeUntil.inHours > 0) {
-        timeText = '${timeUntil.inHours} hours left';
-      } else {
-        timeText = '${timeUntil.inMinutes} minutes left';
-      }
-
-      String invitedText;
-      if (meeting.invitedWorkerNames.length == 1) {
-        invitedText =
-            '${meeting.invitedWorkerNames.first} (${meeting.invitedWorkerCompanies.first})';
-      } else {
-        // Group workers by company
-        Map<String, int> companyWorkerCount = {};
-        for (int i = 0; i < meeting.invitedWorkerCompanies.length; i++) {
-          String company = meeting.invitedWorkerCompanies[i];
-          companyWorkerCount[company] = (companyWorkerCount[company] ?? 0) + 1;
-        }
-
-        if (companyWorkerCount.length == 1) {
-          // All workers from same company
-          String company = companyWorkerCount.keys.first;
-          int workerCount = companyWorkerCount[company]!;
-          invitedText = '$company wants meeting with $workerCount workers';
-        } else {
-          // Workers from multiple companies
-          invitedText =
-              '${meeting.invitedWorkerNames.length} workers from ${companyWorkerCount.length} companies';
-        }
-      }
-
-      notifications.add({
-        'title': 'New Meeting Scheduled',
-        'subtitle':
-            '${meeting.organizerCompany} wants a meeting with ${meeting.invitedCompany} at ${meeting.siteName}\n${meeting.title} – Scheduled at ${DateFormat('MMM dd, yyyy hh:mm a').format(meeting.dateTime)}',
-        'time': timeText,
-        'isRead': false,
-        'type': 'meeting',
-        'icon': Icons.calendar_today,
-        'meeting': meeting,
-      });
-    }
+  Widget _buildNotEmptyState() { // Not used but good to keep structure
+    return SizedBox();
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDarkMode = theme.brightness == Brightness.dark;
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       appBar: AppBar(
@@ -295,132 +305,77 @@ class _NotificationScreenState extends State<NotificationScreen> {
         ),
         elevation: 0,
         actions: [
-          if (notifications.isNotEmpty &&
-              notifications.any((n) => !n['isRead']))
-            IconButton(
-              icon: Badge(
-                smallSize: 8,
-                backgroundColor: Colors.amber,
-                child: Icon(Icons.mark_chat_read, color: Colors.white),
-              ),
-              onPressed: _markAllAsRead,
-              tooltip: 'Mark all as read',
-            ),
-          if (notifications.isNotEmpty)
-            IconButton(
-              icon: Icon(Icons.delete_rounded, color: Colors.white),
-              onPressed: _clearAllNotifications,
-              tooltip: 'Clear all notifications',
-            ),
+          IconButton(
+            icon: Icon(Icons.refresh, color: Colors.white),
+            onPressed: _loadApiNotifications,
+            tooltip: 'Refresh',
+          ),
         ],
       ),
-      body: Consumer<MeetingProvider>(
-        builder: (context, meetingProvider, child) {
-          _updateMeetingNotifications(meetingProvider);
-          return Container(
-            color: isDarkMode
-                ? Color(0xFF121212)
-                : Color.fromARGB(255, 254, 254, 255),
-            child: Column(
-              children: [
-                // Filter chips
-                if (notifications.isNotEmpty)
-                  Container(
-                    padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                    color: isDarkMode ? Color(0xFF1E1E1E) : Colors.white,
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        children: filterOptions.map((filter) {
-                          return Padding(
-                            padding: const EdgeInsets.only(right: 8.0),
-                            child: FilterChip(
-                              label: Text(filter),
-                              selected: selectedFilter == filter,
-                              onSelected: (selected) {
-                                setState(() {
-                                  selectedFilter = selected ? filter : 'All';
-                                });
-                              },
-                              backgroundColor: isDarkMode
-                                  ? Color(0xFF2A2A2A)
-                                  : Color(0xFFf1f3f5),
-                              selectedColor: Color(0xFF4a63c0).withOpacity(0.2),
-                              labelStyle: TextStyle(
-                                color: selectedFilter == filter
-                                    ? Color(0xFF4a63c0)
-                                    : isDarkMode
-                                    ? Colors.white70
-                                    : Colors.black87,
-                              ),
-                              checkmarkColor: Color(0xFF4a63c0),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                            ),
-                          );
-                        }).toList(),
+      body: Container(
+        color: isDarkMode
+            ? Color(0xFF121212)
+            : Color.fromARGB(255, 254, 254, 255),
+        child: Column(
+          children: [
+            if (!_isLoading && _notifications.any((n) => n.readAt == null))
+              Padding(
+                padding: EdgeInsets.fromLTRB(16, 12, 16, 4),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton.icon(
+                      onPressed: _markAllAsRead,
+                      icon: Icon(Icons.done_all, size: 18, color: Color(0xFF4a63c0)),
+                      label: Text('Mark all as read',
+                          style: TextStyle(
+                              color: Color(0xFF4a63c0),
+                              fontWeight: FontWeight.w600)),
+                      style: TextButton.styleFrom(
+                        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        backgroundColor: Color(0xFF4a63c0).withOpacity(0.1),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20)),
                       ),
                     ),
-                  ),
-
-                // Notifications list or empty state
-                Expanded(
-                  child: notifications.isEmpty
+                  ],
+                ),
+              ),
+            Expanded(
+              child: _isLoading
+                  ? Center(child: CircularProgressIndicator())
+                  : _notifications.isEmpty
                       ? _buildEmptyState(isDarkMode)
-                      : filteredNotifications.isEmpty
-                      ? _buildNoFilterResults(isDarkMode)
                       : ListView.builder(
                           padding: EdgeInsets.all(isSmallMobile ? 12 : 16),
-                          itemCount: filteredNotifications.length,
+                          itemCount: _notifications.length,
                           itemBuilder: (context, index) {
-                            final notification = filteredNotifications[index];
                             return _buildNotificationCard(
-                              notification,
+                              _notifications[index],
                               isDarkMode,
                             );
                           },
                         ),
-                ),
-              ],
             ),
-          );
-        },
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildNotificationCard(
-    Map<String, dynamic> notification,
+    UserNotification userNotification,
     bool isDarkMode,
   ) {
-    return Dismissible(
-      key: Key(notification['title']),
-      direction: DismissDirection.endToStart,
-      background: Container(
-        decoration: BoxDecoration(
-          color: Colors.red.withOpacity(0.2),
-          borderRadius: BorderRadius.circular(isSmallMobile ? 10 : 12),
-        ),
-        alignment: Alignment.centerRight,
-        padding: EdgeInsets.only(right: 20),
-        child: Icon(Icons.delete_outline, color: Colors.red),
-      ),
-      onDismissed: (direction) {
-        setState(() {
-          notifications.remove(notification);
-        });
+    final notification = userNotification.notification;
+    final isRead = userNotification.readAt != null;
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Notification removed'),
-            backgroundColor: Colors.red,
-            duration: Duration(seconds: 2),
-          ),
-        );
-      },
+    return GestureDetector(
+      onTap: () => _showNotificationDetails(userNotification, isDarkMode),
       child: Container(
         margin: EdgeInsets.only(bottom: isSmallMobile ? 10 : 12),
+        padding: EdgeInsets.symmetric(
+            horizontal: isSmallMobile ? 12 : 16, vertical: 12),
         decoration: BoxDecoration(
           color: isDarkMode ? Color(0xFF1E1E1E) : Colors.white,
           borderRadius: BorderRadius.circular(isSmallMobile ? 12 : 14),
@@ -431,143 +386,58 @@ class _NotificationScreenState extends State<NotificationScreen> {
               offset: const Offset(0, 4),
             ),
           ],
+          border: isRead ? null : Border.all(color: Color.fromARGB(255, 165, 171, 194), width: 1),
         ),
-        child: ListTile(
-          contentPadding: EdgeInsets.symmetric(
-            horizontal: isSmallMobile ? 16 : 20,
-            vertical: isSmallMobile ? 12 : 16,
-          ),
-          leading: Container(
-            width: isSmallMobile ? 40 : 48,
-            height: isSmallMobile ? 40 : 48,
-            decoration: BoxDecoration(
-              color: notification['isRead']
-                  ? Color(0xFF4a63c0).withOpacity(0.1)
-                  : Color(0xFF4a63c0).withOpacity(0.2),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              notification['icon'],
-              color: notification['isRead']
-                  ? Color(0xFF4a63c0)
-                  : Color(0xFF3a53b0),
-              size: isSmallMobile ? 20 : 24,
-            ),
-          ),
-          title: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  notification['title'],
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: isSmallMobile ? 14 : 16,
-                    color: isDarkMode ? Colors.white : Color(0xFF2A2A2A),
-                  ),
-                ),
-              ),
-              if (!notification['isRead'])
+        child: Column(
+          children: [
+            Row(
+              children: [
                 Container(
-                  width: 8,
-                  height: 8,
-                  margin: EdgeInsets.only(left: 4),
+                  padding: EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Color(0xFF4a63c0),
+                    color: Color(0xFF4a63c0).withOpacity(0.1),
                     shape: BoxShape.circle,
                   ),
+                  child: Icon(
+                    _getIconForType(notification.type),
+                    color: Color(0xFF4a63c0),
+                    size: 20,
+                  ),
                 ),
-            ],
-          ),
-          subtitle: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(height: 4),
-              Text(
-                notification['subtitle'],
-                style: TextStyle(
-                  fontSize: isSmallMobile ? 12 : 14,
-                  color: isDarkMode ? Colors.white70 : Color(0xFF6C757D),
-                ),
-              ),
-              SizedBox(height: 8),
-              Text(
-                notification['time'],
-                style: TextStyle(
-                  fontSize: isSmallMobile ? 10 : 12,
-                  color: isDarkMode ? Colors.white54 : Color(0xFFADB5BD),
-                ),
-              ),
-            ],
-          ),
-          onTap: () {
-            // Mark as read when tapped
-            setState(() {
-              notification['isRead'] = true;
-            });
-          },
-          onLongPress: () {
-            // Show options on long press
-            showModalBottomSheet(
-              context: context,
-              backgroundColor: isDarkMode ? Color(0xFF2A2A2A) : Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-              ),
-              builder: (context) {
-                return Container(
-                  padding: EdgeInsets.all(16),
+                SizedBox(width: 12),
+                Expanded(
                   child: Column(
-                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      ListTile(
-                        leading: Icon(
-                          notification['isRead']
-                              ? Icons.remove_red_eye
-                              : Icons.remove_red_eye_outlined,
-                          color: Color(0xFF4a63c0),
+                      Text(
+                        notification.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: isDarkMode ? Colors.white : Color(0xFF2A2A2A),
                         ),
-                        title: Text(
-                          notification['isRead']
-                              ? 'Mark as unread'
-                              : 'Mark as read',
-                          style: TextStyle(
-                            color: isDarkMode ? Colors.white : Colors.black,
-                          ),
-                        ),
-                        onTap: () {
-                          setState(() {
-                            notification['isRead'] = !notification['isRead'];
-                          });
-                          Navigator.pop(context);
-                        },
                       ),
-                      ListTile(
-                        leading: Icon(Icons.delete_outline, color: Colors.red),
-                        title: Text(
-                          'Delete',
-                          style: TextStyle(color: Colors.red),
+                      Text(
+                        notification.type,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey,
                         ),
-                        onTap: () {
-                          setState(() {
-                            notifications.remove(notification);
-                          });
-                          Navigator.pop(context);
-
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Notification removed'),
-                              backgroundColor: Colors.red,
-                              duration: Duration(seconds: 2),
-                            ),
-                          );
-                        },
                       ),
                     ],
                   ),
-                );
-              },
-            );
-          },
+                ),
+                if (!isRead)
+                  IconButton(
+                    icon: Icon(Icons.mark_email_read, color: Color(0xFF4a63c0)),
+                    tooltip: 'Mark as Read',
+                    onPressed: () => _markAsRead(userNotification.id),
+                  ),
+              ],
+            ),
+          ],
         ),
       ),
     );
@@ -585,7 +455,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
               shape: BoxShape.circle,
             ),
             child: Icon(
-              Icons.notifications,
+              Icons.notifications_off_outlined,
               size: isSmallMobile ? 40 : 48,
               color: Color(0xFF4a63c0),
             ),
@@ -598,55 +468,6 @@ class _NotificationScreenState extends State<NotificationScreen> {
               fontWeight: FontWeight.w700,
               color: isDarkMode ? Colors.white : Color(0xFF2A2A2A),
             ),
-          ),
-          SizedBox(height: isSmallMobile ? 6 : 8),
-          Text(
-            "You're all caught up! Check back later for updates",
-            style: TextStyle(
-              fontSize: isSmallMobile ? 12 : 14,
-              color: isDarkMode ? Colors.white70 : Color(0xFF6C757D),
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNoFilterResults(bool isDarkMode) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            padding: EdgeInsets.all(isSmallMobile ? 20 : 24),
-            decoration: BoxDecoration(
-              color: Color(0xFF4a63c0).withOpacity(0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.search,
-              size: isSmallMobile ? 40 : 48,
-              color: Color(0xFF4a63c0),
-            ),
-          ),
-          SizedBox(height: isSmallMobile ? 20 : 24),
-          Text(
-            "No Matching Notifications",
-            style: TextStyle(
-              fontSize: isSmallMobile ? 18 : 20,
-              fontWeight: FontWeight.w700,
-              color: isDarkMode ? Colors.white : Color(0xFF2A2A2A),
-            ),
-          ),
-          SizedBox(height: isSmallMobile ? 6 : 8),
-          Text(
-            "Try changing your filter settings to see more notifications",
-            style: TextStyle(
-              fontSize: isSmallMobile ? 12 : 14,
-              color: isDarkMode ? Colors.white70 : Color(0xFF6C757D),
-            ),
-            textAlign: TextAlign.center,
           ),
         ],
       ),

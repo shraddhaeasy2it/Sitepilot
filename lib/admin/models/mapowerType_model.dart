@@ -22,15 +22,22 @@ class ManpowerType {
 
   factory ManpowerType.fromJson(Map<String, dynamic> json) {
     return ManpowerType(
-      id: json['id'] ?? 0,
+      id: _parseInt(json['id']),
       name: json['name'] ?? '',
-      status: json['status'] ?? 0,
-      siteId: json['site_id'] ?? 0,
-      createdBy: json['created_by'] ?? 0,
-      workspaceId: json['workspace_id'] ?? 0,
+      status: _parseInt(json['status']),
+      siteId: _parseInt(json['site_id']),
+      createdBy: _parseInt(json['created_by']),
+      workspaceId: _parseInt(json['workspace_id']),
       createdAt: DateTime.parse(json['created_at'] ?? DateTime.now().toString()),
       updatedAt: DateTime.parse(json['updated_at'] ?? DateTime.now().toString()),
     );
+  }
+
+  static int _parseInt(dynamic value) {
+    if (value == null) return 0;
+    if (value is int) return value;
+    if (value is String) return int.tryParse(value) ?? 0;
+    return 0;
   }
 
   Map<String, dynamic> toJson() {

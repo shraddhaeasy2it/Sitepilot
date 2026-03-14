@@ -15,7 +15,7 @@ import 'package:ecoteam_app/contractor/services/app_pusher_services.dart';
 import 'package:ecoteam_app/contractor/services/company_site_provider.dart';
 import 'package:ecoteam_app/contractor/services/pusher_services.dart';
 import 'package:ecoteam_app/contractor/services/site_provider.dart';
-import 'package:ecoteam_app/contractor/view/contractor_dashboard/attendance_screen.dart';
+import 'package:ecoteam_app/contractor/view/contractor_dashboard/Dashboard/attendance_screen.dart';
 import 'package:ecoteam_app/contractor/view/contractor_dashboard/home_page.dart';
 import 'package:ecoteam_app/contractor/view/landing_page/splash_screen.dart';
 import 'package:ecoteam_app/firebase_options.dart';
@@ -24,7 +24,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import 'package:ecoteam_app/contractor/view/contractor_dashboard/global_chat_listener.dart'; // Add this import
-import 'package:ecoteam_app/contractor/view/contractor_dashboard/activity_screen.dart';
+import 'package:ecoteam_app/contractor/services/local_notification_service.dart';
+import 'package:ecoteam_app/contractor/view/contractor_dashboard/Dashboard/activity_screen.dart';
+import 'package:ecoteam_app/global.dart';
 
 /// ✅ Responsive Helper
 class Responsive {
@@ -45,6 +47,7 @@ class Responsive {
 
 void main() async{
    WidgetsFlutterBinding.ensureInitialized();
+   await LocalNotificationService.init();
 
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
@@ -55,12 +58,7 @@ void main() async{
         ChangeNotifierProvider(create: (context) => WorkerProvider()),
         ChangeNotifierProvider(create: (_) => MachineProvider()),
         ChangeNotifierProvider(create: (_) => ActivityProvider()),
-        ChangeNotifierProvider(create: (_) => BirthdayProvider()),
-        ChangeNotifierProvider(create: (_) => MeetingProvider()),
-        ChangeNotifierProvider(create: (_) => AdminUserProvider()),
-        ChangeNotifierProvider(create: (_) => AdminRoleProvider()),
         ChangeNotifierProvider(create: (_) => UnitProvider()..fetchUnits()),
-        ChangeNotifierProvider(create: (_) => FuelUsageProvider()),
         ChangeNotifierProvider(create: (_) => CompanySiteProvider()),
         ChangeNotifierProvider(create: (_) => MaterialCategoryProvider()),
         ChangeNotifierProvider(create: (_) => ProjectSiteProvider()),
@@ -104,6 +102,8 @@ class MyApp extends StatelessWidget {
       splitScreenMode: true,
       builder: (context, child) {
         return MaterialApp(
+          navigatorKey: navigatorKey,
+          navigatorObservers: [routeObserver],
           title: 'Construction Manager',
           theme: ThemeData(
             colorScheme: ColorScheme.fromSeed(
@@ -156,3 +156,6 @@ class MyApp extends StatelessWidget {
     );
   }
 }
+
+// in machinery category screen, in card ,use more_vert icon when click open bottomsheet ,in that edit,delete.
+// same like as machinery screen.

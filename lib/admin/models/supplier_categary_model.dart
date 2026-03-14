@@ -25,17 +25,32 @@ class SupplierCategory {
   });
 
   factory SupplierCategory.fromJson(Map<String, dynamic> json) {
+    int _parseInt(dynamic value) {
+      if (value == null) return 0;
+      if (value is int) return value;
+      if (value is String) return int.tryParse(value) ?? 0;
+      if (value is bool) return value ? 1 : 0;
+      return 0;
+    }
+
+    int? _parseNullableInt(dynamic value) {
+      if (value == null) return null;
+      if (value is int) return value;
+      if (value is String) return int.tryParse(value);
+      return null;
+    }
+
     return SupplierCategory(
-      id: json['id'] ?? 0,
-      name: json['name'] ?? '',
-      description: json['description'],
-      siteId: json['site_id'],
-      createdBy: json['created_by'] ?? 0,
-      workspaceId: json['workspace_id'] ?? 0,
-      isActive: json['is_active'] is bool ? (json['is_active'] ? 1 : 0) : (json['is_active'] ?? 0),
-      status: json['status'] ?? '0',
-      createdAt: json['created_at'] ?? '',
-      updatedAt: json['updated_at'] ?? '',
+      id: _parseInt(json['id']),
+      name: json['name']?.toString() ?? '',
+      description: json['description']?.toString(),
+      siteId: _parseNullableInt(json['site_id']),
+      createdBy: _parseInt(json['created_by']),
+      workspaceId: _parseInt(json['workspace_id']),
+      isActive: _parseInt(json['is_active']),
+      status: json['status']?.toString() ?? '0',
+      createdAt: json['created_at']?.toString() ?? '',
+      updatedAt: json['updated_at']?.toString() ?? '',
     );
   }
 
@@ -99,7 +114,7 @@ class SupplierCategoryResponse {
     }
 
     return SupplierCategoryResponse(
-      status: json['status'] ?? 0,
+      status: json['status'] is int ? json['status'] : (int.tryParse(json['status']?.toString() ?? '0') ?? 0),
       data: dataList.map((item) => SupplierCategory.fromJson(item)).toList(),
     );
   }

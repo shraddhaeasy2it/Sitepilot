@@ -1,11 +1,14 @@
-import 'dart:convert';
 import 'dart:io';
-import 'package:http/http.dart' as http;
-import 'package:http_parser/http_parser.dart';
+import 'package:dio/dio.dart';
 import 'package:ecoteam_app/admin/models/employee_model.dart';
+import 'package:ecoteam_app/contractor/services/dio_service.dart';
 
 class ApiService {
-  static const String baseUrl = 'https://sitepilot.easy2it.in';
+  // Endpoints (Relative to DioService base URL: https://app.ecoteamsolar.com/api)
+  static const String employeeEndpoint = '/employee';
+  static const String createDataEndpoint = '/employee/create-data';
+  static const String getDepartmentEndpoint = '/getdepartment';
+  static const String getDesignationEndpoint = '/getdesignations';
 
   // Fetch employees list from API
   static Future<List<Employee>> fetchEmployees({
@@ -14,29 +17,23 @@ class ApiService {
     int? createdBy,
   }) async {
     try {
-      String url = '$baseUrl/api/employee?workspace_id=$workspaceId';
-      if (siteId != null) {
-        url += '&site_id=$siteId';
-      }
-      if (createdBy != null) {
-        url += '&created_by=$createdBy';
-      }
+      final Map<String, dynamic> queryParams = {
+        'workspace_id': workspaceId,
+      };
+      if (siteId != null) queryParams['site_id'] = siteId;
+      if (createdBy != null) queryParams['created_by'] = createdBy;
 
-      print('Fetching employees from: $url');
+      print('Fetching employees from: $employeeEndpoint');
 
-      final response = await http.get(
-        Uri.parse(url),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
+      final response = await DioService.instance.dio.get(
+        employeeEndpoint,
+        queryParameters: queryParams,
       );
 
       print('API Response Status Code: ${response.statusCode}');
-      print('API Response Body: ${response.body}');
 
       if (response.statusCode == 200) {
-        final Map<String, dynamic> responseData = json.decode(response.body);
+        final responseData = response.data;
 
         if (responseData['status'] == 'success') {
           final List<dynamic> data = responseData['data'] ?? [];
@@ -66,26 +63,26 @@ class ApiService {
     int? createdBy,
   }) async {
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/api/employee/create-data'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: json.encode({
-          'workspace_id': workspaceId,
-          if (siteId != null) 'site_id': siteId,
-          if (createdBy != null) 'created_by': createdBy,
-        }),
+      final requestData = {
+        'workspace_id': workspaceId,
+        if (siteId != null) 'site_id': siteId,
+        if (createdBy != null) 'created_by': createdBy,
+      };
+      
+      print('🚀 fetchEmployeeCreationData Request: $requestData');
+
+      final response = await DioService.instance.dio.post(
+        createDataEndpoint,
+        data: requestData,
       );
 
       print('Create Data Response Status: ${response.statusCode}');
-      print('Create Data Response Body: ${response.body}');
 
       if (response.statusCode == 200) {
-        final Map<String, dynamic> responseData = json.decode(response.body);
+        final responseData = response.data;
 
         if (responseData['status'] == 'success') {
+          print('📝 fetchEmployeeCreationData Raw Response: $responseData');
           return Employee.fromApiResponse(responseData);
         } else {
           throw Exception('Failed to fetch creation data: ${responseData['message']}');
@@ -105,26 +102,24 @@ class ApiService {
     required int workspaceId,
   }) async {
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/api/getdepartment'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: json.encode({
+      final response = await DioService.instance.dio.post(
+        getDepartmentEndpoint,
+        data: {
           'branch_id': branchId,
           'workspace_id': workspaceId,
-        }),
+        },
       );
 
       if (response.statusCode == 200) {
-        final Map<String, dynamic> responseData = json.decode(response.body);
+        final responseData = response.data;
         
         // Convert to Map<String, String>
         Map<String, String> departments = {};
-        responseData.forEach((key, value) {
-          departments[key.toString()] = value.toString();
-        });
+        if (responseData is Map) {
+           responseData.forEach((key, value) {
+             departments[key.toString()] = value.toString();
+           });
+        }
         
         return departments;
       } else {
@@ -142,26 +137,24 @@ class ApiService {
     required int workspaceId,
   }) async {
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/api/getdesignations'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: json.encode({
+      final response = await DioService.instance.dio.post(
+        getDesignationEndpoint,
+        data: {
           'department_id': departmentId,
           'workspace_id': workspaceId,
-        }),
+        },
       );
 
       if (response.statusCode == 200) {
-        final Map<String, dynamic> responseData = json.decode(response.body);
-        
+         final responseData = response.data;
+         
         // Convert to Map<String, String>
         Map<String, String> designations = {};
-        responseData.forEach((key, value) {
-          designations[key.toString()] = value.toString();
-        });
+        if (responseData is Map) {
+           responseData.forEach((key, value) {
+             designations[key.toString()] = value.toString();
+           });
+        }
         
         return designations;
       } else {
@@ -174,107 +167,124 @@ class ApiService {
   }
 
   // Add new employee
-  static Future<Employee> addEmployee(Employee employee, {File? avatarFile}) async {
+  static Future<Employee> addEmployee(
+    Employee employee, {
+    File? avatarFile,
+    Map<String, File>? documentFiles,
+  }) async {
     try {
-      var request = http.MultipartRequest('POST', Uri.parse('$baseUrl/api/employee'));
+      final formData = FormData();
       
-      // Add headers
-      request.headers.addAll({
-        'Accept': 'application/json',
-      });
-
       // Add text fields
-      final Map<String, String> formData = employee.toFormData();
-      request.fields.addAll(formData);
+      final Map<String, String> fields = employee.toFormData();
+      fields.forEach((key, value) {
+        formData.fields.add(MapEntry(key, value));
+      });
 
       // Add avatar if provided
       if (avatarFile != null) {
-        final mimeType = avatarFile.path.endsWith('.png') 
-            ? MediaType('image', 'png') 
-            : MediaType('image', 'jpeg');
-            
-        request.files.add(await http.MultipartFile.fromPath(
+        formData.files.add(MapEntry(
           'avatar',
-          avatarFile.path,
-          contentType: mimeType,
+          await MultipartFile.fromFile(avatarFile.path),
         ));
       }
 
-      print('Adding employee with data: ${request.fields}');
-      if (avatarFile != null) {
-        print('Adding avatar: ${avatarFile.path} with type: ${request.files.last.contentType}');
+      // Add document files if provided
+      if (documentFiles != null) {
+        for (var entry in documentFiles.entries) {
+          formData.files.add(MapEntry(
+            'document[${entry.key}]',
+            await MultipartFile.fromFile(entry.value.path),
+          ));
+        }
       }
-      print('Request headers: ${request.headers}');
 
-      final streamedResponse = await request.send();
-      print('Request sent, waiting for response...');
-      final response = await http.Response.fromStream(streamedResponse);
+      print('Adding employee with data: ${formData.fields}');
 
+      final response = await DioService.instance.dio.post(
+        employeeEndpoint,
+        data: formData,
+      );
+      
       print('Add Employee Response Status: ${response.statusCode}');
-      print('Add Employee Response Body: ${response.body}');
+      print('Add Employee Response Body: ${response.data}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        final Map<String, dynamic> responseData = json.decode(response.body);
+        final responseData = response.data;
         
         if (responseData['status'] == 'success' || responseData.containsKey('id')) {
-          // API returns the created employee data
           return Employee.fromJson(responseData['data'] ?? responseData);
         } else {
           throw Exception('Failed to add employee: ${responseData['message']}');
         }
       } else {
-        final Map<String, dynamic> responseData = json.decode(response.body);
+        final responseData = response.data;
         throw Exception(responseData['message'] ?? 'Failed to add employee: ${response.statusCode}');
       }
     } catch (e) {
+      if (e is DioException && e.response != null) {
+        print('❌ Add Employee HTTP ${e.response?.statusCode} error body: ${e.response?.data}');
+      }
       print('Error adding employee: $e');
       rethrow;
     }
   }
 
   // Update employee
-  static Future<Employee> updateEmployee(Employee employee, {File? avatarFile}) async {
+  static Future<Employee> updateEmployee(
+    Employee employee, {
+    File? avatarFile,
+    Map<String, File>? documentFiles,
+  }) async {
     try {
-      var request = http.MultipartRequest('POST', Uri.parse('$baseUrl/api/employee/${employee.id}'));
-      
-      // Add headers
-      request.headers.addAll({
-        'Accept': 'application/json',
+      final formData = FormData();
+
+       // Add text fields
+      final Map<String, String> fields = employee.toFormData();
+      fields.forEach((key, value) {
+        formData.fields.add(MapEntry(key, value));
       });
+      
+      formData.fields.add(const MapEntry('_method', 'PUT')); // For Laravel PUT via POST
 
-      // Add text fields
-      final Map<String, String> formData = employee.toFormData();
-      formData['_method'] = 'PUT'; // For PUT request via POST
-      request.fields.addAll(formData);
-
-       // Add avatar if provided
+      // Add avatar if provided
       if (avatarFile != null) {
-        final mimeType = avatarFile.path.endsWith('.png') 
-            ? MediaType('image', 'png') 
-            : MediaType('image', 'jpeg');
-            
-        request.files.add(await http.MultipartFile.fromPath(
+        formData.files.add(MapEntry(
           'avatar',
-          avatarFile.path,
-          contentType: mimeType,
+          await MultipartFile.fromFile(avatarFile.path),//375325
         ));
       }
 
-      print('Updating employee ${employee.id} with data: ${request.fields}');
-      if (avatarFile != null) {
-         print('Updating avatar: ${avatarFile.path} with type: ${request.files.last.contentType}');
+      // Add document files if provided
+      if (documentFiles != null) {
+        for (var entry in documentFiles.entries) {
+          formData.files.add(MapEntry(
+            'document[${entry.key}]',
+            await MultipartFile.fromFile(entry.value.path),
+          ));
+        }
       }
-      print('Request headers: ${request.headers}');
 
-      final streamedResponse = await request.send();
-      print('Request sent, waiting for response...');
-      final response = await http.Response.fromStream(streamedResponse);
+      print('Updating employee ${employee.id}');
+      print('Update Payload Fields:');
+      for (var field in formData.fields) {
+        print('  ${field.key}: ${field.value}');
+      }
+      for (var file in formData.files) {
+        print('  ${file.key}: Filename=${file.value.filename}, Length=${file.value.length}');
+      }
+
+      // Use POST with _method=PUT for Laravel when sending Multipart
+      final response = await DioService.instance.dio.post(
+        '$employeeEndpoint/${employee.id}',
+        data: formData,
+      );
 
       print('Update Employee Response Status: ${response.statusCode}');
-      print('Update Employee Response Body: ${response.body}');
+      print('Update Employee Response Body: ${response.data}');
 
       if (response.statusCode == 200) {
-        final Map<String, dynamic> responseData = json.decode(response.body);
+        final responseData = response.data;
         
         if (responseData['status'] == 'success') {
           return Employee.fromJson(responseData['data'] ?? responseData);
@@ -282,9 +292,15 @@ class ApiService {
           throw Exception('Failed to update employee: ${responseData['message']}');
         }
       } else {
-        final Map<String, dynamic> responseData = json.decode(response.body);
+        final responseData = response.data;
         throw Exception(responseData['message'] ?? 'Failed to update employee: ${response.statusCode}');
       }
+    } on DioException catch (e) {
+      if (e.response != null) {
+         print('API Error Response [${e.response?.statusCode}]: ${e.response?.data}');
+      }
+      print('Error updating employee (Dio Error): ${e.message}');
+      rethrow;
     } catch (e) {
       print('Error updating employee: $e');
       rethrow;
@@ -294,21 +310,15 @@ class ApiService {
   // Delete employee
   static Future<bool> deleteEmployee(String employeeId) async {
     try {
-      final response = await http.delete(
-        Uri.parse('$baseUrl/api/employee/$employeeId'),
-        headers: {
-          'Accept': 'application/json',
-        },
-      );
+      final response = await DioService.instance.dio.delete('$employeeEndpoint/$employeeId');
 
       print('Delete Employee Response Status: ${response.statusCode}');
-      print('Delete Employee Response Body: ${response.body}');
 
       if (response.statusCode == 200) {
-        final Map<String, dynamic> responseData = json.decode(response.body);
+        final responseData = response.data;
         return responseData['status'] == 'success';
       } else {
-        final Map<String, dynamic> responseData = json.decode(response.body);
+        final responseData = response.data;
         throw Exception(responseData['message'] ?? 'Failed to delete employee: ${response.statusCode}');
       }
     } catch (e) {
@@ -318,24 +328,43 @@ class ApiService {
   }
 
   // Get single employee by ID
-  static Future<Employee> getEmployeeById(String id) async {
+  static Future<Employee> getEmployeeById(String id, {int? workspaceId}) async {
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/api/employee/$id'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
+      final Map<String, dynamic> queryParams = {
+        'id': id,
+      };
+      if (workspaceId != null) queryParams['workspace_id'] = workspaceId;
+
+      print('Fetching employee details from: $employeeEndpoint with params: $queryParams');
+
+      final response = await DioService.instance.dio.get(
+        employeeEndpoint,
+        queryParameters: queryParams,
       );
 
       if (response.statusCode == 200) {
-        final Map<String, dynamic> responseData = json.decode(response.body);
-        return Employee.fromJson(responseData['data'] ?? responseData);
+        final responseData = response.data;
+        var employeeData = responseData['data'] ?? responseData;
+
+        if (employeeData is List && employeeData.isNotEmpty) {
+          // Find the specific employee in the list if multiple returned
+          final targetId = id.toString();
+          employeeData = employeeData.firstWhere(
+            (item) => item['id']?.toString() == targetId,
+            orElse: () => employeeData.first,
+          );
+        }
+
+        if (employeeData is Map<String, dynamic>) {
+          return Employee.fromJson(employeeData);
+        } else {
+          throw Exception('Unexpected data format for employee: ${employeeData.runtimeType}');
+        }
       } else {
         throw Exception('Failed to get employee: ${response.statusCode}');
       }
     } catch (e) {
-      print('Error getting employee: $e');
+      print('Error getting employee $id: $e');
       rethrow;
     }
   }

@@ -25,14 +25,14 @@ class MachineryCategory {
 
   factory MachineryCategory.fromJson(Map<String, dynamic> json) {
     return MachineryCategory(
-      id: json['id'] ?? 0,
+      id: int.tryParse(json['id']?.toString() ?? '0') ?? 0,
       name: json['name'] ?? '',
       description: json['description'] ?? '',
-      siteId: json['site_id'],
-      createdBy: json['created_by'] ?? 0,
-      workspaceId: json['workspace_id'] ?? json['boxspace_id'] ?? 0,
-      isActive: json['is_active'] ?? 1,
-      status: json['status'] ?? json['state1'] ?? '0',
+      siteId: int.tryParse(json['site_id']?.toString() ?? '') ?? null,
+      createdBy: int.tryParse(json['created_by']?.toString() ?? '0') ?? 0,
+      workspaceId: int.tryParse((json['workspace_id'] ?? json['boxspace_id'])?.toString() ?? '0') ?? 0,
+      isActive: int.tryParse(json['is_active']?.toString() ?? '1') ?? 1,
+      status: json['status']?.toString() ?? json['state1']?.toString() ?? '0',
       createdAt: json['created_at'] != null 
           ? DateTime.parse(json['created_at'])
           : null,

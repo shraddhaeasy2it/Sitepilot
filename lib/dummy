@@ -1,0 +1,315 @@
+
+9)String operation-
+    1)concatenate(join string)-
+    eg.
+    DATA: 	lv_fname type string VALUE 'shraddha',
+      lv_lname TYPE string VALUE 'ekhande',
+      lv_full TYPE string .
+      CONCATENATE lv_fname lv_lname INTO lv_full SEPARATED BY ' '.
+    2)String Templates-
+    eg.
+    DATA(fullname) = |{fname}{lname}|
+    3)split-
+    eg.
+    DATA: lv_fullname TYPE string VALUE 'shraddha ekhande',
+          lv_fname TYPE string,
+          lv_lname TYPE string.
+    SPLIT lv_fullname AT ' ' INTO lv_fname lv_lname.
+    4)replace-
+    eg.
+    DATA: lv_fullname TYPE string VALUE 'shraddha ekhande',
+          lv_newname TYPE string.
+    REPLACE 'ekhande' WITH 'patil' INTO lv_fullname.
+    5)find-
+    eg.
+    DATA lv_text TYPE string VALUE 'Learning ABAP'.
+    FIND 'ABAP' IN lv_text.
+    IF sy-subrc = 0.
+      WRITE 'Found'.
+    ENDIF.
+    6)substring-
+    DATA lv_text TYPE string VALUE 'SAPABAP'.
+    DATA(lv_part) = lv_text+3(4).   //+3 → Start from position 3, (4) → Take 4 characters
+    WRITE lv_part.
+    7)length- 
+    DATA lv_text TYPE string VALUE 'Hello World'.
+    DATA(lv_length) = strlen( lv_text ).
+    WRITE lv_length. 
+
+10)Internal tables-
+-Internal tables are temporary tables stored in application server memory and used to process multiple records in ABAP programs.
+-An internal Excel sheet inside your program
+-It stores multiple rows of data
+eg.
+DATA: lt_table TYPE TABLE OF string,
+
+ their are 3 types of internal tables-
+    1)standard internal table- It is an unsorted table with a unique key.
+      -It allows duplicate entries and does not maintain any specific order.
+      -access by index or by key.
+      e.g DATA: lt_table TYPE STANDARD TABLE OF string WITH EMPTY KEY.
+
+    2)sorted internal table- It is a sorted table with a unique key.
+    It maintains the entries in a sorted order based on the key fields and does not allow duplicate entries
+      - DATA: lt_table TYPE SORTED TABLE OF string WITH UNIQUE KEY table_line.
+
+    e.g-REPORT z_sorted_demo.
+
+    DATA lt_numbers TYPE SORTED TABLE OF i
+                    WITH UNIQUE KEY table_line.
+    INSERT 30 INTO TABLE lt_numbers.
+    INSERT 10 INTO TABLE lt_numbers.
+    INSERT 20 INTO TABLE lt_numbers.
+
+    LOOP AT lt_numbers INTO DATA(lv_num).
+      WRITE: / lv_num.
+    ENDLOOP.
+
+    3)hashed internal table- It is a hashed table with a unique key.
+    It uses a hash algorithm to store and access entries based on the key fields, providing fast access times. It does not allow duplicate entries.
+      e.g DATA: lt_table TYPE HASHED TABLE OF string WITH UNIQUE KEY table_line. 
+
+    e.g-
+    REPORT z_hashed_demo.
+
+    DATA lt_numbers TYPE HASHED TABLE OF i
+                    WITH UNIQUE KEY table_line.
+    INSERT 100 INTO TABLE lt_numbers.
+    INSERT 200 INTO TABLE lt_numbers.
+    INSERT 300 INTO TABLE lt_numbers.
+
+    READ TABLE lt_numbers WITH TABLE KEY table_line = 200
+        INTO DATA(lv_num).
+
+    IF sy-subrc = 0.
+      WRITE 'Found'.
+    ENDIF.
+
+11)Work area-
+-A work area is a single row of data that corresponds to the structure of an internal table.
+-it is temporarily hold one row of an internal table.
+
+eg.
+DATA: it_table TYPE TABLE OF I,
+     wa_table TYPE string.
+APPEND 10 TO it_table.
+APPEND 20 TO it_table.
+APPEND 30 TO it_table.
+LOOP AT it_table INTO wa_table.
+  WRITE: / wa_table.
+
+12)Internal table operations-
+  1)append- adds a new row to the end of an internal table.
+  eg.
+  DATA: it_table TYPE TABLE OF I.
+  APPEND 10 TO it_table.
+  APPEND 20 TO it_table.
+  LOOP AT it_table INTO DATA(lv_num).
+    WRITE: / lv_num.
+  ENDLOOP.
+  2)insert- adds a new row to a specific position in an internal table.
+  eg.
+  DATA: it_table TYPE TABLE OF I.
+  INSERT 10 INTO TABLE it_table INDEX 1.
+  INSERT 20 INTO TABLE it_table INDEX 2.
+  LOOP AT it_table INTO DATA(lv_num).
+    WRITE: / lv_num.
+  ENDLOOP.
+  3)delete- removes a row from an internal table based on a specified condition.
+  eg.
+  DATA: it_table TYPE TABLE OF I.
+  APPEND 10 TO it_table.
+  APPEND 20 TO it_table.
+  APPEND 30 TO it_table.
+  DELETE it_table WHERE table_line = 20.
+  LOOP AT it_table INTO DATA(lv_num).
+    WRITE: / lv_num.  
+  ENDLOOP.
+  4)modify- updates a row in an internal table based on a specified condition.
+  eg.
+  DATA: it_table TYPE TABLE OF I.
+  APPEND 10 TO it_table.
+  APPEND 20 TO it_table.
+  APPEND 30 TO it_table.
+  MODIFY it_table FROM 25 WHERE table_line = 20.
+  LOOP AT it_table INTO DATA(lv_num).
+    WRITE: / lv_num.
+  ENDLOOP.
+
+13)Internal table statements-
+  1)LOOP AT-
+  LOOP AT is used to read and process rows of an internal table one by one.
+  e.g-
+  REPORT z_loop_demo.
+
+  DATA lt_numbers TYPE STANDARD TABLE OF i.
+  DATA lv_number TYPE i.
+
+  APPEND 10 TO lt_numbers.
+  APPEND 20 TO lt_numbers.
+  APPEND 30 TO lt_numbers.
+
+  LOOP AT lt_numbers INTO lv_number.
+    WRITE: / lv_number.
+  ENDLOOP.
+
+  2)READ TABLE
+  Used to search for a record in an internal table.
+
+  e.g-
+  DATA it_employee TYPE STANDARD TABLE OF string.
+  DATA lv_emp TYPE string.
+
+  APPEND 10 TO it_employee.
+  APPEND 20 TO it_employee.
+
+  READ TABLE it_employee INTO lv_emp WITH KEY table_line=20.
+
+  IF sy-subrc = 0.
+    WRITE 'found'.
+  ELSE.
+    WRITE 'not found'.
+
+  ENDIF.    
+
+  3)2️⃣ COLLECT (Very Important Concept ⭐)
+
+  COLLECT is used to:
+  Insert record
+  If key already exists → Add numeric fields automatically
+
+  e.g-
+  REPORT z_collect_demo.
+
+  TYPES: BEGIN OF ty_sales,
+          product TYPE string,
+          qty     TYPE i,
+        END OF ty_sales.
+
+  DATA: lt_sales TYPE STANDARD TABLE OF ty_sales,
+        ls_sales TYPE ty_sales.
+
+  ls_sales-product = 'Pen'.
+  ls_sales-qty = 10.
+  COLLECT ls_sales INTO lt_sales.
+
+  ls_sales-product = 'Pen'.
+  ls_sales-qty = 5.
+  COLLECT ls_sales INTO lt_sales.
+
+  LOOP AT lt_sales INTO ls_sales.
+    WRITE: / ls_sales-product, ls_sales-qty.
+  ENDLOOP.
+
+  ouput-
+  Pen  10
+  {Product = 'Pen' already exists
+  qty is numeric
+  10 + 5 = 15}
+  Pen  15
+
+  4)DELETE ADJACENT DUPLICATES:
+  -first sort the data.
+  -It deletes only adjacent duplicates
+
+  5)Table Expression:
+  -Read internal table like an array access
+  DATA(ls_emp) = lt_emp[ id = 1 ].
+  WRITE ls_emp-name.
+
+  6)Field Symbol:
+  -Field symbol is like a pointer / reference to data.
+
+14)Open SQl:
+  1)select single:
+  used to fetch one record from database.
+  e.g
+  SELECT SINGLE name 
+  FROM zstudent 
+  WHERE roll =1 INTO @DATA(lv_name).
+
+  2)select into table:
+  used to fetch multiple records into internal table.
+  e.g
+  SELECT * FROM zstudent INTO TABLE @DATA(it_student).
+
+  3)WHERE clause:
+  used to filter records
+  e.g
+  SELECT * FROM zstudent WHERE roll>1 INTO TABLE @DATA(it_student).
+
+  4)INNER JOIN:
+  return only matching records from both tables
+  e.g
+  SELECT a~roll,a~name,b~marks
+  FROM zstudent AS a INNER JOIN zmarks AS b ON a~roll = b~roll INTO TABLE @DATA(it_result).
+
+  5)LEFT OUTER JOIN:
+  return left table record matching from right table.
+  e.g
+  SELECT a~roll,a~name,b~marks
+  FROM zstudent AS a LEFT OUTER JOIN zmarks AS b ON a~roll = b~roll INTO TABLE @DATA(it_result).
+
+  6)INSERT:
+  used to insert new record into database table.
+  e.g
+  DATA ls_student TYPE zstudent.
+  ls_student-roll = 4.
+  ls_student-name = 'Neha'.
+  INSERT zstudent FROM ls_student.
+
+  7)upadte:
+  used to modify existing record in database table.
+  e.g
+  UPDATE zstudent SET name = 'Neha' WHERE roll = 4.
+
+  8)delete:
+  used to remove record from database table.
+  e.g
+  DELETE FROM zstudent WHERE roll = 4.
+
+  9)Aggregate functions:
+  used to perform calculations on a set of values and return a single value.
+    1)sum- used to calculate total sum of a numeric field.
+    e.g
+    SELECT SUM(marks) FROM zmarks INTO @DATA(lv_total_marks).
+    2)avg- used to calculate average value of a numeric field.
+    e.g
+    SELECT AVG(marks) FROM zmarks INTO @DATA(lv_avg_marks).
+    3)count- used to count number of records.
+    e.g
+    SELECT COUNT(*) FROM zstudent INTO @DATA(lv_total_students).
+    4)max- used to find maximum value of a numeric field.
+    e.g
+    SELECT MAX(marks) FROM zmarks INTO @DATA(lv_max_marks).
+    5)min- used to find minimum value of a numeric field.
+    e.g
+    SELECT MIN(marks) FROM zmarks INTO @DATA(lv_min_marks).
+
+  10)FOR ALL ENTRIES:  
+  Used to fetch records based on values from internal table.
+  e.g
+  SELECT *
+    FROM zmarks
+    INTO TABLE @DATA(lt_marks)
+    FOR ALL ENTRIES IN @lt_students
+    WHERE roll = @lt_students-roll.
+
+  11)GROUP BY:
+  Used to group records based on specified fields.
+  Used aggregate functions to perform calculations on each group.
+  e.g
+  SELECT roll,SUM( marks ) AS total_marks
+    FROM zmarks
+    GROUP BY roll
+    INTO TABLE @DATA(lt_result).
+
+  12)HAVING:
+  Used to filter groups based on specified conditions.
+  e.g
+  SELECT roll,SUM( marks ) AS total_marks
+    FROM zmarks
+    GROUP BY roll
+    HAVING SUM( marks ) > 50
+    INTO TABLE @DATA(lt_result).
+

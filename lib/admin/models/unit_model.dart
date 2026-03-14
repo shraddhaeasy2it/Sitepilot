@@ -25,14 +25,14 @@ class Unit {
 
   factory Unit.fromJson(Map<String, dynamic> json) {
     return Unit(
-      id: json['id'] ?? 0,
+      id: int.tryParse(json['id']?.toString() ?? '0') ?? 0,
       name: json['name'] ?? '',
       symbol: json['symbol'] ?? '',
       description: json['description'],
-      isActive: (json['is_active'] ?? json['status'] ?? 1) == 1,
-      siteId: json['site_id'] ?? 1,
-      workspaceId: json['workspace_id'] ?? 1,
-      createdBy: json['created_by'] ?? 1,
+      isActive: (int.tryParse((json['is_active'] ?? json['status'])?.toString() ?? '1') ?? 1) == 1,
+      siteId: int.tryParse(json['site_id']?.toString() ?? '') ?? 1,
+      workspaceId: int.tryParse(json['workspace_id']?.toString() ?? '0') ?? 1,
+      createdBy: int.tryParse(json['created_by']?.toString() ?? '0') ?? 1,
       createdAt: DateTime.parse(json['created_at'] ?? DateTime.now().toString()),
       updatedAt: DateTime.parse(json['updated_at'] ?? DateTime.now().toString()),
     );

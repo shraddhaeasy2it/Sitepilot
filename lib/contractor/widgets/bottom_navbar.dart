@@ -8,6 +8,8 @@ class CustomBottomNavBar extends StatelessWidget {
   final Color unselectedItemColor;
   final Color backgroundColor;
   final double labelFontSize;
+  final bool showMachinery;
+  final bool showActivity;
 
   const CustomBottomNavBar({
     super.key,
@@ -17,6 +19,8 @@ class CustomBottomNavBar extends StatelessWidget {
     this.unselectedItemColor = const Color.fromARGB(255, 109, 109, 109),
     this.backgroundColor = Colors.white,
     this.labelFontSize = 10,
+    this.showMachinery = true,
+    this.showActivity = true,
   });
 
   @override
@@ -64,11 +68,14 @@ class CustomBottomNavBar extends StatelessWidget {
             
             destinations: [
               _buildNavigationDestination(0, Icons.dashboard_outlined, Icons.dashboard, 'Dashboard'),
-              _buildNavigationDestination(1, FontAwesomeIcons.clipboardList, FontAwesomeIcons.clipboardList, 'Tasks'),
+              if (showActivity)
+              _buildNavigationDestination(showActivity ? 2 : 1, FontAwesomeIcons.clipboardList, FontAwesomeIcons.clipboardList, 'Activity'),
               _buildNavigationDestination(2, FontAwesomeIcons.fileInvoiceDollar, FontAwesomeIcons.fileInvoiceDollar, 'Materials'),
-              _buildNavigationDestination(3, FontAwesomeIcons.tractor, FontAwesomeIcons.tractor, 'Machinary'),
+              if (showMachinery)
+                _buildNavigationDestination(showMachinery ? 4 : 3, FontAwesomeIcons.tractor, FontAwesomeIcons.tractor, 'Machinary'),
               _buildNavigationDestination(4, FontAwesomeIcons.userGear, FontAwesomeIcons.userGear, 'Profile'),
             ],
+          
         ),
       ),
       ),

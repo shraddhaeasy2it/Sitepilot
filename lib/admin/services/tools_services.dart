@@ -1,50 +1,69 @@
-import 'dart:convert';
 import 'package:ecoteam_app/admin/models/tools_model.dart';
-import 'package:http/http.dart' as http;
+import 'package:ecoteam_app/contractor/services/dio_service.dart';
 
-
-class ApiService {
-  static const String baseUrl = 'https://sitepilot.easy2it.in/api';
-  
-  final Map<String, String> headers = {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
-  };
+class ToolsApiService {
+  // Endpoints
+  static const String toolsEndpoint = '/tools';
+  static const String materialsCategoryEndpoint = '/materials/category';
 
   // Get materials by category
   Future<List<MaterialModel>> getMaterialsByCategory(int categoryId) async {
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/materials/category/$categoryId'),
-        headers: headers,
-      );
+      final response = await DioService.instance.dio.get('$materialsCategoryEndpoint/$categoryId');
 
       if (response.statusCode == 200) {
-        final Map<String, dynamic> data = json.decode(response.body);
-        if (data['status'] == 1) {
-          final List<dynamic> materialsJson = data['data'];
-          return materialsJson.map((json) => MaterialModel.fromJson(json)).toList();
-        } else {
-          throw Exception('Failed to load materials: ${data['message']}');
+        final dynamic data = response.data;
+        List<dynamic> materialsJson = [];
+
+        if (data is List) {
+          materialsJson = data;
+        } else if (data is Map) {
+          if (data.containsKey('data') && data['data'] is List) {
+            materialsJson = data['data'];
+          } else if (data.containsKey('materials') && data['materials'] is List) {
+             materialsJson = data['materials'];
+          }
         }
+        
+        return materialsJson.map((json) => MaterialModel.fromJson(json)).toList();
       } else {
         throw Exception('Failed to load materials: ${response.statusCode}');
       }
     } catch (e) {
-      throw Exception('Failed to load materials: $e');
+      // Return empty list instead of throwing to allow tools to load even if materials fail
+      print('Error loading materials: $e'); 
+      return [];
     }
   }
 
   // Get all tools
-  Future<List<ToolModel>> getTools() async {
+  Future<List<ToolModel>> getTools({int? siteId, int? workspaceId}) async {
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/tools'),
-        headers: headers,
-      );
+      String url = toolsEndpoint;
+      List<String> queryParams = [];
+      if (siteId != null) queryParams.add('site_id=$siteId');
+      if (workspaceId != null) queryParams.add('workspace_id=$workspaceId');
+      
+      if (queryParams.isNotEmpty) {
+        url += '?${queryParams.join('&')}';
+      }
+
+      final response = await DioService.instance.dio.get(url);
 
       if (response.statusCode == 200) {
-        final List<dynamic> toolsJson = json.decode(response.body);
+        dynamic responseData = response.data;
+        List<dynamic> toolsJson = [];
+        
+        if (responseData is List) {
+           toolsJson = responseData;
+        } else if (responseData is Map) {
+           if (responseData['data'] is List) {
+             toolsJson = responseData['data'];
+           } else if (responseData['tools'] is List) {
+             toolsJson = responseData['tools'];
+           }
+        } 
+
         return toolsJson.map((json) => ToolModel.fromJson(json)).toList();
       } else {
         throw Exception('Failed to load tools: ${response.statusCode}');
@@ -57,17 +76,16 @@ class ApiService {
   // Create new tool
   Future<ToolModel> createTool(ToolModel tool) async {
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/tools'),
-        headers: headers,
-        body: json.encode(tool.toJson()),
+      final response = await DioService.instance.dio.post(
+        toolsEndpoint,
+        data: tool.toJson(),
       );
 
-      if (response.statusCode == 201) {
-        final Map<String, dynamic> data = json.decode(response.body);
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        final data = response.data;
         return ToolModel.fromJson(data['data']);
       } else {
-        throw Exception('Failed to create tool: ${response.statusCode} - ${response.body}');
+        throw Exception('Failed to create tool: ${response.statusCode}');
       }
     } catch (e) {
       throw Exception('Failed to create tool: $e');
@@ -77,17 +95,16 @@ class ApiService {
   // Update tool
   Future<ToolModel> updateTool(int toolId, ToolModel tool) async {
     try {
-      final response = await http.put(
-        Uri.parse('$baseUrl/tools/$toolId'),
-        headers: headers,
-        body: json.encode(tool.toJson()),
+      final response = await DioService.instance.dio.put(
+        '$toolsEndpoint/$toolId',
+        data: tool.toJson(),
       );
 
       if (response.statusCode == 200) {
-        final Map<String, dynamic> data = json.decode(response.body);
+        final data = response.data;
         return ToolModel.fromJson(data['data']);
       } else {
-        throw Exception('Failed to update tool: ${response.statusCode} - ${response.body}');
+        throw Exception('Failed to update tool: ${response.statusCode}');
       }
     } catch (e) {
       throw Exception('Failed to update tool: $e');
@@ -97,12 +114,9 @@ class ApiService {
   // Delete tool
   Future<void> deleteTool(int toolId) async {
     try {
-      final response = await http.delete(
-        Uri.parse('$baseUrl/tools/$toolId'),
-        headers: headers,
-      );
+      final response = await DioService.instance.dio.delete('$toolsEndpoint/$toolId');
 
-      if (response.statusCode != 200) {
+      if (response.statusCode != 200 && response.statusCode != 204) {
         throw Exception('Failed to delete tool: ${response.statusCode}');
       }
     } catch (e) {

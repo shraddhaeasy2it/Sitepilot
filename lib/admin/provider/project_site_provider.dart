@@ -1,7 +1,8 @@
 // project_site_provider.dart
 import 'package:ecoteam_app/admin/models/project_site_model.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+import 'package:dio/dio.dart';
+import 'package:ecoteam_app/contractor/services/dio_service.dart';
 import 'dart:convert';
 
 class ProjectSiteProvider extends ChangeNotifier {
@@ -10,7 +11,7 @@ class ProjectSiteProvider extends ChangeNotifier {
   String? _selectedCompanyId;
   String? _selectedCompanyName;
   bool _isLoading = false;
-  final String _baseUrl = 'https://sitepilot.easy2it.in';
+  final String _baseUrl = 'https://app.ecoteamsolar.com';
 
   List<Map<String, dynamic>> get companies => _companies;
   List<Project> get projects => _projects;
@@ -30,16 +31,10 @@ class ProjectSiteProvider extends ChangeNotifier {
     try {
       _setLoading(true);
       
-      final response = await http.get(
-        Uri.parse('$_baseUrl/api/workspaces'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-      ).timeout(const Duration(seconds: 30));
+      final response = await DioService.instance.dio.get('/workspaces');
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
+        final data = response.data;
         final workspaces = data['workspaces'] as List;
         
         _companies.clear();
@@ -77,16 +72,10 @@ class ProjectSiteProvider extends ChangeNotifier {
     try {
       _setLoading(true);
       
-      final response = await http.get(
-        Uri.parse('$_baseUrl/api/projects'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-      ).timeout(const Duration(seconds: 30));
+      final response = await DioService.instance.dio.get('/projects');
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
+        final data = response.data;
         final projectsData = data['projects'] as List? ?? [];
         
         _projects.clear();
@@ -121,16 +110,13 @@ class ProjectSiteProvider extends ChangeNotifier {
     try {
       _setLoading(true);
       
-      final response = await http.get(
-        Uri.parse('$_baseUrl/api/projects?workspace=$workspaceId'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-      ).timeout(const Duration(seconds: 30));
+      final response = await DioService.instance.dio.get(
+        '/projects',
+        queryParameters: {'workspace': workspaceId},
+      );
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
+        final data = response.data;
         final projectsData = data['projects'] as List? ?? [];
         
         _projects.clear();
@@ -322,13 +308,9 @@ class ProjectSiteProvider extends ChangeNotifier {
     try {
       _setLoading(true);
       
-      final response = await http.post(
-        Uri.parse('$_baseUrl/api/projects'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: json.encode({
+      final response = await DioService.instance.dio.post(
+        '/projects',
+        data: {
           'name': project.name,
           'description': project.description,
           'budget': project.budget.toInt(),
@@ -337,8 +319,8 @@ class ProjectSiteProvider extends ChangeNotifier {
           'end_date': project.endDate.toIso8601String().split('T')[0],
           'status': project.statusString.toLowerCase(),
           'created_by': 10,
-        }),
-      ).timeout(const Duration(seconds: 30));
+        },
+      );
 
       if (response.statusCode == 201 || response.statusCode == 200) {
         // Reload projects based on current selection
@@ -349,7 +331,7 @@ class ProjectSiteProvider extends ChangeNotifier {
         }
         return true;
       } else {
-        throw Exception('Failed to add project: ${response.statusCode} - ${response.body}');
+        throw Exception('Failed to add project: ${response.statusCode}');
       }
     } catch (e) {
       print('Error adding project: $e');
@@ -363,13 +345,9 @@ class ProjectSiteProvider extends ChangeNotifier {
     try {
       _setLoading(true);
       
-      final response = await http.put(
-        Uri.parse('$_baseUrl/api/projects/${project.id}'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: json.encode({
+      final response = await DioService.instance.dio.put(
+        '/projects/${project.id}',
+        data: {
           'name': project.name,
           'description': project.description,
           'budget': project.budget.toInt(),
@@ -378,8 +356,8 @@ class ProjectSiteProvider extends ChangeNotifier {
           'end_date': project.endDate.toIso8601String().split('T')[0],
           'status': project.statusString.toLowerCase(),
           'created_by': 10,
-        }),
-      ).timeout(const Duration(seconds: 30));
+        },
+      );
 
       if (response.statusCode == 200) {
         // Reload projects based on current selection
@@ -390,7 +368,7 @@ class ProjectSiteProvider extends ChangeNotifier {
         }
         return true;
       } else {
-        throw Exception('Failed to update project: ${response.statusCode} - ${response.body}');
+        throw Exception('Failed to update project: ${response.statusCode}');
       }
     } catch (e) {
       print('Error updating project: $e');
@@ -404,13 +382,7 @@ class ProjectSiteProvider extends ChangeNotifier {
     try {
       _setLoading(true);
       
-      final response = await http.delete(
-        Uri.parse('$_baseUrl/api/projects/$projectId'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-      ).timeout(const Duration(seconds: 30));
+      final response = await DioService.instance.dio.delete('/projects/$projectId');
 
       if (response.statusCode == 200 || response.statusCode == 204) {
         _projects.removeWhere((project) => project.id == projectId);

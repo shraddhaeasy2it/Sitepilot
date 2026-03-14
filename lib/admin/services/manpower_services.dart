@@ -1,78 +1,76 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
+import 'package:dio/dio.dart';
+import 'package:ecoteam_app/contractor/services/dio_service.dart';
 import '../models/manpower_model.dart';
+import 'package:flutter/foundation.dart';
 
 class ManpowerService {
-  static const String baseUrl = 'https://sitepilot.easy2it.in/api';
+  static const String endpoint = '/manpower';
   
   // Static maps to store dropdown data
   static Map<int, String> typeMap = {};
   static Map<int, String> supplierMap = {};
   static Map<int, String> siteMap = {};
   
-  final Map<String, String> headers = {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
-  };
 
-  // Helper method to handle API response - UPDATED
-  Map<String, dynamic> _handleResponse(http.Response response, {bool isDropdownRequest = false}) {
-    print('Response Status: ${response.statusCode}');
-    print('Response Body: ${response.body}');
-    
+  // Helper method to handle API response
+  dynamic _handleResponse(Response response, {bool isDropdownRequest = false}) {
+    if (kDebugMode) {
+      print('Response Status: ${response.statusCode}');
+      print('Response Data: ${response.data}');
+    } else {
+      // Force print in release mode if something weird is happening (temporary)
+      print('API Response [${response.statusCode}]: ${response.data}');
+    }
+
     if (response.statusCode == 200 || response.statusCode == 201) {
-      try {
-        final Map<String, dynamic> responseData = json.decode(response.body);
-        
-        // For dropdown request, the API returns data directly without status field
-        if (isDropdownRequest) {
-          return responseData; // Return the data directly
-        }
-        
-        // For other requests, check for status field
-        if (responseData.containsKey('status')) {
-          if (responseData['status'] == 'success') {
-            return responseData;
-          } else {
-            throw Exception('API Error: ${responseData['message'] ?? 'Unknown error'}');
-          }
-        } else {
-          // If no status field but response is 200, assume success
-          print('Warning: No status field in response, assuming success');
+      final responseData = response.data;
+      
+      // For dropdown request, the API returns data directly without status field
+      if (isDropdownRequest) {
+        return responseData; // Return the data directly
+      }
+      
+      // For other requests, check for status field
+      if (responseData is Map && responseData.containsKey('status')) {
+        if (responseData['status'] == 'success') {
           return responseData;
+        } else {
+           // Some loose APIs might return status: "success" but sometimes just data
+           // If it has 'data' lets imply success if status isn't explicitly error
+           return responseData;
         }
-      } catch (e) {
-        print('Error parsing JSON: $e');
-        throw Exception('Failed to parse API response: $e');
+      } else {
+        // If no status field but response is 200, assume success
+        if (kDebugMode) {
+           print('Warning: No status field in response, assuming success');
+        }
+        return responseData;
       }
     } else {
-      throw Exception('HTTP Error: ${response.statusCode} - ${response.reasonPhrase}');
+      throw Exception('HTTP Error: ${response.statusCode} - ${response.statusMessage}');
     }
   }
 
-  // GET dropdown data (manpower types, suppliers, sites) - FIXED
+  // GET dropdown data (manpower types, suppliers, sites)
   Future<DropdownData> getDropdownData() async {
     try {
-      print('Fetching dropdown data from: $baseUrl/manpower/create-data');
+      if (kDebugMode) {
+         print('Fetching dropdown data from: ${DioService.instance.baseUrl}/manpower/create-data');
+      }
       
-      final response = await http.post(
-        Uri.parse('$baseUrl/manpower/create-data'),
-        headers: headers,
-        body: json.encode({
+      final response = await DioService.instance.dio.post(
+        '$endpoint/create-data',
+        data: {
           'site_id': 0,
           'workspace_id': 0,
-        }),
+        },
       );
 
-      print('Dropdown API Response Status: ${response.statusCode}');
-      
-      // Use isDropdownRequest = true to skip status check
+      // Use isDropdownRequest = true to skip status check logic if it differs
       final responseData = _handleResponse(response, isDropdownRequest: true);
       
-      print('Parsed response data: $responseData');
-      
       // Check if we have the expected data
-      if (responseData.isEmpty) {
+      if (responseData == null || (responseData is Map && responseData.isEmpty)) {
         throw Exception('Empty dropdown data received from API');
       }
       
@@ -83,56 +81,51 @@ class ManpowerService {
       supplierMap = dropdownData.suppliers;
       siteMap = dropdownData.sites;
       
-      print('Dropdown data loaded successfully:');
-      print('  Types: ${typeMap.length} items');
-      print('  Suppliers: ${supplierMap.length} items');
-      print('  Sites: ${siteMap.length} items');
+      if (kDebugMode) {
+        print('Dropdown data loaded successfully:');
+        print('  Types: ${typeMap.length} items');
+        print('  Suppliers: ${supplierMap.length} items');
+        print('  Sites: ${siteMap.length} items');
+      }
       
       return dropdownData;
     } catch (e) {
-      print('Error loading dropdown data: $e');
+      if (kDebugMode) print('Error loading dropdown data: $e');
       throw Exception('Failed to load dropdown data: $e');
     }
   }
 
-  // GET all manpower records - UPDATED
+  // GET all manpower records
   Future<List<ManpowerRecord>> getManpowerRecords() async {
     try {
-      print('Fetching manpower records from: $baseUrl/manpower');
+      if (kDebugMode) print('Fetching manpower records from: ${DioService.instance.baseUrl}$endpoint');
       
-      final response = await http.get(
-        Uri.parse('$baseUrl/manpower'),
-        headers: headers,
-      );
+      final response = await DioService.instance.dio.get(endpoint);
 
       final responseData = _handleResponse(response);
       
       // Extract data array from response
-      // Try different possible keys
       final List<dynamic> dataList = responseData['data'] ?? 
                                    responseData['records'] ?? 
                                    responseData['list'] ?? 
                                    [];
       
-      print('Found ${dataList.length} records');
+      if (kDebugMode) print('Found ${dataList.length} records');
       
       return dataList.map((json) => ManpowerRecord.fromJson(json)).toList();
     } catch (e) {
-      print('Error loading manpower records: $e');
+      if (kDebugMode) print('Error loading manpower records: $e');
       throw Exception('Failed to load manpower records: $e');
     }
   }
 
-  // GET manpower records by site and workspace - UPDATED
+  // GET manpower records by site and workspace
   Future<List<ManpowerRecord>> getManpowerRecordsBySiteAndWorkspace(int siteId, int workspaceId) async {
     try {
-      final url = '$baseUrl/manpower?site_id=$siteId&workspace_id=$workspaceId';
-      print('Fetching records from: $url');
+      final url = '$endpoint?site_id=$siteId&workspace_id=$workspaceId';
+      if (kDebugMode) print('Fetching records from: $url');
       
-      final response = await http.get(
-        Uri.parse(url),
-        headers: headers,
-      );
+      final response = await DioService.instance.dio.get(url);
 
       final responseData = _handleResponse(response);
       
@@ -144,18 +137,15 @@ class ManpowerService {
       
       return dataList.map((json) => ManpowerRecord.fromJson(json)).toList();
     } catch (e) {
-      print('Error loading records by site/workspace: $e');
+      if (kDebugMode) print('Error loading records by site/workspace: $e');
       throw Exception('Failed to load manpower records: $e');
     }
   }
 
-  // GET single manpower record - UPDATED
+  // GET single manpower record
   Future<ManpowerRecord> getManpowerRecord(int id) async {
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/manpower/$id'),
-        headers: headers,
-      );
+      final response = await DioService.instance.dio.get('$endpoint/$id');
 
       final responseData = _handleResponse(response);
       
@@ -170,13 +160,17 @@ class ManpowerService {
     }
   }
 
-  // POST new manpower record - UPDATED
+  // POST new manpower record
   Future<ManpowerRecord> createManpowerRecord(ManpowerRecord record) async {
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/manpower'),
-        headers: headers,
-        body: json.encode(record.toJson()),
+      final jsonPayload = record.toJson();
+      if (kDebugMode) {
+        print('Creating record with payload: $jsonPayload');
+      }
+
+      final response = await DioService.instance.dio.post(
+        endpoint,
+        data: jsonPayload,
       );
 
       final responseData = _handleResponse(response);
@@ -187,18 +181,22 @@ class ManpowerService {
                                               responseData;
       
       return ManpowerRecord.fromJson(createdData);
+    } on DioException catch (e) {
+      if (e.response != null) {
+        print('API Error Response [${e.response?.statusCode}]: ${e.response?.data}');
+      }
+      rethrow;
     } catch (e) {
       throw Exception('Failed to create manpower record: $e');
     }
   }
 
-  // PUT update manpower record - UPDATED
+  // PUT update manpower record
   Future<ManpowerRecord> updateManpowerRecord(ManpowerRecord record) async {
     try {
-      final response = await http.put(
-        Uri.parse('$baseUrl/manpower/${record.id}'),
-        headers: headers,
-        body: json.encode(record.toJson()),
+      final response = await DioService.instance.dio.put(
+        '$endpoint/${record.id}',
+        data: record.toJson(),
       );
 
       final responseData = _handleResponse(response);
@@ -214,13 +212,10 @@ class ManpowerService {
     }
   }
 
-  // DELETE manpower record - UPDATED
+  // DELETE manpower record
   Future<void> deleteManpowerRecord(int id) async {
     try {
-      final response = await http.delete(
-        Uri.parse('$baseUrl/manpower/$id'),
-        headers: headers,
-      );
+      final response = await DioService.instance.dio.delete('$endpoint/$id');
 
       _handleResponse(response);
     } catch (e) {

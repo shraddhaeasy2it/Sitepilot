@@ -11,6 +11,7 @@ class Consumption {
   final String? machinery;
   final String? siteId;
   final int? machineryId;
+  final int? activityId;
 
   Consumption({
     required this.id,
@@ -25,6 +26,7 @@ class Consumption {
     this.machinery,
     this.siteId,
     this.machineryId,
+    this.activityId,
   });
 
   Consumption copyWith({
@@ -40,6 +42,7 @@ class Consumption {
     String? machinery,
     String? siteId,
     int? machineryId,
+    int? activityId,
   }) {
     return Consumption(
       id: id ?? this.id,
@@ -54,6 +57,7 @@ class Consumption {
       machinery: machinery ?? this.machinery,
       siteId: siteId ?? this.siteId,
       machineryId: machineryId ?? this.machineryId,
+      activityId: activityId ?? this.activityId,
     );
   }
 }

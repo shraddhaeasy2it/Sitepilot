@@ -1,9 +1,8 @@
 import 'dart:convert';
-import 'package:http/http.dart' as http;
+import 'package:ecoteam_app/contractor/services/dio_service.dart';
 
 class TransfertoolService {
-  static const String baseUrl =
-      'https://sitepilot.easy2it.in/api';
+  // Base URL handled by DioService
 
   /// Fetch dropdown data
   static Future<Map<String, String>> fetchToSites({
@@ -12,39 +11,35 @@ class TransfertoolService {
     required int machineryId,
     required int userId,
   }) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/general-transfers/create-data'),
-      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-      body: {
-        'site_id': siteId.toString(),
-        'workspace_id': workspaceId.toString(),
+    final response = await DioService.instance.dio.post(
+      '/general-transfers/create-data',
+      data: {
+        'site_id': siteId,
+        'workspace_id': workspaceId,
         'transfer_type': 'Tools And Equipment',
-        'machinery_id': machineryId.toString(),
-        'user_id': userId.toString(),
+        'tools_and_equipment_id': machineryId,
+        'user_id': userId,
       },
     );
 
-    final jsonData = json.decode(response.body);
-
-    if (response.statusCode == 200 &&
-        jsonData['status'] == 'success') {
-      return Map<String, String>.from(
-        jsonData['data']['sites'] ?? {},
-      );
+    if (response.statusCode == 200) {
+       final data = response.data;
+       if (data['status'] == 'success') {
+          final sitesData = data['data']['sites'] as Map<String, dynamic>? ?? {};
+          return sitesData.map((key, value) => MapEntry(key, value.toString()));
+       }
     }
-
     throw Exception('Failed to load sites');
   }
 
   /// Create transfer
-  static Future<void> createTransfer(Map<String, String> body) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/general-transfers'),
-      headers: {'Content-Type': 'application/json'},
-      body: json.encode(body),
+  static Future<void> createTransfer(Map<String, dynamic> body) async {
+    final response = await DioService.instance.dio.post(
+      '/general-transfers',
+      data: body,
     );
 
-    if (response.statusCode != 201) {
+    if (response.statusCode != 201 && response.statusCode != 200) {
       throw Exception('Transfer creation failed');
     }
   }
@@ -52,12 +47,11 @@ class TransfertoolService {
   /// Update transfer
   static Future<void> updateTransfer(
     int id,
-    Map<String, String> body,
+    Map<String, dynamic> body,
   ) async {
-    final response = await http.put(
-      Uri.parse('$baseUrl/general-transfers/$id'),
-      headers: {'Content-Type': 'application/json'},
-      body: json.encode(body),
+    final response = await DioService.instance.dio.put(
+      '/general-transfers/$id',
+      data: body,
     );
 
     if (response.statusCode != 200) {
@@ -67,8 +61,8 @@ class TransfertoolService {
 
   /// Delete transfer
   static Future<void> deleteTransfer(int id) async {
-    final response = await http.delete(
-      Uri.parse('$baseUrl/general-transfers/$id'),
+    final response = await DioService.instance.dio.delete(
+      '/general-transfers/$id',
     );
 
     if (response.statusCode != 200) {
@@ -76,3 +70,4 @@ class TransfertoolService {
     }
   }
 }
+

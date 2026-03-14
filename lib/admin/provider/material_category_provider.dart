@@ -1,7 +1,7 @@
 // provider/material_category_provider.dart
-import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
+import 'package:dio/dio.dart';
+import 'package:ecoteam_app/contractor/services/dio_service.dart';
 import '../models/material_category_model.dart';
 
 class MaterialCategoryProvider with ChangeNotifier {
@@ -16,7 +16,8 @@ class MaterialCategoryProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
   String get error => _error;
 
-  static const String baseUrl = 'https://sitepilot.easy2it.in/api/material-categories';
+  // Base URL is in DioService, endpoint here
+  static const String endpoint = '/material-categories';
 
   MaterialCategoryProvider() {
     fetchCategories();
@@ -44,21 +45,14 @@ class MaterialCategoryProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      final response = await http.get(
-        Uri.parse(baseUrl),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-      );
+      final response = await DioService.instance.dio.get(endpoint);
 
       print('API Response Status: ${response.statusCode}');
-      print('API Response Body: ${response.body}');
 
       if (response.statusCode == 200) {
-        final Map<String, dynamic> responseData = json.decode(response.body);
+        final responseData = response.data;
         
-        if (responseData.containsKey('data') && responseData['data'] is List) {
+        if (responseData is Map && responseData.containsKey('data') && responseData['data'] is List) {
           _categories = (responseData['data'] as List)
               .map((item) => MaterialCategory.fromJson(item))
               .toList();
@@ -67,9 +61,7 @@ class MaterialCategoryProvider with ChangeNotifier {
         } else {
           _error = 'Invalid API response format: No data array found';
         }
-      } else {
-        _error = 'Failed to load categories: ${response.statusCode}';
-      }
+      } 
     } catch (e) {
       _error = 'Network error: ${e.toString()}';
       if (kDebugMode) {
@@ -81,51 +73,44 @@ class MaterialCategoryProvider with ChangeNotifier {
     }
   }
 
-  Future<void> addCategory(String name) async {
+  Future<void> addCategory(String name, {
+    required int siteId,
+    required int createdBy,
+    required int workspaceId,
+  }) async {
     _isLoading = true;
     _error = '';
     notifyListeners();
 
     try {
-      // Create minimal data with only required fields
       final Map<String, dynamic> categoryData = {
         'name': name,
         'is_active': 1,
-        'site_id': 1,
-        'created_by': 1,
-        'workspace_id': 1,
+        'site_id': siteId,
+        'created_by': createdBy,
+        'workspace_id': workspaceId,
         'status': '0',
       };
 
       print('Sending data to API: $categoryData');
 
-      final response = await http.post(
-        Uri.parse(baseUrl),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: json.encode(categoryData),
+      final response = await DioService.instance.dio.post(
+        endpoint,
+        data: categoryData,
       );
 
       print('Add Category Response Status: ${response.statusCode}');
-      print('Add Category Response Body: ${response.body}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        // Parse the response to get the new category and add it to the top
-        final Map<String, dynamic> responseData = json.decode(response.body);
+        final responseData = response.data;
         if (responseData.containsKey('data') && responseData['data'] is Map) {
           final newCategory = MaterialCategory.fromJson(responseData['data']);
-          _categories.insert(0, newCategory); // Add to the top
+          _categories.insert(0, newCategory);
           _filterCategories();
           _error = '';
         } else {
-          // Fallback: refresh the list
           await fetchCategories();
         }
-      } else {
-        _error = 'Failed to add category: ${response.statusCode} - ${response.body}';
-        throw Exception(_error);
       }
     } catch (e) {
       _error = e.toString();
@@ -145,7 +130,7 @@ class MaterialCategoryProvider with ChangeNotifier {
       final Map<String, dynamic> categoryData = {
         'name': category.name,
         'is_active': category.isActive,
-        'site_id': category.siteId,
+        'site_id': category.siteId ?? 0,
         'created_by': category.createdBy,
         'workspace_id': category.workingNoId,
         'status': category.status,
@@ -154,24 +139,16 @@ class MaterialCategoryProvider with ChangeNotifier {
       print('Updating category ID: ${category.id}');
       print('Update data: $categoryData');
 
-      final response = await http.put(
-        Uri.parse('$baseUrl/${category.id}'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: json.encode(categoryData),
+      final response = await DioService.instance.dio.put(
+        '$endpoint/${category.id}',
+        data: categoryData,
       );
 
       print('Update Category Response Status: ${response.statusCode}');
-      print('Update Category Response Body: ${response.body}');
 
       if (response.statusCode == 200) {
         await fetchCategories();
         _error = '';
-      } else {
-        _error = 'Failed to update category: ${response.statusCode} - ${response.body}';
-        throw Exception(_error);
       }
     } catch (e) {
       _error = e.toString();
@@ -190,26 +167,15 @@ class MaterialCategoryProvider with ChangeNotifier {
     try {
       print('Deleting category ID: $id');
 
-      final response = await http.delete(
-        Uri.parse('$baseUrl/$id'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-      );
+      final response = await DioService.instance.dio.delete('$endpoint/$id');
 
       print('Delete Category Response Status: ${response.statusCode}');
-      print('Delete Category Response Body: ${response.body}');
 
       if (response.statusCode == 200) {
-        // Remove from local list immediately
         _categories.removeWhere((category) => category.id == id);
         _filterCategories();
         _error = '';
         notifyListeners();
-      } else {
-        _error = 'Failed to delete category: ${response.statusCode} - ${response.body}';
-        throw Exception(_error);
       }
     } catch (e) {
       _error = e.toString();

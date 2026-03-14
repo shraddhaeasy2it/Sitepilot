@@ -1,50 +1,39 @@
 import 'dart:convert';
 import 'package:ecoteam_app/contractor/models/chat_model.dart';
-import 'package:http/http.dart' as http;
+import 'package:ecoteam_app/contractor/services/dio_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:dio/dio.dart';
 
 class ChatService {
-  static const String _baseUrl = 'https://sitepilot.easy2it.in/api/chat';
-  
-  Future<Map<String, String>> get _headers async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('auth_token') ?? '';
-    return {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      'Authorization': 'Bearer $token',
-    };
-  }
+  // Base URL handled by DioService
 
-  // Fetch messages for a conversation - FIXED VERSION
- // Fetch messages for a conversation - UPDATED VERSION
-Future<List<ChatMessage>> fetchMessages(String conversationId) async {
-  try {
-    // Get current user ID and name first
-    String currentUserId = '';
-    String currentUserName = 'You';
-    final prefs = await SharedPreferences.getInstance();
-    final userDataStr = prefs.getString('user_data');
-    if (userDataStr != null) {
-      final userData = json.decode(userDataStr);
-      currentUserId = userData['id']?.toString() ?? '';
-      currentUserName = userData['name']?.toString() ?? 'You';
-    }
+  // Fetch messages for a conversation
+  Future<List<ChatMessage>> fetchMessages(String conversationId, {String type = 'user'}) async {
+    try {
+      // Get current user ID and name first
+      String currentUserId = '';
+      String currentUserName = 'You';
+      final prefs = await SharedPreferences.getInstance();
+      final userDataStr = prefs.getString('user_data');
+      if (userDataStr != null) {
+        final userData = json.decode(userDataStr);
+        currentUserId = userData['id']?.toString() ?? '';
+        currentUserName = userData['name']?.toString() ?? 'You';
+      }
 
-    final headers = await _headers;
-    
-    // Construct URL with query parameters
-    final url = '$_baseUrl/fetch/$conversationId?from_id=$currentUserId&to_id=$conversationId';
+      // Construct URL with query parameters
+      // format: /api/chat/fetch/{conversation_id}?from_id={user_id}&to_id={other_user_id}&type={type}
+      // If type is user, to_id is the other user (conversationId). from_id is me.
+      // If type is group, to_id is the group_id (conversationId). from_id is me.
+      
+      final url = '/chat/fetch/$conversationId?from_id=$currentUserId&to_id=$conversationId&type=$type';
     print('DEBUG: Fetching messages URL: $url');
 
-    final response = await http.get(
-      Uri.parse(url),
-      headers: headers,
-    );
+    final response = await DioService.instance.dio.get(url);
 
     if (response.statusCode == 200) {
       print('DEBUG: New API Response received');
-      final data = json.decode(response.body);
+      final data = response.data;
 
       // Debug: Print first message structure
       if (data['messages'] is List && (data['messages'] as List).isNotEmpty) {
@@ -96,6 +85,34 @@ Future<List<ChatMessage>> fetchMessages(String conversationId) async {
             senderName = jsonMap['username'].toString();
             print('DEBUG: Found sender name from username: $senderName');
           }
+          // Priority 6: Check for sender_info object (sometimes used in group chats)
+          else if (jsonMap['sender_info'] is Map) {
+             final senderInfo = Map<String, dynamic>.from(jsonMap['sender_info']);
+             senderName = senderInfo['name']?.toString() ?? 
+                         senderInfo['username']?.toString() ?? 
+                         'Unknown';
+             print('DEBUG: Found sender name from sender_info: $senderName');
+          }
+          
+          // Priority 7: Check participants list if available in root response
+          if (senderName == 'Unknown' && data['participants'] is List) {
+             try {
+                final participants = data['participants'] as List;
+                final senderId = jsonMap['sender_id']?.toString();
+                if (senderId != null) {
+                  final participant = participants.firstWhere(
+                    (p) => p['id']?.toString() == senderId,
+                    orElse: () => null,
+                  );
+                  if (participant != null) {
+                    senderName = participant['name']?.toString() ?? 'Unknown';
+                    print('DEBUG: Found sender name from participants list: $senderName');
+                  }
+                }
+             } catch (e) {
+                print('Error checking participants list: $e');
+             }
+          }
           
           jsonMap['sender_name'] = senderName;
 
@@ -115,9 +132,9 @@ Future<List<ChatMessage>> fetchMessages(String conversationId) async {
                   // Construct URL with CORRECT DOMAIN
                   String fileUrl;
                   if (newName.contains('/')) {
-                    fileUrl = 'https://sitepilot.easy2it.in/$newName';
+                    fileUrl = 'https://app.ecoteamsolar.com/$newName';
                   } else {
-                    fileUrl = 'https://sitepilot.easy2it.in/uploads/attachments/$newName';
+                    fileUrl = 'https://app.ecoteamsolar.com/uploads/attachments/$newName';
                   }
                   
                   // Preserve caption
@@ -159,7 +176,7 @@ Future<List<ChatMessage>> fetchMessages(String conversationId) async {
                   if (list.isNotEmpty) {
                     final filename = list[0].toString();
                     if (filename.isNotEmpty && filename != 'null') {
-                      String fileUrl = 'https://sitepilot.easy2it.in/uploads/attachments/$filename';
+                      String fileUrl = 'https://app.ecoteamsolar.com/uploads/attachments/$filename';
                       
                       // Preserve caption
                       final caption = jsonMap['message']?.toString();
@@ -259,20 +276,26 @@ Future<List<ChatMessage>> fetchMessages(String conversationId) async {
 
     // 2. Fallback to Legacy API
     print('DEBUG: New API empty, trying fallback fetch1...');
-    final fallbackResponse = await http.get(
-      Uri.parse('$_baseUrl/fetch1?conversation_id=$conversationId'),
-      headers: headers,
+    final fallbackResponse = await DioService.instance.dio.get(
+      '/chat/fetch1?conversation_id=$conversationId',
     );
 
     if (fallbackResponse.statusCode == 200) {
-      final data = json.decode(fallbackResponse.body);
+      final data = fallbackResponse.data;
       if (data['count'] != null && data['count'] > 0) {
         final htmlContent = data['message']?.toString() ?? data['messages']?.toString() ?? '';
         return _parseMessagesFromHtml(htmlContent);
       }
     }
     return [];
+    return [];
   } catch (e) {
+    // If it's a 404, it might just mean no messages found yet
+    if (e is DioException && e.response?.statusCode == 404) {
+      print('DEBUG: 404 received, returning empty list');
+      return [];
+    }
+    
     print('ERROR in fetchMessages: $e');
     throw Exception('Failed to fetch messages: $e');
   }
@@ -285,21 +308,29 @@ Future<List<ChatMessage>> fetchMessages(String conversationId) async {
     int? id,
   }) async {
     try {
+      // Get current user ID
+      final prefs = await SharedPreferences.getInstance();
+      String currentUserId = '';
+      final userDataStr = prefs.getString('user_data');
+      if (userDataStr != null) {
+        final userData = json.decode(userDataStr);
+        currentUserId = userData['id']?.toString() ?? '';
+      }
+
       final body = {
         'id': id ?? conversationId,
         'type': type,
         'message': message,
+        'from_id': currentUserId,
       };
 
-      final headers = await _headers;
-      final response = await http.post(
-        Uri.parse('$_baseUrl/send'),
-        headers: headers,
-        body: json.encode(body),
+      final response = await DioService.instance.dio.post(
+        '/chat/send',
+        data: body,
       );
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
+        final data = response.data;
         if (data['error'] == 0) {
           return {
             'success': true,
@@ -310,7 +341,7 @@ Future<List<ChatMessage>> fetchMessages(String conversationId) async {
           throw Exception(data['error_meg']?.toString() ?? 'Failed to send message');
         }
       } else {
-        throw Exception('HTTP ${response.statusCode}: ${response.body}');
+        throw Exception('HTTP ${response.statusCode}: ${response.data}');
       }
     } catch (e) {
       throw Exception('Failed to send message: $e');
@@ -332,16 +363,15 @@ Future<Map<String, dynamic>> sendAttachment({
     final userData = userDataStr != null ? json.decode(userDataStr) : null;
     final fromId = userData?['id']?.toString() ?? '';
 
-    final headers = await _headers;
-    final uri = Uri.parse('$_baseUrl/send');
+    final uri = '/chat/send';
     
-    var request = http.MultipartRequest('POST', uri);
-    
-    // Add headers
-    headers.forEach((key, value) {
-      if (key != 'Content-Type') {
-        request.headers[key] = value;
-      }
+    // Prepare FormData
+    FormData formData = FormData.fromMap({
+      'id': conversationId,
+      'type': type == 'group' ? 'group' : 'user',
+      'message': message ?? '',
+      'from_id': fromId,
+      'file': await MultipartFile.fromFile(filePath, filename: filePath.split('/').last),
     });
 
     // DEBUG: Print what we're sending
@@ -351,39 +381,17 @@ Future<Map<String, dynamic>> sendAttachment({
     print('  - Conversation ID: $conversationId');
     print('  - Message: $message');
     print('  - Type: $type');
-    
-    // Add fields - MATCH THE API EXPECTATION FROM YOUR IMAGE
-    request.fields['id'] = conversationId; // This is the "to_id" (receiver ID)
-    request.fields['type'] = type == 'group' ? 'group' : 'user';
-    request.fields['message'] = message ?? '';
-    
-    // For testing: Also try sending from_id if API needs it
-    request.fields['from_id'] = fromId;
-    
-    // Add file
-    try {
-      // CHANGED: Use 'file' as key to match Postman screenshot
-      var file = await http.MultipartFile.fromPath('file', filePath);
-      request.files.add(file);
-      
-      // DEBUG: Check file info
-      print('  - File size: ${await file.length} bytes');
-    } catch (e) {
-      print('ERROR creating multipart file: $e');
-      throw Exception('Failed to prepare file: $e');
-    }
 
-    print('DEBUG: Final request fields: ${request.fields}');
-    print('DEBUG: Request files count: ${request.files.length}');
-
-    var streamedResponse = await request.send();
-    var response = await http.Response.fromStream(streamedResponse);
+    var response = await DioService.instance.dio.post(
+      uri,
+      data: formData,
+    );
 
     print('DEBUG: Upload response status: ${response.statusCode}');
-    print('DEBUG: Upload response body: ${response.body}');
+    print('DEBUG: Upload response data: ${response.data}');
 
     if (response.statusCode == 200) {
-      final data = json.decode(response.body);
+      final data = response.data;
       print('DEBUG: Parsed response data: $data');
       
       if (data['error'] == 0) {
@@ -410,8 +418,8 @@ Future<Map<String, dynamic>> sendAttachment({
         throw Exception(data['error_meg']?.toString() ?? 'Failed to upload attachment');
       }
     } else {
-      print('ERROR: HTTP ${response.statusCode}: ${response.body}');
-      throw Exception('HTTP ${response.statusCode}: ${response.body}');
+      print('ERROR: HTTP ${response.statusCode}: ${response.statusMessage}');
+      throw Exception('HTTP ${response.statusCode}: ${response.statusMessage}');
     }
   } catch (e) {
     print('ERROR in sendAttachment: $e');
@@ -419,37 +427,37 @@ Future<Map<String, dynamic>> sendAttachment({
   }
 }
   // Mark message as seen
-  Future<bool> markAsSeen(String messageId) async {
+  Future<Map<String, dynamic>> markAsSeen(String messageId) async {
     try {
-      final headers = await _headers;
-      final response = await http.post(
-        Uri.parse('$_baseUrl/seen'),
-        headers: headers,
-        body: json.encode({'id': messageId}),
+      final response = await DioService.instance.dio.post(
+        '/chat/seen',
+        data: {'id': messageId},
       );
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return data['status'] == 1;
+        final data = response.data;
+        return {
+          'success': data['status'] == 1,
+          'messengerCount': data['messengerCount'] is int ? data['messengerCount'] : null,
+        };
       }
-      return false;
+      return {'success': false, 'messengerCount': null};
     } catch (e) {
-      throw Exception('Failed to mark as seen: $e');
+      print('Error marking as seen: $e');
+      return {'success': false, 'messengerCount': null};
     }
   }
 
   // Delete conversation
   Future<int> deleteConversation(String conversationId) async {
     try {
-      final headers = await _headers;
-      final response = await http.post(
-        Uri.parse('$_baseUrl/deleteConversation'),
-        headers: headers,
-        body: json.encode({'conversation_id': conversationId}),
+      final response = await DioService.instance.dio.post(
+        '/chat/deleteConversation',
+        data: {'conversation_id': conversationId},
       );
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
+        final data = response.data;
         return data['deleted'] is int ? data['deleted'] : 0;
       }
       return 0;
@@ -461,15 +469,13 @@ Future<Map<String, dynamic>> sendAttachment({
   // Update contact item
   Future<Map<String, dynamic>> updateContactItem(String userId) async {
     try {
-      final headers = await _headers;
-      final response = await http.post(
-        Uri.parse('$_baseUrl/updateContactItem'),
-        headers: headers,
-        body: json.encode({'user_id': int.tryParse(userId) ?? 0}),
+      final response = await DioService.instance.dio.post(
+        '/chat/updateContactItem',
+        data: {'user_id': int.tryParse(userId) ?? 0},
       );
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
+        final data = response.data;
         return {
           'contactItem': data['contactItem']?.toString() ?? '',
           'messengerCount': data['messengerCount'] is int ? data['messengerCount'] : 0,
@@ -484,15 +490,13 @@ Future<Map<String, dynamic>> sendAttachment({
   // Search chat
   Future<Map<String, dynamic>> searchChat(String query) async {
     try {
-      final headers = await _headers;
-      final response = await http.post(
-        Uri.parse('$_baseUrl/search'),
-        headers: headers,
-        body: json.encode({'input': query}),
+      final response = await DioService.instance.dio.post(
+        '/chat/search',
+        data: {'input': query},
       );
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
+        final data = response.data;
         return {
           'records': data['records']?.toString() ?? '',
           'addData': data['addData']?.toString() ?? 'html',
@@ -504,48 +508,51 @@ Future<Map<String, dynamic>> sendAttachment({
     }
   }
 
-  // Get contacts - separate chats and all contacts
-  Future<Map<String, List<ChatContact>>> getContacts({String? siteId, String? workspaceId}) async {
+  // Get contacts - separate chats, all contacts, and groups
+  Future<Map<String, dynamic>> getContacts({String? siteId, String? workspaceId, String? userId}) async {
     try {
-      final headers = await _headers;
-      
-      // Get user data for workspace_id and user_id
+      // Headers handled by DioService
+
+      // Get user data for workspace_id and user_id from prefs as fallback
       final prefs = await SharedPreferences.getInstance();
-      String userId = '';
+      String storedUserId = '';
       String storedWorkspaceId = '';
       
       final userDataStr = prefs.getString('user_data');
       if (userDataStr != null) {
         final userData = json.decode(userDataStr);
-        userId = userData['id']?.toString() ?? '';
+        storedUserId = userData['id']?.toString() ?? '';
         storedWorkspaceId = userData['workspace_id']?.toString() ?? '';
       }
       
-      // Prioritize passed workspaceId
-      final finalWorkspaceId = (workspaceId != null && workspaceId.isNotEmpty) 
-          ? workspaceId 
-          : storedWorkspaceId;
+      // Prioritize passed Parameters
+      final finalUserId = (userId != null && userId.isNotEmpty) ? userId : storedUserId;
+      final finalWorkspaceId = (workspaceId != null && workspaceId.isNotEmpty) ? workspaceId : storedWorkspaceId;
       
       // Build query parameters
-      String queryParams = 'user_id=$userId';
+      String queryParams = 'user_id=$finalUserId';
+      
       if (finalWorkspaceId.isNotEmpty) {
         queryParams += '&workspace_id=$finalWorkspaceId';
       }
-      if (siteId != null && siteId.isNotEmpty) {
-        queryParams += '&site_id=$siteId';
+      
+      if (siteId != null && siteId.isNotEmpty && siteId != '0') {
+         queryParams += '&site_id=$siteId';
       }
+      // If site_id is 0 or empty, we might choose to omit it or send 0. 
+      // User request says "get dyanamic siteid", usually implying if selected.
       
       print('DEBUG: Fetching contacts with params: $queryParams');
 
-      final response = await http.get(
-        Uri.parse('$_baseUrl/contacts?$queryParams'),
-        headers: headers,
+      final response = await DioService.instance.dio.get(
+        '/chat/contacts?$queryParams',
       );
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
+        final data = response.data;
         final List<ChatContact> recentChats = [];
         final List<ChatContact> allContacts = [];
+        final List<ChatGroup> groups = [];
         
         // Parse 'contacts' (Recent Chats)
         if (data['contacts'] is List) {
@@ -575,13 +582,34 @@ Future<Map<String, dynamic>> sendAttachment({
           }
         }
         
+        // Parse 'groups'
+        if (data['groups'] is List) {
+          for (var item in data['groups']) {
+             if (item is Map) {
+               try {
+                 groups.add(ChatGroup.fromJson(Map<String, dynamic>.from(item)));
+               } catch (e) {
+                 print('Error parsing group: $e');
+               }
+             }
+          }
+        }
+        
         return {
           'chats': recentChats,
           'contacts': allContacts,
+          'groups': groups,
         };
       } else {
-        throw Exception('Failed to fetch contacts: ${response.statusCode} - ${response.body}');
+        throw Exception('Failed to fetch contacts: ${response.statusCode} - ${response.data}');
       }
+    } on DioException catch (e) {
+      if (e.response != null) {
+        print('API Error [${e.response?.statusCode}]: ${e.response?.data}');
+        // Pass the server error message if available
+        throw Exception('Failed to fetch contacts: ${e.response?.statusCode} - ${e.response?.data}');
+      }
+      throw Exception('Network error: ${e.message}');
     } catch (e) {
       throw Exception('Failed to fetch contacts: $e');
     }
@@ -590,14 +618,12 @@ Future<Map<String, dynamic>> sendAttachment({
   // Get favorites
   Future<List<ChatFavorite>> getFavorites() async {
     try {
-      final headers = await _headers;
-      final response = await http.get(
-        Uri.parse('$_baseUrl/favorites'),
-        headers: headers,
+      final response = await DioService.instance.dio.get(
+        '/chat/favorites',
       );
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
+        final data = response.data;
         if (data['favorites'] is String) {
           return _parseFavoritesFromHtml(data['favorites']);
         }

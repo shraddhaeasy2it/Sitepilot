@@ -1,9 +1,9 @@
 import 'dart:convert';
-import 'package:http/http.dart' as http;
+import 'package:ecoteam_app/contractor/services/dio_service.dart';
 import '../models/material_transfer_model.dart';
 
 class MaterialTransferService {
-  static const String baseUrl = 'https://sitepilot.easy2it.in';
+  // Base URL handled by DioService
 
   // Get all material transfers
   static Future<List<MaterialTransfer>> getMaterialTransfers({
@@ -11,42 +11,32 @@ class MaterialTransferService {
     int? workspaceId,
   }) async {
     try {
-      String url = '$baseUrl/api/material-transfer';
-      List<String> queryParams = [];
-      if (siteId != null) queryParams.add('site_id=$siteId');
-      if (workspaceId != null) queryParams.add('workspace_id=$workspaceId');
+      String url = '/material-transfer';
+      Map<String, dynamic> queryParams = {};
+      if (siteId != null) queryParams['site_id'] = siteId;
+      if (workspaceId != null) queryParams['workspace_id'] = workspaceId;
       
-      if (queryParams.isNotEmpty) {
-        url += '?${queryParams.join('&')}';
-      }
-
-      final response = await http.get(
-        Uri.parse(url),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
+      final response = await DioService.instance.dio.get(
+        url,
+        queryParameters: queryParams,
       );
 
       print('API Response Status: ${response.statusCode}');
-      print('API Response Body: ${response.body}');
+      print('API Response Data: ${response.data}');
 
       if (response.statusCode == 200) {
-        final Map<String, dynamic> data = json.decode(response.body);
+        final Map<String, dynamic> data = response.data;
         print('API Success: ${data['success']}');
-        print('API Message: ${data['message']}');
         
         if (data['success'] == true) {
           List<dynamic> transfers = data['data'];
-          print('Number of transfers fetched: ${transfers.length}');
           
           List<MaterialTransfer> materialTransfers = transfers.map((json) {
             try {
               return MaterialTransfer.fromJson(json);
             } catch (e) {
               print('Error parsing transfer: $e');
-              print('Problematic JSON: $json');
-              return MaterialTransfer(); // Return empty transfer on error
+              return MaterialTransfer(); 
             }
           }).toList();
           
@@ -55,7 +45,7 @@ class MaterialTransferService {
           throw Exception('Failed to load material transfers: ${data['message']}');
         }
       } else {
-        throw Exception('Failed to load material transfers. Status code: ${response.statusCode}');
+        throw Exception('Failed to load material transfers.');
       }
     } catch (e) {
       print('Error in getMaterialTransfers: $e');
@@ -81,19 +71,15 @@ class MaterialTransferService {
     try {
       print('Fetching materials for site: $siteId');
       
-      final response = await http.get(
-        Uri.parse('$baseUrl/api/ajax/get-stock-by-site?site_id=$siteId'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
+      final response = await DioService.instance.dio.get(
+        '/ajax/get-stock-by-site', 
+        queryParameters: {'site_id': siteId},
       );
 
       print('Materials API Response Status: ${response.statusCode}');
-      print('Materials API Response Body: ${response.body}');
 
       if (response.statusCode == 200) {
-        final Map<String, dynamic> data = json.decode(response.body);
+        final Map<String, dynamic> data = response.data;
         if (data['success'] == true) {
           List<dynamic> materialsData = data['data'];
           List<Material> materials = materialsData.map((materialJson) {
@@ -111,13 +97,12 @@ class MaterialTransferService {
             );
           }).toList();
           
-          print('Fetched ${materials.length} materials for site $siteId');
           return materials;
         } else {
           throw Exception('Failed to load materials: ${data['message']}');
         }
       } else {
-        throw Exception('Failed to load materials. Status code: ${response.statusCode}');
+        throw Exception('Failed to load materials.');
       }
     } catch (e) {
       print('Error in getMaterialsBySite: $e');
@@ -132,23 +117,17 @@ class MaterialTransferService {
       if (siteId != null) requestBody['site_id'] = siteId;
       if (workspaceId != null) requestBody['workspace_id'] = workspaceId;
 
-      print('Fetching form data from: $baseUrl/api/material-transfer/create-data');
-      print('Request body: ${json.encode(requestBody)}');
+      print('Fetching form data from: /material-transfer/create-data');
 
-      final response = await http.post(
-        Uri.parse('$baseUrl/api/material-transfer/create-data'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: json.encode(requestBody),
+      final response = await DioService.instance.dio.post(
+        '/material-transfer/create-data',
+        data: requestBody,
       );
 
       print('Form Data API Response Status: ${response.statusCode}');
-      print('Form Data API Response Body: ${response.body}');
 
       if (response.statusCode == 200) {
-        final Map<String, dynamic> data = json.decode(response.body);
+        final Map<String, dynamic> data = response.data;
         if (data['success'] == true) {
           return FormDataResponse.fromJson(data['data']);
         } else {
@@ -211,22 +190,17 @@ class MaterialTransferService {
         }).toList(),
       };
 
-      print('Creating transfer with data: ${json.encode(requestBody)}');
+      print('Creating transfer...');
 
-      final response = await http.post(
-        Uri.parse('$baseUrl/api/material-transfer'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: json.encode(requestBody),
+      final response = await DioService.instance.dio.post(
+        '/material-transfer',
+        data: requestBody,
       );
 
       print('Create Transfer Response Status: ${response.statusCode}');
-      print('Create Transfer Response Body: ${response.body}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        final Map<String, dynamic> data = json.decode(response.body);
+        final Map<String, dynamic> data = response.data;
         if (data['success'] == true) {
           return MaterialTransfer.fromJson(data['data']);
         } else {
@@ -244,7 +218,6 @@ class MaterialTransferService {
   // Update material transfer - PUT API
   static Future<MaterialTransfer> updateMaterialTransfer(MaterialTransfer transfer) async {
     try {
-      // Prepare the request body according to API documentation
       final Map<String, dynamic> requestBody = {
         'record_date': transfer.recordDate,
         'from_site_id': transfer.fromSiteId,
@@ -259,22 +232,15 @@ class MaterialTransferService {
         }).toList(),
       };
 
-      print('Updating transfer ${transfer.id} with data: ${json.encode(requestBody)}');
-
-      final response = await http.put(
-        Uri.parse('$baseUrl/api/material-transfer/${transfer.id}'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: json.encode(requestBody),
+      final response = await DioService.instance.dio.put(
+        '/material-transfer/${transfer.id}',
+        data: requestBody,
       );
 
       print('Update Transfer Response Status: ${response.statusCode}');
-      print('Update Transfer Response Body: ${response.body}');
 
       if (response.statusCode == 200) {
-        final Map<String, dynamic> data = json.decode(response.body);
+        final Map<String, dynamic> data = response.data;
         if (data['success'] == true) {
           return MaterialTransfer.fromJson(data['data']);
         } else {
@@ -292,19 +258,14 @@ class MaterialTransferService {
   // Delete material transfer
   static Future<bool> deleteMaterialTransfer(int id) async {
     try {
-      final response = await http.delete(
-        Uri.parse('$baseUrl/api/material-transfer/$id'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
+      final response = await DioService.instance.dio.delete(
+        '/material-transfer/$id',
       );
 
       print('Delete Transfer Response Status: ${response.statusCode}');
-      print('Delete Transfer Response Body: ${response.body}');
 
       if (response.statusCode == 200) {
-        final Map<String, dynamic> data = json.decode(response.body);
+        final Map<String, dynamic> data = response.data;
         return data['success'] == true;
       } else {
         throw Exception('Failed to delete transfer: ${response.statusCode}');

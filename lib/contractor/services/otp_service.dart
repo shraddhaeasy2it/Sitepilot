@@ -1,5 +1,5 @@
 import 'dart:math';
-import 'package:http/http.dart' as http;
+import 'package:dio/dio.dart';
 
 class OtpService {
   static const String templateId = "1707166808193932352";
@@ -40,7 +40,7 @@ class OtpService {
         "&TemplateID=$templateId"
         "&format=JSON";
 
-    final response = await http.get(Uri.parse(url));
-    return response.body;
+    final response = await Dio().get(url);
+    return response.data.toString();
   }
 }

@@ -2,12 +2,15 @@ import 'dart:convert';
 import 'dart:async';
 import 'package:ecoteam_app/contractor/models/chat_model.dart';
 import 'package:ecoteam_app/contractor/services/chat_service.dart';
+import 'package:ecoteam_app/contractor/services/company_site_provider.dart';
 import 'package:ecoteam_app/contractor/services/pusher_services.dart';
 import 'package:ecoteam_app/contractor/services/app_pusher_services.dart'; // Add this import
 import 'package:ecoteam_app/contractor/services/chat_service.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:provider/provider.dart';
 import 'package:pusher_channels_flutter/pusher_channels_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:html/parser.dart' as html_parser;
@@ -19,6 +22,9 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:open_file/open_file.dart';
 import 'dart:io';
+import 'package:dio/dio.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../services/chat_service.dart';
 
@@ -54,6 +60,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin, 
   String? _currentGroupName;
   List<ChatContact> _contacts = [];
   List<ChatContact> _allContacts = [];
+  List<ChatGroup> _groups = [];
   List<ChatFavorite> _favorites = [];
   List<ChatMessage> _messages = [];
   ChatContact? _currentContact;
@@ -64,6 +71,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin, 
   String? _currentUserName;
   String? _currentUserAvatar;
   bool _pusherConnected = false;
+  final Set<String> _markedAsSeenIds = {}; // Track seen messages locally
   
   // Attachment state
   File? _selectedAttachment;
@@ -81,7 +89,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin, 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
     _selectedSiteId = widget.selectedSiteId ?? '';
     _chatService = ChatService();
     _loadInitialData();
@@ -252,6 +260,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin, 
           final String? toId = messageData['to_id']?.toString();
           
           bool isForCurrentUser = false;
+          bool isGroupMessage = false;
           
           if (toId == _currentUserId) {
             // Message sent TO current user
@@ -262,7 +271,16 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin, 
             isForCurrentUser = true;
             print("✅ Message FROM current user to: $toId");
           } else {
-            print("⚠️ Message not for current user (to: $toId, from: $fromId)");
+            // Check if it's a group message we are interested in (either in active chat or just valid group)
+            final String? conversationId = messageData['conversation_id']?.toString();
+            // We consider it relevant if we have this group in our list
+            if (_groups.any((g) => g.id == toId || g.id == conversationId)) {
+               isForCurrentUser = true;
+               isGroupMessage = true;
+               print("✅ Group message for one of my groups");
+            } else {
+               print("⚠️ Message not for current user/chat (to: $toId, from: $fromId)");
+            }
           }
           
           if (isForCurrentUser) {
@@ -283,16 +301,16 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin, 
     }
   }
 
-  
   void _handleNotificationEvent(PusherEvent event) {
     try {
       final Map<String, dynamic> data = json.decode(event.data);
       print("🔔 Notification data: $data");
-      
+
       // Show notification
+      final message = data['message'] ?? "New notification received";
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("New notification received"),
+          content: Text(message.toString()),
           backgroundColor: Colors.blue,
           duration: const Duration(seconds: 3),
         ),
@@ -301,7 +319,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin, 
       print("❌ Error processing notification: $e");
     }
   }
-  
+
   void _processIncomingMessage(Map<String, dynamic> messageData) {
     final String? fromId = messageData['from_id']?.toString();
     final String? toId = messageData['to_id']?.toString();
@@ -309,9 +327,15 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin, 
     // Check if message is for current chat
     bool isForCurrentChat = false;
     
+    // Group Chat Logic
     if (_isGroupChat && _currentGroup != null) {
-      isForCurrentChat = messageData['conversation_id']?.toString() == _currentGroup.id;
-    } else if (!_isGroupChat && _currentContact != null) {
+      if (messageData['conversation_id']?.toString() == _currentGroup.id ||
+          messageData['to_id']?.toString() == _currentGroup.id) {
+        isForCurrentChat = true;
+      }
+    } 
+    // Direct Chat Logic (Handle both: receiving from contact OR sending to contact)
+    else if (!_isGroupChat && _currentContact != null) {
       final contactId = _currentContact!.userId?.toString();
       isForCurrentChat = (fromId == contactId && toId == _currentUserId) ||
                         (fromId == _currentUserId && toId == contactId);
@@ -320,9 +344,70 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin, 
     if (_isInChat && isForCurrentChat) {
       print("💬 Message is for current chat, adding to UI...");
       _addMessageToChat(messageData);
+      
+      // OPTIMISTIC LOADING: Sync background
+      final conversationId = _isGroupChat 
+          ? _currentGroup?.id 
+          : _currentContact?.userId?.toString();
+      if (conversationId != null) {
+         _loadMessages(conversationId, isPolling: true);
+      }
+      
     } else {
-      print("📱 Message is not for current chat, ignoring (handled by Global Listener)...");
-      // _showNotificationForOtherChat(messageData); // REMOVED: Handled by Global Listener
+      print("📱 Message is not for current chat, updating badge...");
+      _updateBadgeForIncomingMessage(messageData);
+    }
+  }
+
+  void _updateBadgeForIncomingMessage(Map<String, dynamic> messageData) {
+    if (!mounted) return;
+    
+    final String? fromId = messageData['from_id']?.toString();
+    final String? senderName = messageData['sender_name']?.toString() ?? 
+                             messageData['from_name']?.toString();
+    final String? messageText = messageData['message']?.toString();
+    
+    if (fromId != null) {
+      setState(() {
+        // Find existing contact
+        final int index = _contacts.indexWhere((c) => c.userId == fromId);
+        
+        // Prepare new values
+        final DateTime now = DateTime.now();
+        final int currentUnread = index != -1 ? (_contacts[index].unreadCount ?? 0) : 0;
+        
+        final updatedContact = ChatContact(
+          userId: fromId,
+          name: index != -1 ? _contacts[index].name : (senderName ?? 'Unknown'),
+          email: index != -1 ? _contacts[index].email : '',
+          avatarUrl: index != -1 ? _contacts[index].avatarUrl : null,
+          isOnline: index != -1 ? _contacts[index].isOnline : true,
+          unreadCount: currentUnread + 1,
+          lastMessage: messageText,
+          lastMessageTime: now,
+          company: index != -1 ? _contacts[index].company : null,
+          mobileNumber: index != -1 ? _contacts[index].mobileNumber : null,
+          lastSeen: index != -1 ? _contacts[index].lastSeen : null,
+        );
+        
+        if (index != -1) {
+          _contacts[index] = updatedContact;
+        } else {
+          // If contact not in list, add it (or reload list to be safe)
+          _contacts.insert(0, updatedContact);
+        }
+        
+        // Also update allContacts if needed
+        final int allIndex = _allContacts.indexWhere((c) => c.userId == fromId);
+        if (allIndex != -1) {
+          _allContacts[allIndex] = updatedContact;
+        }
+      });
+      
+      // Update Global Provider Count
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+         Provider.of<CompanySiteProvider>(context, listen: false).fetchUnreadChatCount();
+      });
     }
   }
 
@@ -358,9 +443,14 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin, 
       preparedData['is_from_current_user'] = senderId == _currentUserId;
       
       // Add conversation ID if missing
-      if (preparedData['conversation_id'] == null && !_isGroupChat) {
-        preparedData['conversation_id'] = senderId == _currentUserId ? 
-            messageData['to_id']?.toString() : senderId;
+      if (preparedData['conversation_id'] == null) {
+         if (_isGroupChat) {
+             // For group chat, conversation_id is likely the to_id (Group ID)
+             preparedData['conversation_id'] = messageData['to_id']?.toString();
+         } else if (!_isGroupChat) {
+             preparedData['conversation_id'] = senderId == _currentUserId ? 
+                messageData['to_id']?.toString() : senderId;
+         }
       }
       
       // Handle timestamp
@@ -379,7 +469,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin, 
           final isPdf = ['pdf'].contains(extension);
           
           // Construct URL
-          final fileUrl = 'https://sitepilot.easy2it.in/uploads/attachments/$attachmentName';
+          final fileUrl = 'https://app.ecoteamsolar.com/uploads/attachments/$attachmentName';
           
           // Preserve caption
           final caption = preparedData['message']?.toString();
@@ -553,6 +643,36 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin, 
     await _checkPusherConnection(); // Check instead of initialize
   }
 
+  Future<void> _fetchGroupUnreads() async {
+    for (var group in _groups) {
+      try {
+        final messages = await _chatService.fetchMessages(group.id, type: 'group');
+        int unreadCount = messages.where((m) => !m.isFromCurrentUser && m.status != MessageStatus.seen).length;
+        
+        if (mounted) {
+          setState(() {
+            final int index = _groups.indexWhere((g) => g.id == group.id);
+            if (index != -1) {
+              _groups[index] = ChatGroup(
+                id: _groups[index].id,
+                name: _groups[index].name,
+                description: _groups[index].description,
+                avatarUrl: _groups[index].avatarUrl,
+                participants: _groups[index].participants,
+                createdAt: _groups[index].createdAt,
+                lastMessage: _groups[index].lastMessage,
+                lastMessageTime: _groups[index].lastMessageTime,
+                unreadCount: unreadCount,
+              );
+            }
+          });
+        }
+      } catch (e) {
+        print('Error fetching unreads for group ${group.id}: $e');
+      }
+    }
+  }
+
   Future<void> _loadUserData() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -574,21 +694,49 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin, 
   Future<void> _loadContacts({bool silent = false}) async {
     if (!silent) setState(() => _isLoading = true);
     try {
-      final String? siteId = _selectedSiteId.isNotEmpty ? _selectedSiteId : null;
+      final String? siteId = _selectedSiteId.isNotEmpty 
+          ? _selectedSiteId.replaceAll(RegExp(r'[^0-9]'), '') 
+          : null;
+      if (siteId != null && siteId.isEmpty) { 
+         // If stripping resulted in empty string (e.g. was just text), make it null
+      }
       final String? workspaceIdStr = widget.workspaceId?.toString();
+      
+      // Get current user ID to pass explicitly
+      // 1. Try from state _currentUserId
+      String? userIdStr = _currentUserId;
+      
+      // 2. If null, try from Provider (most reliable for current session)
+      if (userIdStr == null || userIdStr.isEmpty) {
+        final provider = Provider.of<CompanySiteProvider>(context, listen: false);
+        if (provider.currentUserId != null && provider.currentUserId != 0) {
+           userIdStr = provider.currentUserId.toString();
+        }
+      }
+      
+      // 3. Last fallback to SharedPreferences is cached inside service, but we can try here too
+      // (Skipping for now as Service handles fallback)
+      
+      print('DEBUG: Loading contacts for User: $userIdStr, Site: $siteId, Workspace: $workspaceIdStr');
       
       final contactsData = await _chatService.getContacts(
         siteId: siteId,
         workspaceId: workspaceIdStr,
+        userId: userIdStr,
       );
       
       if (mounted) {
         setState(() {
           _contacts = contactsData['chats'] ?? [];
           _allContacts = contactsData['contacts'] ?? [];
+          _groups = (contactsData['groups'] as List<dynamic>?)?.cast<ChatGroup>() ?? [];
         });
+        
+        // Fetch unread counts for groups in background
+        _fetchGroupUnreads();
       }
     } catch (e) {
+      print('Error loading contacts: $e');
       if (!silent) _showError('Failed to load contacts: $e');
     } finally {
       if (mounted && !silent) {
@@ -602,7 +750,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin, 
       _favorites = await _chatService.getFavorites();
       setState(() {});
     } catch (e) {
-      _showError('Failed to load favorites: $e');
+      _showError('Failed to load favorites');
     }
   }
 
@@ -651,16 +799,38 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin, 
     }
     
     try {
-      final newMessages = await _chatService.fetchMessages(conversationId);
-      
+      final type = _isGroupChat ? 'group' : 'user';
+      final newMessages = await _chatService.fetchMessages(conversationId, type: type);
+       
       if (mounted) {
         setState(() {
           _messages = newMessages;
         });
         
         for (var message in newMessages) {
-          if (!message.isFromCurrentUser && message.status != MessageStatus.seen) {
+          if (!message.isFromCurrentUser && 
+              message.status != MessageStatus.seen && 
+              !_markedAsSeenIds.contains(message.id)) {
             _markAsSeen(message.id);
+          }
+        }
+
+        // Calculate and update unread count for groups
+        if (_isGroupChat && _currentGroup != null) {
+          int groupUnreadCount = newMessages.where((m) => !m.isFromCurrentUser && m.status != MessageStatus.seen).length;
+          final int groupIndex = _groups.indexWhere((g) => g.id == _currentGroup.id);
+          if (groupIndex != -1) {
+             _groups[groupIndex] = ChatGroup(
+               id: _groups[groupIndex].id,
+               name: _groups[groupIndex].name,
+               description: _groups[groupIndex].description,
+               avatarUrl: _groups[groupIndex].avatarUrl,
+               participants: _groups[groupIndex].participants,
+               createdAt: _groups[groupIndex].createdAt,
+               lastMessage: _groups[groupIndex].lastMessage,
+               lastMessageTime: _groups[groupIndex].lastMessageTime,
+               unreadCount: groupUnreadCount,
+             );
           }
         }
         
@@ -672,8 +842,14 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin, 
       // DO NOT subscribe to other users' channels here
       // Pusher is already listening on private-chatify channel
       
+      
     } catch (e) {
-      if (!isPolling) _showError('Failed to load messages: $e');
+      if (!isPolling) {
+         print("Error loading messages: $e");
+         // Only show error if it's not a "no messages" situation
+         // For now, suppress error toast on load to avoid identifying "empty" as error
+         // _showError('Failed to load messages'); 
+      }
     } finally {
       if (!isPolling && mounted) {
         setState(() => _isLoading = false);
@@ -739,7 +915,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin, 
         }
       });
     } catch (e) {
-      _showError('Failed to send message: $e');
+      _showError('Failed to send message');
       setState(() {
         final index = _messages.indexWhere((m) => m.id == tempMessage.id);
         if (index != -1) {
@@ -852,7 +1028,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin, 
         });
       }
     } catch (e) {
-      _showError('Failed to pick image: $e');
+      _showError('Failed to pick image');
     }
   }
 
@@ -870,7 +1046,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin, 
         });
       }
     } catch (e) {
-      _showError('Failed to pick document: $e');
+      _showError('Failed to pick document');
     }
   }
 
@@ -951,17 +1127,51 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin, 
         );
       }
     });
-    _showError('Failed to upload attachment: $e');
+    _showError('Failed to upload attachment');
   }
 }
   Future<void> _markAsSeen(String messageId) async {
+    if (_markedAsSeenIds.contains(messageId)) return;
+    _markedAsSeenIds.add(messageId);
+
     try {
-      await _chatService.markAsSeen(messageId);
+      final response = await _chatService.markAsSeen(messageId);
+      
+      // Update badge count from server response if available
+      if (response['messengerCount'] != null) {
+         if (mounted) {
+            Provider.of<CompanySiteProvider>(context, listen: false)
+                .setUnreadChatCount(response['messengerCount']);
+         }
+      }
+      
       setState(() {
         for (int i = 0; i < _messages.length; i++) {
           if (_messages[i].id == messageId && !_messages[i].isFromCurrentUser) {
             _messages[i] = _messages[i].copyWith(status: MessageStatus.seen);
           }
+        }
+        
+        // If it's a group chat, refresh the group's unread count
+        if (_isGroupChat && _currentGroup != null) {
+          final int groupIndex = _groups.indexWhere((g) => g.id == _currentGroup.id);
+          if (groupIndex != -1) {
+            int newCount = _messages.where((m) => !m.isFromCurrentUser && m.status != MessageStatus.seen).length;
+            _groups[groupIndex] = ChatGroup(
+               id: _groups[groupIndex].id,
+               name: _groups[groupIndex].name,
+               description: _groups[groupIndex].description,
+               avatarUrl: _groups[groupIndex].avatarUrl,
+               participants: _groups[groupIndex].participants,
+               createdAt: _groups[groupIndex].createdAt,
+               lastMessage: _groups[groupIndex].lastMessage,
+               lastMessageTime: _groups[groupIndex].lastMessageTime,
+               unreadCount: newCount,
+             );
+          }
+          
+          // Refresh background unread counts to ensure server sync
+          _fetchGroupUnreads();
         }
       });
     } catch (e) {
@@ -982,7 +1192,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin, 
         _showSuccess('Conversation deleted');
       }
     } catch (e) {
-      _showError('Failed to delete conversation: $e');
+      _showError('Failed to delete conversation');
     }
   }
 
@@ -994,7 +1204,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin, 
         _loadContacts();
       }
     } catch (e) {
-      _showError('Failed to update contact: $e');
+      _showError('Failed to update contact');
     }
   }
 
@@ -1005,30 +1215,90 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin, 
       _currentContact = contact;
       _currentGroup = null;
       _currentGroupName = null;
+      _markedAsSeenIds.clear();
+      
+      // Reset unread count for this contact locally
+      final int index = _contacts.indexWhere((c) => c.userId == contact.userId);
+      if (index != -1) {
+        // Create copy with 0 unread
+        _contacts[index] = ChatContact(
+           userId: contact.userId,
+           name: contact.name,
+           email: contact.email,
+           company: contact.company,
+           avatarUrl: contact.avatarUrl,
+           mobileNumber: contact.mobileNumber,
+           isOnline: contact.isOnline,
+           lastSeen: contact.lastSeen,
+           lastMessage: contact.lastMessage,
+           lastMessageTime: contact.lastMessageTime,
+           unreadCount: 0,
+        );
+      }
     });
+    
+    // Reset global unread count via Provider locally
+    // This avoids race condition where API still returns old count
+    if (contact.unreadCount != null && contact.unreadCount! > 0) {
+       WidgetsBinding.instance.addPostFrameCallback((_) {
+          Provider.of<CompanySiteProvider>(context, listen: false)
+              .reduceUnreadChatCount(contact.unreadCount!);
+       });
+    }
     
     // Set active chat ID for global listener suppression
     AppPusherManager().setActiveChatId(contact.userId?.toString());
     
+    // Set active chat ID in Provider for badge sync logic
+    Provider.of<CompanySiteProvider>(context, listen: false).setActiveChatId(contact.userId?.toString());
+    
     _loadMessages(contact.userId?.toString());
+    
+    // Mark conversation as seen to update badge count immediately
+    if (contact.userId != null) {
+      _markAsSeen(contact.userId!);
+    }
     
     // DO NOT subscribe to other user's channels
     // Pusher is already listening on private-chatify channel
   }
 
-  void _startChatWithGroup(dynamic group) {
+  void _startChatWithGroup(ChatGroup group) {
     setState(() {
       _isInChat = true;
       _isGroupChat = true;
       _currentGroup = group;
       _currentGroupName = group.name;
       _currentContact = null;
+      _markedAsSeenIds.clear();
+      
+      // Reset unread count for this group locally
+      final int index = _groups.indexWhere((g) => g.id == group.id);
+      if (index != -1) {
+        final currentGroup = _groups[index];
+        if (currentGroup.unreadCount > 0) {
+          final int countToRemove = currentGroup.unreadCount;
+          _groups[index] = currentGroup.copyWith(unreadCount: 0);
+          
+          // Decrease global badge count immediately
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            Provider.of<CompanySiteProvider>(context, listen: false)
+                .reduceUnreadChatCount(countToRemove);
+          });
+        }
+      }
     });
     
     // Set active chat ID for global listener suppression
     AppPusherManager().setActiveChatId(group.id);
     
+    // Set active chat ID in Provider for badge sync logic
+    Provider.of<CompanySiteProvider>(context, listen: false).setActiveChatId(group.id);
+    
     _loadMessages(group.id);
+    
+    // Mark group conversation as seen
+    _markAsSeen(group.id);
     
     // DO NOT subscribe to group channels
     // Pusher is already listening on private-chatify channel
@@ -1037,6 +1307,11 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin, 
   void _exitChat() {
     // Clear active chat ID
     AppPusherManager().setActiveChatId(null);
+    
+    // Clear active chat ID in Provider
+    if (mounted) {
+       Provider.of<CompanySiteProvider>(context, listen: false).setActiveChatId(null);
+    }
     
     // DO NOT unsubscribe from channels
     // Keep Pusher connected to receive all messages
@@ -1200,6 +1475,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin, 
                     controller: _tabController,
                     children: [
                       _buildChatsTab(),
+                      _buildGroupsTab(),
                       _buildContactsTab(),
                       _buildFavoritesTab(),
                     ],
@@ -1219,21 +1495,53 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin, 
             bottom: BorderSide(color: Colors.white24, width: 0.5),
           ),
         ),
-        child: TabBar(
-          controller: _tabController,
-          indicator: const UnderlineTabIndicator(
-            borderSide: BorderSide(width: 3.0, color: Colors.white),
-            insets: EdgeInsets.symmetric(horizontal: 40.0),
-          ),
-          indicatorWeight: 3.0,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
-          labelStyle: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600),
-          tabs: const [
-            Tab(text: 'Chats'),
-            Tab(text: 'Contacts'),
-            Tab(text: 'Favorites'),
-          ],
+        child: Consumer<CompanySiteProvider>(
+          builder: (context, provider, child) {
+            return TabBar(
+              controller: _tabController,
+              indicator: const UnderlineTabIndicator(
+                borderSide: BorderSide(width: 3.0, color: Colors.white),
+                insets: EdgeInsets.symmetric(horizontal: 40.0),
+              ),
+              indicatorWeight: 3.0,
+              labelColor: Colors.white,
+              unselectedLabelColor: Colors.white70,
+              labelStyle: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600),
+              tabs: [
+                Tab(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text('Chats'),
+                      if (provider.unreadChatCount > 0) ...[
+                        SizedBox(width: 6.w),
+                        Container(
+                          padding: EdgeInsets.all(6.w),
+                          decoration: const BoxDecoration(
+                            color: Colors.red,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Text(
+                            provider.unreadChatCount > 99
+                                ? '99+'
+                                : provider.unreadChatCount.toString(),
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 10.sp,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                const Tab(text: 'Groups'),
+                const Tab(text: 'Contacts'),
+                const Tab(text: 'Favorites'),
+              ],
+            );
+          },
         ),
       ),
     );
@@ -1247,43 +1555,9 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin, 
           onPressed: () => _startCall(false),
           tooltip: 'Voice Call',
         ),
-        if (_isGroupChat)
-          IconButton(
-            icon: const Icon(Icons.info_outline),
-            onPressed: _showGroupInfo,
-            tooltip: 'Group Info',
-          ),
-        if (!_isGroupChat)
-          PopupMenuButton<String>(
-            itemBuilder: (context) => [
-              PopupMenuItem(
-                value: 'delete',
-                child: const Text('Delete Conversation'),
-              ),
-              PopupMenuItem(
-                value: 'clear',
-                child: const Text('Clear Chat'),
-              ),
-            ],
-            onSelected: (value) {
-              if (value == 'delete') {
-                _deleteConversation(_currentContact?.userId?.toString() ?? '');
-              } else if (value == 'clear') {
-                setState(() {
-                  _messages.clear();
-                });
-              }
-            },
-          ),
       ];
     }
-    return [
-      IconButton(
-        icon: const Icon(Icons.filter_list),
-        onPressed: _showFilterOptions,
-        tooltip: 'Filter',
-      ),
-    ];
+    return [];
   }
 
   Widget _buildBackButton() {
@@ -1325,7 +1599,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin, 
             SizedBox(height: 8.h),
             TextButton(
               onPressed: () {
-                _tabController.animateTo(1);
+                _tabController.animateTo(2); // Switch to Contacts tab
               },
               child: const Text('Start a conversation'),
             ),
@@ -1352,17 +1626,35 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin, 
         borderRadius: BorderRadius.circular(12.r),
       ),
       child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: _getAvatarColor(contact.name),
-          backgroundImage: contact.avatarUrl != null && contact.avatarUrl!.isNotEmpty
-              ? CachedNetworkImageProvider(contact.avatarUrl!)
-              : null,
-          child: contact.avatarUrl == null || contact.avatarUrl!.isEmpty
-              ? Text(
-                  contact.name.isNotEmpty ? contact.name[0].toUpperCase() : '?',
-                  style: const TextStyle(color: Colors.white),
-                )
-              : null,
+        leading: Stack(
+          children: [
+            CircleAvatar(
+              backgroundColor: _getAvatarColor(contact.name),
+              backgroundImage: contact.avatarUrl != null && contact.avatarUrl!.isNotEmpty
+                  ? CachedNetworkImageProvider(contact.avatarUrl!)
+                  : null,
+              child: contact.avatarUrl == null || contact.avatarUrl!.isEmpty
+                  ? Text(
+                      contact.name.isNotEmpty ? contact.name[0].toUpperCase() : '?',
+                      style: const TextStyle(color: Colors.white),
+                    )
+                  : null,
+            ),
+            if (contact.isOnline == true)
+              Positioned(
+                right: 0,
+                bottom: 0,
+                child: Container(
+                  width: 12.w,
+                  height: 12.h,
+                  decoration: BoxDecoration(
+                    color: Colors.green,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 2),
+                  ),
+                ),
+              ),
+          ],
         ),
         title: Text(
           contact.name,
@@ -1374,45 +1666,60 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin, 
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              contact.email ?? '',
-              style: TextStyle(fontSize: 14.sp, color: Colors.grey[600]),
-            ),
-            if (showActions) SizedBox(height: 8.h),
-            if (showActions)
-              Row(
-                children: [
-                  _buildActionButton(
-                    Icons.message,
-                    primaryColor,
-                    () => _startChatWithContact(contact),
-                  ),
-                  SizedBox(width: 8.w),
-                  _buildActionButton(
-                    Icons.call,
-                    Colors.green,
-                    () => _startCall(false, contact),
-                  ),
-                ],
+            if (contact.lastMessage != null)
+              Text(
+                contact.lastMessage!,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 14.sp, 
+                  color: (contact.unreadCount != null && contact.unreadCount! > 0) 
+                      ? Colors.black87 
+                      : Colors.grey[600],
+                  fontWeight: (contact.unreadCount != null && contact.unreadCount! > 0)
+                      ? FontWeight.w600
+                      : FontWeight.normal,
+                ),
+              )
+            else
+              Text(
+                contact.email ?? '',
+                style: TextStyle(fontSize: 14.sp, color: Colors.grey[600]),
               ),
           ],
         ),
         trailing: Column(
           mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             if (contact.lastMessageTime != null)
               Text(
                 _formatTime(contact.lastMessageTime!),
-                style: TextStyle(fontSize: 12.sp, color: Colors.grey),
+                style: TextStyle(
+                  fontSize: 12.sp, 
+                  color: (contact.unreadCount != null && contact.unreadCount! > 0) 
+                      ? primaryColor 
+                      : Colors.grey,
+                  fontWeight: (contact.unreadCount != null && contact.unreadCount! > 0)
+                      ? FontWeight.bold
+                      : FontWeight.normal,
+                ),
               ),
-            if (contact.isOnline ?? false)
+            SizedBox(height: 4.h),
+            if (contact.unreadCount != null && contact.unreadCount! > 0)
               Container(
-                width: 10.w,
-                height: 10.h,
-                margin: EdgeInsets.only(top: 4.h),
-                decoration: BoxDecoration(
-                  color: Colors.green,
+                padding: EdgeInsets.all(6.w),
+                decoration: const BoxDecoration(
+                  color: primaryColor,
                   shape: BoxShape.circle,
+                ),
+                child: Text(
+                  contact.unreadCount! > 99 ? '99+' : contact.unreadCount!.toString(),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 10.sp,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
           ],
@@ -1495,6 +1802,97 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin, 
           ),
         ),
       ],
+    );
+    
+  }
+
+  Widget _buildGroupsTab() {
+    if (_groups.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.group_outlined, size: 60.sp, color: Colors.grey[400]),
+            SizedBox(height: 16.h),
+            Text(
+              'No groups available',
+              style: TextStyle(fontSize: 16.sp, color: Colors.grey[600]),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: EdgeInsets.all(16.w),
+      itemCount: _groups.length,
+      itemBuilder: (context, index) {
+        final group = _groups[index];
+        return Card(
+          margin: EdgeInsets.only(bottom: 12.h),
+          elevation: 2,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12.r),
+          ),
+          child: ListTile(
+            leading: CircleAvatar(
+              backgroundColor: _getAvatarColor(group.name),
+              backgroundImage: group.avatarUrl != null 
+                  ? CachedNetworkImageProvider(group.avatarUrl!)
+                  : null,
+              child: group.avatarUrl == null
+                  ? Text(
+                      group.name.isNotEmpty ? group.name[0].toUpperCase() : '?',
+                      style: const TextStyle(color: Colors.white),
+                    )
+                  : null,
+            ),
+            title: Text(
+              group.name,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16.sp,
+              ),
+            ),
+            subtitle: group.lastMessage != null
+                ? Text(
+                    group.lastMessage!,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 14.sp, color: Colors.grey[600]),
+                  )
+                : null,
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (group.unreadCount > 0)
+                  Container(
+                    padding: EdgeInsets.all(6.w),
+                    decoration: const BoxDecoration(
+                      color: primaryColor,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Text(
+                      group.unreadCount > 99 ? '99+' : group.unreadCount.toString(),
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 10.sp,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                if (group.unreadCount > 0) SizedBox(width: 8.w),
+                if (group.lastMessageTime != null)
+                  Text(
+                    _formatTime(group.lastMessageTime!),
+                    style: TextStyle(fontSize: 12.sp, color: Colors.grey),
+                  ),
+              ],
+            ),
+            onTap: () => _startChatWithGroup(group),
+          ),
+        );
+      },
     );
   }
 
@@ -1622,7 +2020,22 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin, 
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                  
-                  
+                 // Show sender name in group chat for other users
+                 if (_isGroupChat && !isCurrentUser)
+                   Padding(
+                     padding: EdgeInsets.only(bottom: 4.h),
+                     child: Text(
+                       message.senderName,
+                       style: TextStyle(
+                         fontSize: 12.sp,
+                         fontWeight: FontWeight.bold,
+                         color: Colors.orange, // Distinct color for names
+                       ),
+                       maxLines: 1,
+                       overflow: TextOverflow.ellipsis,
+                     ),
+                   ),
+
                   message.messageType == MessageType.image
                       ? GestureDetector(
                           onTap: () {
@@ -1650,6 +2063,15 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin, 
                                 ),
                               );
                             }
+                          },
+                          onLongPress: () {
+                             if (message.message.startsWith('http')) {
+                                _handleAttachmentAction(
+                                  message.message,
+                                  message.metadata?['filename'] ?? 'image_${DateTime.now().millisecondsSinceEpoch}.jpg',
+                                  true
+                                );
+                             }
                           },
                           child: Hero(
                             tag: message.id,
@@ -1687,6 +2109,15 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin, 
                                     OpenFile.open(url);
                                   }
                                 }
+                              },
+                              onLongPress: () {
+                                 if (message.message.startsWith('http')) {
+                                    _handleAttachmentAction(
+                                      message.message,
+                                      message.metadata?['filename'] ?? 'document.pdf',
+                                      false
+                                    );
+                                 }
                               },
                               child: Container(
                                 padding: EdgeInsets.all(8.w),
@@ -1728,11 +2159,22 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin, 
                                 ),
                               ),
                             )
-                          : Text(
-                              message.message,
-                              style: TextStyle(
-                                color: isCurrentUser ? Colors.white : Colors.black,
-                                fontSize: 16.sp,
+                          : GestureDetector(
+                              onLongPress: () {
+                                Clipboard.setData(ClipboardData(text: message.message));
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Message copied to clipboard'),
+                                    duration: Duration(seconds: 2),
+                                  ),
+                                );
+                              },
+                              child: Text(
+                                message.message,
+                                style: TextStyle(
+                                  color: isCurrentUser ? Colors.white : Colors.black,
+                                  fontSize: 16.sp,
+                                ),
                               ),
                             ),
                   if ((message.messageType == MessageType.image || message.messageType == MessageType.document || message.messageType == MessageType.video) &&
@@ -2127,6 +2569,112 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin, 
     }
   }
 
+
+  Future<void> _handleAttachmentAction(String url, String fileName, bool isImage) async {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
+        ),
+        padding: EdgeInsets.symmetric(vertical: 20.h),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: Icon(Icons.download, color: primaryColor), // Use correct color variable
+              title: Text('Download ${isImage ? "Image" : "Document"}'),
+              onTap: () {
+                Navigator.pop(context);
+                _downloadAttachment(url, fileName);
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.share, color: primaryColor), // Use correct color variable
+              title: Text('Share ${isImage ? "Image" : "Document"}'),
+              onTap: () {
+                Navigator.pop(context);
+                _shareAttachment(url, fileName);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _downloadAttachment(String url, String fileName) async {
+    try {
+      // Request storage permission
+      if (Platform.isAndroid) {
+        /*
+        // For Android 13+ (SDK 33+), READ_EXTERNAL_STORAGE is not needed for downloads
+        // But for <13, WRITE_EXTERNAL_STORAGE might be needed.
+        // However, modern Android best practice is to download to app-specific or public Downloads folder directly without explicit WRITE permission if using MediaStore or Downloads directory.
+        // Let's try simple dio download first.
+        */
+      }
+
+      var dir = await getExternalStorageDirectory();
+      // Use standard Downloads directory if possible, or fallback to app specific
+      // Note: On Android 10+, direct access to /storage/emulated/0/Downloads is restricted.
+      // We can use path_provider to get a safe directory.
+      
+      // For user visibility, we prefer public Downloads. 
+      // A common workaround for "Download" folder:
+      String savePath = "";
+      if (Platform.isAndroid) {
+         dir = Directory('/storage/emulated/0/Download');
+         if (!await dir.exists()) dir = await getExternalStorageDirectory();
+      } else {
+         dir = await getApplicationDocumentsDirectory();
+      }
+      
+      if (dir == null) return;
+      
+      savePath = "${dir.path}/$fileName";
+      
+      // Check for duplicates
+      int count = 1;
+      while (await File(savePath).exists()) {
+        final name = fileName.split('.').first;
+        final ext = fileName.split('.').last;
+        savePath = "${dir.path}/$name ($count).$ext";
+        count++;
+      }
+
+      _showSuccess("Downloading...");
+      
+      await Dio().download(url, savePath);
+      
+      _showSuccess("Downloaded to $savePath");
+      
+    } catch (e) {
+      print("Download error: $e");
+      _showError("Failed to download attachment");
+    }
+  }
+
+  Future<void> _shareAttachment(String url, String fileName) async {
+    try {
+      _showSuccess("Preparing to share...");
+      
+      // Download to temp directory for sharing
+      final tempDir = await getTemporaryDirectory();
+      final savePath = "${tempDir.path}/$fileName";
+      
+      await Dio().download(url, savePath);
+      
+      final xFile = XFile(savePath);
+      await Share.shareXFiles([xFile], text: 'Check out this attachment!');
+      
+    } catch (e) {
+      print("Share error: $e");
+      _showError("Failed to share attachment");
+    }
+  }
 
   Future<void> _uploadFile(String filePath, String type) async {
     final tempMessage = ChatMessage(

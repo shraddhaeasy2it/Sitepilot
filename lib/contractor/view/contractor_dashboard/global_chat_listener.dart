@@ -4,9 +4,12 @@ import 'package:ecoteam_app/contractor/services/chat_service.dart';
 import 'package:ecoteam_app/contractor/services/app_pusher_services.dart';
 import 'package:ecoteam_app/contractor/view/contractor_dashboard/chat_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:fluttertoast/fluttertoast.dart';
+import 'package:flutter/material.dart';
+import 'package:ecoteam_app/contractor/services/local_notification_service.dart';
 import 'package:html/parser.dart' as html_parser;
 import 'package:pusher_channels_flutter/pusher_channels_flutter.dart';
+import 'package:ecoteam_app/contractor/services/company_site_provider.dart';
+import 'package:provider/provider.dart';
 
 class GlobalChatListener extends StatefulWidget {
   final Widget child;
@@ -60,11 +63,7 @@ class _GlobalChatListenerState extends State<GlobalChatListener> {
   Future<void> _fetchAndCacheContact(String userId) async {
     try {
       final info = await ChatService().updateContactItem(userId);
-      // Note: updateContactItem returns HTML or partial data, might not give clean name directly 
-      // depending on API. Let's try to extract from 'contactItem' HTML if needed or just trust the side effect.
-      // Actually, let's refresh all contacts to be safe, but debounced.
-      
-      // Better approach: re-fetch all contacts silently
+
       _loadContactNames();
     } catch (e) {
       print("⚠️ GlobalChatListener failed to fetch missing contact: $e");
@@ -105,10 +104,20 @@ class _GlobalChatListenerState extends State<GlobalChatListener> {
           
           final String? activeChatId = AppPusherManager().activeChatId;
 
-          // Only show notification if NOT in this chat
-          if (conversationId != activeChatId) {
+           if (conversationId != activeChatId) {
              _showNotification(messageData);
+             // Also refresh chat count
+             if (mounted) {
+               Provider.of<CompanySiteProvider>(context, listen: false).fetchUnreadChatCount();
+             }
           }
+        }
+      }
+
+      if (event.channelName.startsWith('private-notifications')) {
+        // Refresh notification count on new system notification
+        if (mounted) {
+           Provider.of<CompanySiteProvider>(context, listen: false).fetchUnreadNotificationCount();
         }
       }
     } catch (e) {
@@ -144,11 +153,18 @@ class _GlobalChatListenerState extends State<GlobalChatListener> {
         final document = html_parser.parse(messageText);
         final pTags = document.getElementsByTagName('p');
         if (pTags.isNotEmpty) {
-          messageText = pTags.first.text.trim();
-          final subTags = pTags.first.getElementsByTagName('sub');
-          if (subTags.isNotEmpty) {
-            messageText = messageText.replaceAll(subTags.first.text, '').trim();
+          // Get the paragraph element
+          var pElement = pTags.first;
+          
+          // Remove unwanted tags (like timestamp in sub, or name in b/strong)
+          for (final tag in ['sub', 'b', 'strong', 'span']) {
+            final elements = pElement.getElementsByTagName(tag);
+            for (final element in elements) {
+              element.remove();
+            }
           }
+           
+          messageText = pElement.text.trim();
         }
       } catch (e) {
         // keep original text if parse fails
@@ -156,14 +172,9 @@ class _GlobalChatListenerState extends State<GlobalChatListener> {
     }
 
     // Show persistent notification
-    Fluttertoast.showToast(
-      msg: "💬 $senderName: $messageText",
-      toastLength: Toast.LENGTH_LONG,
-      gravity: ToastGravity.TOP,
-      timeInSecForIosWeb: 4,
-      backgroundColor: Colors.white,
-      textColor: const Color(0xFF1565C0), // Blue color
-      fontSize: 16.0,
+    LocalNotificationService.show(
+      title: senderName,
+      body: messageText,
     );
   }
 

@@ -11,6 +11,7 @@ class Site {
   final String? image;
   final String? latitude;
   final String? longitude;
+  final String? address;
 
   Site({
     required this.id,
@@ -25,6 +26,7 @@ class Site {
     this.image,
     this.latitude,
     this.longitude,
+    this.address,
   });
 
   factory Site.fromJson(Map<String, dynamic> json) {
@@ -35,12 +37,13 @@ class Site {
       status: json['status'] ?? 'Planning',
       startDate: json['start_date'] ?? '',
       endDate: json['end_date'] ?? '',
-      budget: (json['budget'] ?? 0.0).toDouble(),
+      budget: double.tryParse(json['budget']?.toString() ?? '0.0') ?? 0.0,
       progress: double.tryParse(json['progress']?.toString() ?? '0.0') ?? 0.0,
       description: json['description'],
       image: json['image'],
       latitude: json['latitude']?.toString(),
       longitude: json['longitude']?.toString(),
+      address: json['address'],
     );
   }
 
@@ -57,6 +60,7 @@ class Site {
       'progress': progress.toString(),
       'latitude': latitude,
       'longitude': longitude,
+      'address': address,
     };
   }
 
@@ -73,6 +77,7 @@ class Site {
     String? image,
     String? latitude,
     String? longitude,
+    String? address,
   }) {
     return Site(
       id: id ?? this.id,
@@ -87,6 +92,7 @@ class Site {
       image: image ?? this.image,
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
+      address: address ?? this.address,
     );
   }
 }

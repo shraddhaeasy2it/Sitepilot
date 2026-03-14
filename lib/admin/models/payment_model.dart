@@ -20,6 +20,7 @@ class Payment {
   Invoice? invoice;
   Site? site;
   double? remainingAmount;
+  Creator? creator;
 
   Payment({
     this.id,
@@ -42,24 +43,32 @@ class Payment {
     this.invoice,
     this.site,
     this.remainingAmount,
+    this.creator,
   });
 
   factory Payment.fromJson(Map<String, dynamic> json) {
+    int? _parseInt(dynamic value) {
+      if (value == null) return null;
+      if (value is int) return value;
+      if (value is String) return int.tryParse(value);
+      return null;
+    }
+
     return Payment(
-      id: json['id'],
+      id: _parseInt(json['id']),
       paymentNumber: json['payment_number'],
-      supplierId: json['supplier_id'],
-      purchaseInvoiceId: json['purchase_invoice_id'],
-      siteId: json['site_id'],
+      supplierId: _parseInt(json['supplier_id']),
+      purchaseInvoiceId: _parseInt(json['purchase_invoice_id']),
+      siteId: _parseInt(json['site_id']),
       paymentDate: json['payment_date'],
       amount: json['amount'],
       paymentType: json['payment_type'],
       mode: json['mode'],
       referenceNumber: json['reference_number'],
-      createdBy: json['created_by'],
-      workspaceId: json['workspace_id'],
+      createdBy: _parseInt(json['created_by']),
+      workspaceId: _parseInt(json['workspace_id']),
       notes: json['notes'],
-      paymentProofFile: json['payment_proof_file'],
+      paymentProofFile: json['payment_proff_file'] ?? json['payment_proof_file'],
       createdAt: json['created_at'],
       updatedAt: json['updated_at'],
       supplier: json['supplier'] != null ? Supplier.fromJson(json['supplier']) : null,
@@ -68,6 +77,7 @@ class Payment {
       remainingAmount: json['remaining_amount'] != null 
           ? double.tryParse(json['remaining_amount'].toString()) 
           : 0.0,
+      creator: json['creator'] != null ? Creator.fromJson(json['creator']) : null,
     );
   }
 
@@ -102,8 +112,8 @@ class Supplier {
 
   factory Supplier.fromJson(Map<String, dynamic> json) {
     return Supplier(
-      id: json['id'],
-      name: json['name'],
+      id: int.tryParse(json['id']?.toString() ?? ''),
+      name: json['name']?.toString(),
     );
   }
 
@@ -126,20 +136,23 @@ class Invoice {
   int? id;
   String? invoiceNumber;
   double? remainingAmount;
+  Creator? creator;
 
   Invoice({
     this.id,
     this.invoiceNumber,
     this.remainingAmount,
+    this.creator,
   });
 
   factory Invoice.fromJson(Map<String, dynamic> json) {
     return Invoice(
-      id: json['id'],
-      invoiceNumber: json['invoice_number'],
+      id: int.tryParse(json['id']?.toString() ?? ''),
+      invoiceNumber: json['invoice_number']?.toString(),
       remainingAmount: json['remaining_amount'] != null 
           ? double.tryParse(json['remaining_amount'].toString()) 
           : 0.0,
+      creator: json['creator'] != null ? Creator.fromJson(json['creator']) : null,
     );
   }
 
@@ -169,8 +182,8 @@ class Site {
 
   factory Site.fromJson(Map<String, dynamic> json) {
     return Site(
-      id: json['id'],
-      name: json['name'],
+      id: int.tryParse(json['id']?.toString() ?? ''),
+      name: json['name']?.toString(),
     );
   }
 
@@ -361,8 +374,8 @@ class PaymentFormData {
   Map<String, dynamic> toJson() {
     return {
       if (paymentNumber != null) 'payment_number': paymentNumber,
-      'created_by': createdBy ?? 1,
-      'workspace_id': workspaceId ?? 1,
+      'created_by': createdBy,
+      'workspace_id': workspaceId,
       'supplier_id': supplierId,
       'purchase_invoice_id': purchaseInvoiceId,
       'site_id': siteId,
@@ -373,6 +386,31 @@ class PaymentFormData {
       'reference_number': referenceNumber,
       'notes': notes,
       'payment_proof_file': paymentProofFile,
+      'payment_proff_file': paymentProofFile, // Backend expects this typo
+    };
+  }
+}
+
+class Creator {
+  int? id;
+  String? name;
+
+  Creator({
+    this.id,
+    this.name,
+  });
+
+  factory Creator.fromJson(Map<String, dynamic> json) {
+    return Creator(
+      id: int.tryParse(json['id']?.toString() ?? ''),
+      name: json['name']?.toString(),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
     };
   }
 }

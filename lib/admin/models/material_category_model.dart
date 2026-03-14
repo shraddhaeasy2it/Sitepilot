@@ -27,9 +27,13 @@ class MaterialCategory {
       id: json['id']?.toString() ?? '0',
       name: json['name']?.toString() ?? '',
       isActive: json['is_active'] is int ? json['is_active'] : (json['is_active'] is String ? int.tryParse(json['is_active']) ?? 1 : 1),
-      siteId: json['site_id'],
+      siteId: json['site_id'] ?? 0,
       createdBy: json['created_by'] is int ? json['created_by'] : (json['created_by'] is String ? int.tryParse(json['created_by']) ?? 1 : 1),
-      workingNoId: json['working_no_id'] is int ? json['working_no_id'] : (json['working_no_id'] is String ? int.tryParse(json['working_no_id']) ?? 1 : 1),
+      workingNoId: json['working_no_id'] is int 
+          ? json['working_no_id'] 
+          : (json['working_no_id'] is String 
+              ? int.tryParse(json['working_no_id']) ?? 1 
+              : (json['workspace_id'] is int ? json['workspace_id'] : (json['workspace_id'] is String ? int.tryParse(json['workspace_id']) ?? 1 : 1))),
       status: json['status']?.toString() ?? '0',
       createdAt: json['created_at'] != null ? DateTime.parse(json['created_at'].toString()).toLocal() : DateTime.now(),
       updatedAt: json['updated_at'] != null ? DateTime.parse(json['updated_at'].toString()).toLocal() : DateTime.now(),

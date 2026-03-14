@@ -39,19 +39,19 @@ class MaterialModel {
 
   factory MaterialModel.fromJson(Map<String, dynamic> json) {
     return MaterialModel(
-      id: json['id'] ?? 0,
+      id: ToolModel._parseInt(json['id']),
       name: json['name'] ?? '',
       sku: json['sku'] ?? '',
-      categoryId: json['category_id'] ?? 0,
-      unitId: json['unit_id'] ?? 0,
+      categoryId: ToolModel._parseInt(json['category_id']),
+      unitId: ToolModel._parseInt(json['unit_id']),
       description: json['description'] ?? '',
       price: json['price']?.toString() ?? '0.00',
-      reorderLevel: json['reorder_level'] ?? 0,
-      status: json['status'] ?? '',
+      reorderLevel: ToolModel._parseInt(json['reorder_level']),
+      status: json['status']?.toString() ?? '',
       image: json['image'],
-      siteId: json['site_id'],
-      createdBy: json['created_by'] ?? 0,
-      workspaceId: json['workspace_id'] ?? 0,
+      siteId: ToolModel._parseInt(json['site_id']),
+      createdBy: ToolModel._parseInt(json['created_by']),
+      workspaceId: ToolModel._parseInt(json['workspace_id']),
       createdAt: json['created_at'] ?? '',
       updatedAt: json['updated_at'] ?? '',
       unit: json['unit'] != null ? Unit.fromJson(json['unit']) : null,
@@ -89,15 +89,15 @@ class Unit {
 
   factory Unit.fromJson(Map<String, dynamic> json) {
     return Unit(
-      id: json['id'] ?? 0,
+      id: ToolModel._parseInt(json['id']),
       name: json['name'] ?? '',
       symbol: json['symbol'] ?? '',
       description: json['description'],
-      isActive: json['is_active'] ?? 0,
-      siteId: json['site_id'],
-      createdBy: json['created_by'] ?? 0,
-      workspaceId: json['workspace_id'] ?? 0,
-      status: json['status'] ?? '',
+      isActive: ToolModel._parseInt(json['is_active']),
+      siteId: ToolModel._parseInt(json['site_id']),
+      createdBy: ToolModel._parseInt(json['created_by']),
+      workspaceId: ToolModel._parseInt(json['workspace_id']),
+      status: json['status']?.toString() ?? '',
       createdAt: json['created_at'] ?? '',
       updatedAt: json['updated_at'] ?? '',
     );
@@ -129,13 +129,13 @@ class Category {
 
   factory Category.fromJson(Map<String, dynamic> json) {
     return Category(
-      id: json['id'] ?? 0,
+      id: ToolModel._parseInt(json['id']),
       name: json['name'] ?? '',
-      isActive: json['is_active'] ?? 0,
-      siteId: json['site_id'],
-      createdBy: json['created_by'] ?? 0,
-      workspaceId: json['workspace_id'] ?? 0,
-      status: json['status'] ?? '',
+      isActive: ToolModel._parseInt(json['is_active']),
+      siteId: ToolModel._parseInt(json['site_id']),
+      createdBy: ToolModel._parseInt(json['created_by']),
+      workspaceId: ToolModel._parseInt(json['workspace_id']),
+      status: json['status']?.toString() ?? '',
       createdAt: json['created_at'] ?? '',
       updatedAt: json['updated_at'] ?? '',
     );
@@ -168,9 +168,37 @@ class ToolModel {
     this.material,
   });
 
+  ToolModel copyWith({
+    int? id,
+    int? materialId,
+    int? quantity,
+    String? operationalStatus,
+    int? siteId,
+    int? createdBy,
+    int? workspaceId,
+    String? status,
+    String? createdAt,
+    String? updatedAt,
+    MaterialModel? material,
+  }) {
+    return ToolModel(
+      id: id ?? this.id,
+      materialId: materialId ?? this.materialId,
+      quantity: quantity ?? this.quantity,
+      operationalStatus: operationalStatus ?? this.operationalStatus,
+      siteId: siteId ?? this.siteId,
+      createdBy: createdBy ?? this.createdBy,
+      workspaceId: workspaceId ?? this.workspaceId,
+      status: status ?? this.status,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      material: material ?? this.material,
+    );
+  }
+
   factory ToolModel.fromJson(Map<String, dynamic> json) {
     return ToolModel(
-      id: json['id'] ?? 0,
+      id: _parseInt(json['id']),
       materialId: _parseInt(json['material_id']),
       quantity: _parseInt(json['quantity']),
       operationalStatus: json['operational_status'] ?? '',

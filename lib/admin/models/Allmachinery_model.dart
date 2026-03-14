@@ -237,9 +237,9 @@ class AllMachinery {
 
   factory AllMachinery.fromJson(Map<String, dynamic> json) {
     return AllMachinery(
-      id: json['id'],
+      id: int.tryParse(json['id']?.toString() ?? '0'),
       name: json['name'] ?? '',
-      categoryId: json['category_id'] ?? 0,
+      categoryId: int.tryParse(json['category_id']?.toString() ?? '0') ?? 0,
       modelNumber: json['model_number'] ?? '',
       manufacturer: json['manufacturer'] ?? '',
       purchaseDate: json['purchase_date'] ?? '',
@@ -249,11 +249,11 @@ class AllMachinery {
       description: json['description'],
       vehicleNumber: json['vehicle_number'] ?? '',
       ownedBy: json['owned_by'] ?? '',
-      supplierId: json['supplier_id'],
+      supplierId: int.tryParse(json['supplier_id']?.toString() ?? ''),
       operationalStatus: json['operational_status'] ?? '',
-      siteId: json['site_id'] ?? 0,
-      createdBy: json['created_by'] ?? 0,
-      workspaceId: json['workspace_id'] ?? 0,
+      siteId: int.tryParse(json['site_id']?.toString() ?? '0') ?? 0,
+      createdBy: int.tryParse(json['created_by']?.toString() ?? '0') ?? 0,
+      workspaceId: int.tryParse(json['workspace_id']?.toString() ?? '0') ?? 0,
       status: json['status']?.toString() ?? '0',
       createdAt: json['created_at'],
       updatedAt: json['updated_at'],

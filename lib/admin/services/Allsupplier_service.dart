@@ -1,31 +1,31 @@
-import 'dart:convert';
+import 'dart:io';
+import 'package:dio/dio.dart';
 import 'package:ecoteam_app/admin/models/Allsupplier_model.dart';
-import 'package:http/http.dart' as http;
-
+import 'package:ecoteam_app/contractor/services/dio_service.dart';
 
 class SupplierApiService {
-  static const String baseUrl = 'https://sitepilot.easy2it.in/api';
-  
-  // Headers for API requests
-  static Map<String, String> get headers => {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
-    // Add authorization header if needed
-    // 'Authorization': 'Bearer your_token_here',
-  };
+  // Endpoints using DioService base URL (https://app.ecoteamsolar.com/api)
+  static const String suppliersEndpoint = '/suppliers';
+  static const String categoriesEndpoint = '/supplier-categories';
 
   // GET - Get all suppliers
-  static Future<List<Supplier>> getSuppliers() async {
+  static Future<List<Supplier>> getSuppliers({int? workspaceId, String? siteId}) async {
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/suppliers'),
-        headers: headers,
+      final Map<String, dynamic> queryParameters = {};
+      if (workspaceId != null) queryParameters['workspace_id'] = workspaceId;
+      if (siteId != null && siteId.isNotEmpty) queryParameters['site_id'] = siteId;
+
+      print('Fetching suppliers with params: $queryParameters');
+
+      final response = await DioService.instance.dio.get(
+        suppliersEndpoint,
+        queryParameters: queryParameters,
       );
 
       if (response.statusCode == 200) {
-        final Map<String, dynamic> responseData = json.decode(response.body);
+        final responseData = response.data;
         
-        if (responseData['status'] == 1) {
+        if (responseData['status'] == 1 || responseData['status'] == 'success') {
           final List<dynamic> suppliersData = responseData['data'];
           return suppliersData.map((json) => Supplier.fromJson(json)).toList();
         } else {
@@ -42,13 +42,10 @@ class SupplierApiService {
   // GET - Get supplier by ID
   static Future<Supplier> getSupplierById(int id) async {
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/suppliers/$id'),
-        headers: headers,
-      );
+      final response = await DioService.instance.dio.get('$suppliersEndpoint/$id');
 
       if (response.statusCode == 200) {
-        final Map<String, dynamic> responseData = json.decode(response.body);
+        final responseData = response.data;
         
         if (responseData['status'] == 1) {
           return Supplier.fromJson(responseData['data']);
@@ -66,13 +63,10 @@ class SupplierApiService {
   // GET - Get all supplier categories
   static Future<List<SupplierCategory>> getSupplierCategories() async {
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/supplier-categories'),
-        headers: headers,
-      );
+      final response = await DioService.instance.dio.get(categoriesEndpoint);
 
       if (response.statusCode == 200) {
-        final Map<String, dynamic> responseData = json.decode(response.body);
+        final responseData = response.data;
         
         if (responseData['status'] == 1) {
           final List<dynamic> categoriesData = responseData['data'];
@@ -89,16 +83,33 @@ class SupplierApiService {
   }
 
   // POST - Create new supplier
-  static Future<Supplier> addSupplier(Supplier supplier) async {
+  static Future<Supplier> addSupplier(Supplier supplier, {File? screenshot}) async {
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/suppliers'),
-        headers: headers,
-        body: json.encode(supplier.toJson()),
+      final formData = FormData();
+
+      // Add fields from supplier model
+      final supplierData = supplier.toJson();
+      supplierData.forEach((key, value) {
+        if (value != null) {
+          formData.fields.add(MapEntry(key, value.toString()));
+        }
+      });
+
+      // Add screenshot if available
+      if (screenshot != null) {
+        formData.files.add(MapEntry(
+          'upi_screenshot_1',
+          await MultipartFile.fromFile(screenshot.path),
+        ));
+      }
+
+      final response = await DioService.instance.dio.post(
+        suppliersEndpoint,
+        data: formData,
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        final Map<String, dynamic> responseData = json.decode(response.body);
+        final responseData = response.data;
         
         if (responseData['status'] == 1) {
           return Supplier.fromJson(responseData['data']);
@@ -116,14 +127,13 @@ class SupplierApiService {
   // PUT - Update supplier
   static Future<Supplier> updateSupplier(Supplier supplier) async {
     try {
-      final response = await http.put(
-        Uri.parse('$baseUrl/suppliers/${supplier.id}'),
-        headers: headers,
-        body: json.encode(supplier.toJson()),
+      final response = await DioService.instance.dio.put(
+        '$suppliersEndpoint/${supplier.id}',
+        data: supplier.toJson(),
       );
 
       if (response.statusCode == 200) {
-        final Map<String, dynamic> responseData = json.decode(response.body);
+        final responseData = response.data;
         
         if (responseData['status'] == 1) {
           return Supplier.fromJson(responseData['data']);
@@ -141,16 +151,16 @@ class SupplierApiService {
   // DELETE - Delete supplier
   static Future<void> deleteSupplier(int id) async {
     try {
-      final response = await http.delete(
-        Uri.parse('$baseUrl/suppliers/$id'),
-        headers: headers,
-      );
+      final response = await DioService.instance.dio.delete('$suppliersEndpoint/$id');
 
       if (response.statusCode == 200) {
-        final Map<String, dynamic> responseData = json.decode(response.body);
+        final responseData = response.data;
         
+        // Status might be 1 (success)
         if (responseData['status'] != 1) {
-          throw Exception('API returned error: ${responseData['message']}');
+           // Some APIs might return success message even if status != 1? 
+           // Stick closer to original logic:
+           throw Exception('API returned error: ${responseData['message']}');
         }
       } else {
         throw Exception('Failed to delete supplier. Status code: ${response.statusCode}');

@@ -15,38 +15,18 @@ class MaterialCategoryProvider with ChangeNotifier {
       createdAt: DateTime.now().subtract(const Duration(days: 25)),
       updatedAt: DateTime.now().subtract(const Duration(days: 3)),
     ),
-    MaterialCategory(
-      id: '3',
-      name: '	Finishing Materials',
-      createdAt: DateTime.now().subtract(const Duration(days: 20)),
-      updatedAt: DateTime.now().subtract(const Duration(days: 2)),
-    ),
-    MaterialCategory(
-      id: '4',
-      name: '	Electrical Items',
-      createdAt: DateTime.now().subtract(const Duration(days: 15)),
-      updatedAt: DateTime.now().subtract(const Duration(days: 1)),
-    ),
-    MaterialCategory(
-      id: '5',
-      name: '	Plumbing Materials',
-      createdAt: DateTime.now().subtract(const Duration(days: 10)),
-      updatedAt: DateTime.now(),
-    ),
-    MaterialCategory(
-      id: '6',
-      name: 'Tiles',
-      createdAt: DateTime.now().subtract(const Duration(days: 8)),
-      updatedAt: DateTime.now(),
-    ),
+
+  
   ];
 
   bool _isLoading = false;
   String _searchQuery = '';
+  String _error = '';
 
   List<MaterialCategory> get categories => _categories;
   bool get isLoading => _isLoading;
   String get searchQuery => _searchQuery;
+  String get error => _error;
 
   List<MaterialCategory> get filteredCategories {
     if (_searchQuery.isEmpty) {
@@ -67,14 +47,17 @@ class MaterialCategoryProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> addCategory(MaterialCategory category) async {
+  Future<void> addCategory(String name) async {
     setLoading(true);
+    _error = '';
+    notifyListeners();
     try {
       // Simulate API call
       await Future.delayed(const Duration(milliseconds: 500));
       
-      final newCategory = category.copyWith(
+      final newCategory = MaterialCategory(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
+        name: name,
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       );
@@ -82,6 +65,7 @@ class MaterialCategoryProvider with ChangeNotifier {
       _categories.insert(0, newCategory);
       notifyListeners();
     } catch (e) {
+      _error = e.toString();
       throw Exception('Failed to add category: $e');
     } finally {
       setLoading(false);
@@ -90,6 +74,8 @@ class MaterialCategoryProvider with ChangeNotifier {
 
   Future<void> updateCategory(MaterialCategory category) async {
     setLoading(true);
+    _error = '';
+    notifyListeners();
     try {
       // Simulate API call
       await Future.delayed(const Duration(milliseconds: 500));
@@ -100,6 +86,7 @@ class MaterialCategoryProvider with ChangeNotifier {
         notifyListeners();
       }
     } catch (e) {
+      _error = e.toString();
       throw Exception('Failed to update category: $e');
     } finally {
       setLoading(false);
@@ -108,6 +95,8 @@ class MaterialCategoryProvider with ChangeNotifier {
 
   Future<void> deleteCategory(String categoryId) async {
     setLoading(true);
+    _error = '';
+    notifyListeners();
     try {
       // Simulate API call
       await Future.delayed(const Duration(milliseconds: 500));
@@ -115,6 +104,7 @@ class MaterialCategoryProvider with ChangeNotifier {
       _categories.removeWhere((category) => category.id == categoryId);
       notifyListeners();
     } catch (e) {
+      _error = e.toString();
       throw Exception('Failed to delete category: $e');
     } finally {
       setLoading(false);
@@ -123,11 +113,14 @@ class MaterialCategoryProvider with ChangeNotifier {
 
   Future<void> refreshCategories() async {
     setLoading(true);
+    _error = '';
+    notifyListeners();
     try {
       // Simulate API call to refresh data
       await Future.delayed(const Duration(seconds: 1));
       notifyListeners();
     } catch (e) {
+      _error = e.toString();
       throw Exception('Failed to refresh categories: $e');
     } finally {
       setLoading(false);

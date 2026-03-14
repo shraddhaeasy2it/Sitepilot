@@ -63,9 +63,9 @@ class Supplier {
 
   factory Supplier.fromJson(Map<String, dynamic> json) {
     return Supplier(
-      id: json['id'],
+      id: json['id'] is int ? json['id'] : int.tryParse(json['id'].toString()) ?? 0,
       name: json['name'] ?? '',
-      categoryId: json['category_id'] ?? 0,
+      categoryId: json['category_id'] is int ? json['category_id'] : int.tryParse(json['category_id'].toString()) ?? 0,
       type: json['type'] ?? '',
       contactPerson: json['contact_person'] ?? '',
       phone: json['phone'] ?? '',
@@ -84,10 +84,10 @@ class Supplier {
       accountNumber: json['account_number'],
       ifscCode: json['ifsc_code'],
       paymentTerms: json['payment_terms'],
-      siteId: json['site_id'] ?? 0,
-      workspaceId: json['workspace_id'] ?? 0,
-      createdBy: json['created_by'] ?? 0,
-      isActive: json['is_active'] ?? 1,
+      siteId: json['site_id'] is int ? json['site_id'] : int.tryParse(json['site_id'].toString()) ?? 0,
+      workspaceId: json['workspace_id'] is int ? json['workspace_id'] : int.tryParse(json['workspace_id'].toString()) ?? 0,
+      createdBy: json['created_by'] is int ? json['created_by'] : int.tryParse(json['created_by'].toString()) ?? 0,
+      isActive: json['is_active'] is int ? json['is_active'] : int.tryParse(json['is_active'].toString()) ?? 1,
       status: json['status']?.toString() ?? '0',
       createdAt: json['created_at'],
       updatedAt: json['updated_at'],
@@ -161,13 +161,13 @@ class SupplierCategory {
 
   factory SupplierCategory.fromJson(Map<String, dynamic> json) {
     return SupplierCategory(
-      id: json['id'],
+      id: json['id'] is int ? json['id'] : int.tryParse(json['id'].toString()) ?? 0,
       name: json['name'] ?? '',
       description: json['description'] ?? '',
-      siteId: json['site_id'],
-      createdBy: json['created_by'] ?? 0,
-      workspaceId: json['workspace_id'] ?? 0,
-      isActive: json['is_active'] ?? 1,
+      siteId: json['site_id'] != null ? (json['site_id'] is int ? json['site_id'] : int.tryParse(json['site_id'].toString()) ?? 0) : null,
+      createdBy: json['created_by'] is int ? json['created_by'] : int.tryParse(json['created_by'].toString()) ?? 0,
+      workspaceId: json['workspace_id'] is int ? json['workspace_id'] : int.tryParse(json['workspace_id'].toString()) ?? 0,
+      isActive: json['is_active'] is int ? json['is_active'] : int.tryParse(json['is_active'].toString()) ?? 1,
       status: json['status']?.toString() ?? '0',
       createdAt: json['created_at'],
       updatedAt: json['updated_at'],
@@ -203,7 +203,7 @@ class SupplierType {
 
   factory SupplierType.fromJson(Map<String, dynamic> json) {
     return SupplierType(
-      id: json['id'],
+      id: json['id'] is int ? json['id'] : int.tryParse(json['id'].toString()) ?? 0,
       name: json['name'] ?? '',
       description: json['description'] ?? '',
     );

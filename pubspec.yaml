@@ -36,18 +36,27 @@ dependencies:
   flutter_screenutil: ^5.9.0
   syncfusion_flutter_pdf: ^23.1.44
   table_calendar: ^3.0.9
-  url_launcher: ^6.3.0
+  url_launcher: ^6.3.2
   font_awesome_flutter: ^10.4.0
   printing: ^5.12.0
   dio: ^5.4.0
   firebase_core: ^3.6.0
   firebase_auth: ^5.3.0
+  firebase_messaging: ^15.2.0
+  device_info_plus: ^11.3.0
+  package_info_plus: ^8.2.1
+  flutter_local_notifications: ^18.0.1
   flutter_secure_storage: ^9.1.0
   change_app_package_name: ^1.5.0
   flutter_phone_direct_caller: ^2.1.1
   pusher_channels_flutter: ^2.4.0
   html: ^0.15.4
   location: ^5.0.0
+  jwt_decoder: ^2.0.1
+  flutter_map: ^8.2.2
+  latlong2: ^0.9.1
+  excel: ^4.0.6
+
   
   
 dev_dependencies:
@@ -56,6 +65,7 @@ dev_dependencies:
   flutter_lints: ^5.0.0
   flutter_launcher_icons: ^0.13.1
   flutter_native_splash: ^2.4.0
+  rename: ^3.1.0
 
 flutter_launcher_name:
   name: "SitePilot"
@@ -63,7 +73,7 @@ flutter_launcher_name:
 flutter_icons:
   android: true
   ios: true
-  image_path: "assets/image.png"  
+  image_path: "assets/sitepilot-logo.png"  
 
 flutter:
   uses-material-design: true

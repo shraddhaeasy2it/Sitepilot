@@ -2,11 +2,14 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:ecoteam_app/contractor/models/dashboard_model.dart';
 import 'package:ecoteam_app/contractor/models/site_model.dart';
-import 'package:http/http.dart' as http;
+import 'package:ecoteam_app/contractor/models/user_notification_model.dart';
+
+import 'package:dio/dio.dart';
+import 'package:ecoteam_app/contractor/services/dio_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
-  static const String baseUrl = 'https://sitepilot.easy2it.in/api';
+  static const String baseUrl = 'https://app.ecoteamsolar.com/api';
   
   // Static list to maintain sites across the app with company association
   static List<Site> _sites = [
@@ -141,89 +144,226 @@ class ApiService {
 
  
 
+  // Generic GET Request
+  static Future<Map<String, dynamic>> getRequest(String endpoint) async {
+    try {
+      final response = await DioService.instance.dio.get(endpoint);
+
+      if (response.statusCode == 200) {
+        if (response.data is Map<String, dynamic>) {
+          return response.data;
+        } else if (response.data is String) {
+          try {
+            return jsonDecode(response.data);
+          } catch (e) {
+            return {'status': 0, 'message': 'Invalid JSON response'};
+          }
+        }
+        return {'status': 1, 'data': response.data};
+      } else {
+        return {'status': 0, 'message': 'Request failed with status: ${response.statusCode}'};
+      }
+    } catch (e) {
+      print('API GET Error: $e');
+      return {'status': 0, 'message': 'Error: $e'};
+    }
+  }
+
+  // Generic POST Request
+  static Future<Map<String, dynamic>> postRequest(String endpoint, Map<String, dynamic> data) async {
+    try {
+      final response = await DioService.instance.dio.post(
+        endpoint,
+        data: data,
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        if (response.data is Map<String, dynamic>) {
+            return response.data;
+        } else if (response.data is String) {
+             try {
+                return jsonDecode(response.data);
+             } catch(e) {
+                return {'status': 0, 'message': 'Invalid JSON response'};
+             }
+        }
+        return {'status': 1, 'data': response.data};
+      } else {
+        return {'status': 0, 'message': 'Request failed with status: ${response.statusCode}'};
+      }
+    } catch (e) {
+      print('API POST Error: $e');
+      return {'status': 0, 'message': 'Error: $e'};
+    }
+  }
+
   // Clock In/Out API
   Future<Map<String, dynamic>> clockInOut({
     required String type,
     required String userId,
+    required String employeeId,
     required String workspaceId,
     required String siteId,
     required String latitude,
     required String longitude,
     String? attendanceId,
-    File? imageFile, // Added image parameter
+    File? imageFile, 
   }) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      var token = prefs.getString('auth_token');
+      // Handle siteId that might be like "site6" or just "6"
+      var parsedSiteId = siteId;
+      if (parsedSiteId.toLowerCase().startsWith('site')) {
+        parsedSiteId = parsedSiteId.substring(4);
+      }
+      
+      final Map<String, dynamic> body = {
+        'type': type,
+        'user_id': userId,
+        'employee_id': employeeId,
+        'workspace_id': workspaceId,
+        'site_id': parsedSiteId,
+        'latitude': latitude,
+        'longitude': longitude,
+        if (attendanceId != null) 'attendence_id': attendanceId,
+      };
 
+      if (imageFile != null) {
+        String imageField = type == 'clockin' ? 'clock_in_image' : 'clock_out_image';
+        String fileName = imageFile.path.split('/').last;
+        body[imageField] = await MultipartFile.fromFile(
+          imageFile.path,
+          filename: fileName,
+        );
+      }
+
+      FormData formData = FormData.fromMap(body);
+
+      print('ClockInOut Request Data: $body');
+      if (imageFile != null) print('ClockInOut Image: ${imageFile.path}');
+
+      final response = await DioService.instance.dio.post(
+        '/Hrm/clock-in-out',
+        data: formData,
+      );
+
+      print('ClockInOut Response: ${response.statusCode} - ${response.data}');
+
+      if (response.statusCode == 200) {
+        return {'success': true, 'data': response.data};
+      } else {
+        // Dio functionality usually throws on non-200, so this might be redundant 
+        // if using standard Dio options, but safe to keep for logic flow
+        return {
+          'success': false, 
+          'message': 'Failed to $type. Status: ${response.statusCode}'
+        };
+      }
+    } on DioException catch (e) {
+       print('ClockInOut DioError: ${e.message}');
+       String errorMessage = 'Failed to $type';
+       if (e.response != null) {
+         try {
+            final errorData = e.response?.data;
+             if (errorData is Map && errorData['message'] != null) {
+               errorMessage = errorData['message'];
+             }
+         } catch (_) {}
+       }
+       return {'success': false, 'message': errorMessage};
+    } catch (e) {
+      print('ClockInOut Error: $e');
+      return {'success': false, 'message': 'Error: $e'};
+    }
+  }
+
+  // General Transfers API (Reports)
+  Future<List<dynamic>> fetchGeneralTransfers({
+    required String siteId,
+    required String workspaceId,
+    String transferType = 'all',
+  }) async {
+    try {
       // Handle siteId that might be like "site6" or just "6"
       var parsedSiteId = siteId;
       if (parsedSiteId.toLowerCase().startsWith('site')) {
         parsedSiteId = parsedSiteId.substring(4);
       }
 
-      var uri = Uri.parse('$baseUrl/Hrm/clock-in-out');
-      var request = http.MultipartRequest('POST', uri);
+      final response = await DioService.instance.dio.get(
+        '/general-transfers',
+        queryParameters: {
+          'site_id': parsedSiteId,
+          'workspace_id': workspaceId,
+          'transfer_type': transferType,
+        },
+      );
 
-      request.headers.addAll({
-        'Authorization': 'Bearer $token',
-        'Accept': 'application/json',
-      });
-
-      request.fields['type'] = type;
-      request.fields['user_id'] = userId;
-      request.fields['workspace_id'] = workspaceId;
-      request.fields['site_id'] = parsedSiteId;
-      request.fields['latitude'] = latitude;
-      request.fields['longitude'] = longitude;
-      if (attendanceId != null) {
-        request.fields['attendence_id'] = attendanceId;
+      if (response.statusCode == 200 && response.data['status'] == 'success') {
+        return response.data['data'] as List<dynamic>;
       }
-
-      if (imageFile != null) {
-        // Determine field name based on type
-        String imageField = type == 'clockin' ? 'clock_in_image' : 'clock_out_image';
-        
-        var stream = http.ByteStream(imageFile.openRead());
-        var length = await imageFile.length();
-        
-        var multipartFile = http.MultipartFile(
-          imageField,
-          stream,
-          length,
-          filename: imageFile.path.split('/').last,
-        );
-        request.files.add(multipartFile);
-      }
-
-      print('ClockInOut Request Fields: ${request.fields}');
-      if (imageFile != null) print('ClockInOut Image: ${imageFile.path}');
-
-      var streamedResponse = await request.send();
-      var response = await http.Response.fromStream(streamedResponse);
-
-      print('ClockInOut Response: ${response.statusCode} - ${response.body}');
-
-      if (response.statusCode == 200) {
-        return {'success': true, 'data': jsonDecode(response.body)};
-      } else {
-        String errorMessage = 'Failed to $type. Status: ${response.statusCode}';
-        try {
-          final errorData = jsonDecode(response.body);
-          if (errorData['message'] != null) {
-            errorMessage = errorData['message'];
-          }
-        } catch (_) {
-          // Parsing failed, use default message
-        }
-        return {
-          'success': false, 
-          'message': errorMessage
-        };
-      }
+      return [];
     } catch (e) {
-      print('ClockInOut Error: $e');
-      return {'success': false, 'message': 'Error: $e'};
+      print('Error fetching transfers: $e');
+      return [];
+    }
+  }
+  // Fetch User Notifications
+  Future<UserNotificationResponse?> fetchUserNotifications({
+    int page = 1,
+    String? siteId,
+    int? workspaceId,
+  }) async {
+    try {
+      final queryParams = <String, dynamic>{'page': page};
+      
+      if (siteId != null) {
+        // Handle if siteId comes as "site2" -> "2"
+        var parsedSiteId = siteId;
+        if (parsedSiteId.toLowerCase().startsWith('site')) {
+           parsedSiteId = parsedSiteId.substring(4);
+        }
+        queryParams['site'] = parsedSiteId;
+      }
+      
+      if (workspaceId != null) {
+        queryParams['workspace'] = workspaceId;
+      }
+
+      final response = await DioService.instance.dio.get(
+        '/UserNotifications',
+        queryParameters: queryParams,
+      );
+
+      if (response.statusCode == 200 && response.data['status'] == 'success') {
+        return UserNotificationResponse.fromJson(response.data);
+      }
+      return null;
+    } catch (e) {
+      print('Error fetching notifications: $e');
+      return null;
+    }
+  }
+  Future<bool> markNotificationAsRead(int notificationId) async {
+    try {
+      final response = await DioService.instance.dio.post(
+        '/UserNotifications/$notificationId/read',
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Error marking notification as read: $e');
+      return false;
+    }
+  }
+
+  Future<bool> markAllNotificationsAsRead() async {
+    try {
+      final response = await DioService.instance.dio.post(
+        '/UserNotifications/read-all',
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Error marking all notifications as read: $e');
+      return false;
     }
   }
 }

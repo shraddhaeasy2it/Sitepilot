@@ -81,6 +81,8 @@ class ManpowerRecord {
   String? createdAt;
   String? updatedAt;
   List<ManpowerDetail>? details;
+  int? activityId;
+  int? activityCompletedId;
 
   ManpowerRecord({
     this.id,
@@ -96,6 +98,8 @@ class ManpowerRecord {
     this.createdAt,
     this.updatedAt,
     this.details,
+    this.activityId,
+    this.activityCompletedId,
   });
 
   factory ManpowerRecord.fromJson(Map<String, dynamic> json) {
@@ -115,22 +119,31 @@ class ManpowerRecord {
         }
       }
 
-      // Calculate total count from details
-      int total = details.fold(0, (sum, detail) => sum + detail.count);
+      // Calculate total count: Prioritize 'total_count' from API, fallback to details sum
+      int total = 0;
+      if (json['total_count'] != null) {
+        if (json['total_count'] is int) {
+          total = json['total_count'];
+        } else if (json['total_count'] is String) {
+          total = int.tryParse(json['total_count']) ?? 0;
+        }
+      } else {
+        total = details.fold(0, (sum, detail) => sum + detail.count);
+      }
 
       // Get supplier and site names from the maps if not provided in JSON
       String supplierName = '';
       if (json['supplier'] != null && json['supplier'] is Map) {
         supplierName = json['supplier']['name']?.toString() ?? '';
       } else if (json['supplier_id'] != null) {
-        supplierName = ManpowerService.getSupplierNameById(json['supplier_id']);
+        supplierName = ManpowerService.getSupplierNameById(int.tryParse(json['supplier_id'].toString()) ?? 0);
       }
 
       String siteName = '';
       if (json['site'] != null && json['site'] is Map) {
         siteName = json['site']['name']?.toString() ?? '';
       } else if (json['site_id'] != null) {
-        siteName = ManpowerService.getSiteNameById(json['site_id']);
+        siteName = ManpowerService.getSiteNameById(int.tryParse(json['site_id'].toString()) ?? 0);
       }
 
       return ManpowerRecord(
@@ -147,6 +160,8 @@ class ManpowerRecord {
         site: siteName,
         manpowerCounts: counts,
         details: details,
+        activityId: json['activity_id'] is int ? json['activity_id'] : int.tryParse(json['activity_id']?.toString() ?? ''),
+        activityCompletedId: json['activity_completed_id'] is int ? json['activity_completed_id'] : int.tryParse(json['activity_completed_id']?.toString() ?? ''),
       );
     } catch (e) {
       print('Error parsing ManpowerRecord: $e');
@@ -166,9 +181,17 @@ class ManpowerRecord {
             'man_power_type_id': typeId,
             'count': count,
           });
+        } else {
+          // Debug print if type ID not found
+          print('Warning: Manpower type "$type" not found in map (ID=0), skipping.');
         }
       }
     });
+
+    if (detailsJson.isEmpty && manpowerCounts.isNotEmpty) {
+       print('Warning: detailsJson is empty but manpowerCounts is not! This means no types were mapped.');
+       print('Available types in map: ${ManpowerService.typeMap.keys.length}');
+    }
 
     return {
       if (id != null) 'id': id,
@@ -178,6 +201,8 @@ class ManpowerRecord {
       'workspace_id': workspaceId ?? 1,
       'created_by': createdBy ?? 1,
       'details': detailsJson,
+      if (activityId != null) 'activity_id': activityId,
+      if (activityCompletedId != null) 'activity_completed_id': activityCompletedId,
     };
   }
 

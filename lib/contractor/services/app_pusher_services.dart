@@ -60,7 +60,13 @@ class AppPusherManager {
         },
         onEvent: _handleGlobalEvent,
         onAuthorizer: (channelName, socketId, options) async {
-          return await _authorizeChannel(channelName, socketId, token);
+          final prefs = await SharedPreferences.getInstance();
+          final freshToken = prefs.getString('auth_token') ?? '';
+          if (freshToken.isEmpty) {
+             print("❌ AppPusherManager: Token missing during re-auth");
+             return null;
+          }
+          return await _authorizeChannel(channelName, socketId, freshToken);
         },
       );
 
@@ -80,7 +86,7 @@ class AppPusherManager {
     print("🔑 AppPusherManager Authorizing: $channelName");
     try {
       final response = await http.post(
-        Uri.parse('https://sitepilot.easy2it.in/broadcasting/auth'),
+        Uri.parse('https://app.ecoteamsolar.com/broadcasting/auth'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',

@@ -36,19 +36,19 @@ class ChatContact {
       avatarUrl: json['avatar'] != null && json['avatar'].toString().isNotEmpty
           ? (json['avatar'].toString().startsWith('http')
               ? json['avatar'].toString()
-              : 'https://sitepilot.easy2it.in/${json['avatar']}')
+              : 'https://app.ecoteamsolar.com/${json['avatar']}')
           : null,
-      mobileNumber: json['mobile_no']?.toString(), // Parse from API
+      mobileNumber: json['mobile_no']?.toString(), 
       isOnline: json['is_active'] == true || json['is_active'] == 1,
       lastSeen: json['last_seen'] != null
           ? DateTime.tryParse(json['last_seen'].toString())
           : null,
-      lastMessage: json['last_message']?.toString(),
-      lastMessageTime: json['last_message_time'] != null
-          ? DateTime.tryParse(json['last_message_time'].toString())
+      lastMessage: json['last_message']?.toString() ?? json['lastMessage']?.toString(),
+      lastMessageTime: (json['last_message_time'] ?? json['lastMessageAt']) != null
+          ? DateTime.tryParse((json['last_message_time'] ?? json['lastMessageAt']).toString())
           : null,
-      unreadCount: json['unread_count'] != null
-          ? int.tryParse(json['unread_count'].toString())
+      unreadCount: (json['unread_count'] ?? json['unseenCount']) != null
+          ? int.tryParse((json['unread_count'] ?? json['unseenCount']).toString())
           : 0,
     );
   }
@@ -110,6 +110,23 @@ class ChatMessage {
       );
     }
     
+    // Determine status from status field or seen field
+    MessageStatus status = MessageStatus.sent;
+    if (json['status'] != null) {
+      final statusStr = json['status'].toString().toLowerCase();
+      status = MessageStatus.values.firstWhere(
+        (e) => e.toString().split('.').last == statusStr,
+        orElse: () => MessageStatus.sent,
+      );
+    } else if (json['seen'] != null) {
+      final seenVal = json['seen'].toString();
+      if (seenVal == '1') {
+        status = MessageStatus.seen;
+      } else {
+        status = MessageStatus.sent;
+      }
+    }
+
     return ChatMessage(
       id: json['id']?.toString() ?? '',
       conversationId: json['conversation_id']?.toString() ?? '',
@@ -121,10 +138,7 @@ class ChatMessage {
           : DateTime.now(),
       isFromCurrentUser: json['is_from_current_user'] ?? false,
       messageType: type,
-      status: MessageStatus.values.firstWhere(
-        (e) => e.toString().split('.').last == (json['status']?.toString() ?? 'sent'),
-        orElse: () => MessageStatus.sent,
-      ),
+      status: status,
       metadata: json['metadata'] != null
           ? Map<String, dynamic>.from(json['metadata'])
           : null,
@@ -174,6 +188,7 @@ class ChatGroup {
   final DateTime? createdAt;
   final String? lastMessage;
   final DateTime? lastMessageTime;
+  final int unreadCount;
 
   ChatGroup({
     required this.id,
@@ -184,6 +199,7 @@ class ChatGroup {
     this.createdAt,
     this.lastMessage,
     this.lastMessageTime,
+    this.unreadCount = 0,
   });
 
   factory ChatGroup.fromJson(Map<String, dynamic> json) {
@@ -194,7 +210,7 @@ class ChatGroup {
       avatarUrl: json['avatar_url'] != null && json['avatar_url'].toString().isNotEmpty
           ? (json['avatar_url'].toString().startsWith('http')
               ? json['avatar_url'].toString()
-              : 'https://sitepilot.easy2it.in/${json['avatar_url']}')
+              : 'https://app.ecoteamsolar.com/${json['avatar_url']}')
           : null,
       participants: json['participants'] != null
           ? (json['participants'] as List)
@@ -208,6 +224,7 @@ class ChatGroup {
       lastMessageTime: json['last_message_time'] != null
           ? DateTime.tryParse(json['last_message_time'].toString())
           : null,
+      unreadCount: int.tryParse(json['unread_count']?.toString() ?? '0') ?? 0,
     );
   }
 
@@ -221,7 +238,32 @@ class ChatGroup {
       'created_at': createdAt?.toIso8601String(),
       'last_message': lastMessage,
       'last_message_time': lastMessageTime?.toIso8601String(),
+      'unread_count': unreadCount,
     };
+  }
+
+  ChatGroup copyWith({
+    String? id,
+    String? name,
+    String? description,
+    String? avatarUrl,
+    List<ChatParticipant>? participants,
+    DateTime? createdAt,
+    String? lastMessage,
+    DateTime? lastMessageTime,
+    int? unreadCount,
+  }) {
+    return ChatGroup(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      description: description ?? this.description,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
+      participants: participants ?? this.participants,
+      createdAt: createdAt ?? this.createdAt,
+      lastMessage: lastMessage ?? this.lastMessage,
+      lastMessageTime: lastMessageTime ?? this.lastMessageTime,
+      unreadCount: unreadCount ?? this.unreadCount,
+    );
   }
 }
 
@@ -248,7 +290,7 @@ class ChatParticipant {
       avatarUrl: json['avatar_url'] != null && json['avatar_url'].toString().isNotEmpty
           ? (json['avatar_url'].toString().startsWith('http')
               ? json['avatar_url'].toString()
-              : 'https://sitepilot.easy2it.in/${json['avatar_url']}')
+              : 'https://app.ecoteamsolar.com/${json['avatar_url']}')
           : null,
       isOnline: json['is_online'] ?? false,
     );

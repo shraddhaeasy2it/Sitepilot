@@ -1,6 +1,6 @@
 class Employee {
-  final String id;
-  final int? userId;
+  String id;
+  int? userId;
   String name;
   String? dob;
   String gender;
@@ -59,6 +59,8 @@ class Employee {
   Map<String, String>? branches;
   Map<String, String>? roles;
   Map<String, String>? locationTypes;
+  Map<String, String>? assignProjects;
+  Map<String, String>? documentUrls; // Added documentUrls
   List<Map<String, dynamic>>? documentList;
 
   // Stored names from nested API objects
@@ -125,6 +127,8 @@ class Employee {
     this.branches,
     this.roles,
     this.locationTypes,
+    this.assignProjects,
+    this.documentUrls,
     this.documentList,
     String? branchName,
     String? departmentName,
@@ -132,6 +136,38 @@ class Employee {
   }) : _branchName = branchName,
        _departmentName = departmentName,
        _designationName = designationName;
+  
+  static int? _parseInt(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    return int.tryParse(value.toString());
+  }
+
+  static Map<String, String>? _parseDocumentUrls(Map<String, dynamic> json) {
+    // Try to find a field that contains document files/urls
+    // This depends on actual API response structure.
+    // Assuming 'documents' might be a list of objects with 'id' and 'file'/'path'
+    // OR 'employee_documents' or similar.
+    
+    // Check if 'documents' is a List of Maps
+    if (json['documents'] is List) {
+       final Map<String, String> urls = {};
+       for (var item in json['documents']) {
+         if (item is Map) {
+           // keys based on user screenshot: document_id matches the type ID, document_value is the path
+           final id = item['document_id']?.toString(); 
+           final path = item['document_value']?.toString();
+           
+           if (id != null && path != null) {
+             urls[id] = path;
+           }
+         }
+       }
+       if (urls.isNotEmpty) return urls;
+    }
+    
+    return null; 
+  }
 
   factory Employee.fromJson(Map<String, dynamic> json) {
     return Employee(
@@ -149,7 +185,7 @@ class Employee {
       branchId: int.tryParse(json['branch_id']?.toString() ?? ''),
       departmentId: int.tryParse(json['department_id']?.toString() ?? ''),
       designationId: int.tryParse(json['designation_id']?.toString() ?? ''),
-      roleId: int.tryParse(json['role_id']?.toString() ?? json['role']?.toString() ?? ''), // Parsing role_id or role
+      roleId: _parseInt(json['role_id']) ?? _parseInt(json['role'] is Map ? json['role']['id'] : json['role']), // Parsing role_id or role object/value
       companyDoj: json['company_doj']?.toString(),
       documents: json['documents']?.toString(),
       accountHolderName: json['account_holder_name']?.toString(),
@@ -187,8 +223,12 @@ class Employee {
       salaryType: json['salary_type']?.toString(),
       createdAt: json['created_at'] != null ? DateTime.tryParse(json['created_at']) : null,
       updatedAt: json['updated_at'] != null ? DateTime.tryParse(json['updated_at']) : null,
-      siteId: int.tryParse(json['site_id']?.toString() ?? ''),
+      siteId: _parseInt(json['site_id']) ?? _parseInt(json['project_id']) ?? _parseInt(json['project'] is Map ? json['project']['id'] : null),
       
+      // Parse document URLs if available
+      documentUrls: _parseDocumentUrls(json),
+      documentList: json['documents'] is List ? List<Map<String, dynamic>>.from(json['documents']) : null,
+
       // Parse nested objects for names
       branchName: json['branch'] is Map ? json['branch']['name']?.toString() : null,
       departmentName: json['department'] is Map ? json['department']['name']?.toString() : null,
@@ -198,6 +238,8 @@ class Employee {
 
   // Factory method for creating from API response with metadata
   factory Employee.fromApiResponse(Map<String, dynamic> response) {
+    print('🔍 Employee.fromApiResponse: Response Keys: ${response.keys.toList()}');
+
     final employee = Employee(
       id: '',
       name: '',
@@ -205,44 +247,61 @@ class Employee {
       email: '',
       workspace: int.tryParse(response['workspace_id']?.toString() ?? '') ?? 3,
       createdBy: int.tryParse(response['created_by']?.toString() ?? '') ?? 9,
+      employeesId: response['employeesId']?.toString(), // Map employeesId from API
     );
     
-    // Extract metadata if available
-    if (response['departments'] is Map) {
-      employee.departments = Map<String, String>.from(
-        response['departments'].map((key, value) => MapEntry(key.toString(), value.toString()))
-      );
+    // Extract metadata using safe parser
+    try {
+      employee.departments = _safeParseMap(response['departments'], 'departments');
+      employee.designations = _safeParseMap(response['designations'], 'designations');
+      employee.branches = _safeParseMap(response['branches'], 'branches');
+      employee.roles = _safeParseMap(response['role'], 'role'); // 'role' key based on screenshot/code
+      employee.locationTypes = _safeParseMap(response['location_type'], 'location_type');
+      employee.assignProjects = _safeParseMap(response['assign_project'], 'assign_project');
+      
+      if (response['documents'] != null) {
+         if (response['documents'] is List) {
+            employee.documentList = List<Map<String, dynamic>>.from(response['documents']);
+         }
+      }
+    } catch (e) {
+      print('❌ Error parsing Employee.fromApiResponse metadata: $e');
     }
     
-    if (response['designations'] is Map) {
-      employee.designations = Map<String, String>.from(
-        response['designations'].map((key, value) => MapEntry(key.toString(), value.toString()))
-      );
-    }
-    
-    if (response['branches'] is Map) {
-      employee.branches = Map<String, String>.from(
-        response['branches'].map((key, value) => MapEntry(key.toString(), value.toString()))
-      );
-    }
-    
-    if (response['role'] is Map) {
-      employee.roles = Map<String, String>.from(
-        response['role'].map((key, value) => MapEntry(key.toString(), value.toString()))
-      );
-    }
-    
-    if (response['location_type'] is Map) {
-      employee.locationTypes = Map<String, String>.from(
-        response['location_type'].map((key, value) => MapEntry(key.toString(), value.toString()))
-      );
-    }
-    
-    if (response['documents'] is List) {
-      employee.documentList = List<Map<String, dynamic>>.from(response['documents']);
-    }
-    
+    print('✅ Employee.fromApiResponse returning employee with ${employee.branches?.length} branches, ${employee.departments?.length} departments');
     return employee;
+  }
+
+  static Map<String, String>? _safeParseMap(dynamic data, String fieldName) {
+    if (data == null) {
+      print('   ⚠️ $fieldName is NULL');
+      return null;
+    }
+    
+    if (data is Map) {
+      try {
+        final map = Map<String, String>.from(
+          data.map((key, value) => MapEntry(key.toString(), value.toString()))
+        );
+        print('   ✅ Parsed $fieldName: ${map.length} items');
+        return map;
+      } catch (e) {
+        print('   ❌ Error converting $fieldName map values: $e');
+        return null;
+      }
+    }
+    
+    if (data is List) {
+      if (data.isEmpty) {
+        print('   ℹ️ $fieldName is an empty List [], treating as empty Map {}');
+        return {};
+      }
+      print('   ⚠️ $fieldName is a non-empty List, cannot parse as Map. Raw: $data');
+      return null;
+    }
+    
+    print('   ⚠️ $fieldName is unexpected type: ${data.runtimeType}');
+    return null;
   }
 
   Map<String, String> toFormData() {
@@ -255,13 +314,11 @@ class Employee {
       if (address != null && address!.isNotEmpty) 'address': address!,
       if (password != null && password!.isNotEmpty) 'password': password!,
       if (employeeId != null && employeeId!.isNotEmpty) 'employee_id': employeeId!,
-      if (employeesId != null && employeesId!.isNotEmpty) 'employeesId': employeesId!,
       if (branchId != null) 'branch_id': branchId.toString(),
       if (departmentId != null) 'department_id': departmentId.toString(),
       if (designationId != null) 'designation_id': designationId.toString(),
-      if (roleId != null) 'role_id': roleId.toString(), // Adding role_id to form data
       if (companyDoj != null && companyDoj!.isNotEmpty) 'company_doj': companyDoj!,
-      if (locationType != null) 'location_type': locationType!,
+      'location_type': locationType ?? 'office',
       if (accountHolderName != null && accountHolderName!.isNotEmpty) 'account_holder_name': accountHolderName!,
       if (accountNumber != null && accountNumber!.isNotEmpty) 'account_number': accountNumber!,
       if (bankName != null && bankName!.isNotEmpty) 'bank_name': bankName!,
@@ -296,14 +353,23 @@ class Employee {
       if (emergencyAddress != null && emergencyAddress!.isNotEmpty) 'emergency_address': emergencyAddress!,
       'is_active': (isActive ?? 1).toString(),
       if (roleId != null) 'role': roleId.toString(),
-      if (documents != null && documents!.isNotEmpty) 'documents': documents!,
+      // Handle documents field specifically - avoiding "[]" string
+      if (documents != null && documents!.isNotEmpty && documents != '[]') 'documents': documents!,
     };
+
+    // Add project_id to satisfy backend requirement (mirroring site_id)
+    if (siteId != null) {
+      data['project_id[0]'] = siteId.toString();
+    }
     
-    // Add document fields if they exist
-    if (documents != null && documents!.isNotEmpty) {
+    // Add document fields if they exist and are valid
+    if (documents != null && documents!.isNotEmpty && documents != '[]') {
       final docList = documents!.split(',');
       for (int i = 0; i < docList.length; i++) {
-        data['document[${i + 1}]'] = docList[i];
+        final doc = docList[i].trim();
+        if (doc.isNotEmpty && doc != '[]') {
+           data['document[${i + 1}]'] = doc;
+        }
       }
     }
     
@@ -369,6 +435,8 @@ class Employee {
     Map<String, String>? branches,
     Map<String, String>? roles,
     Map<String, String>? locationTypes,
+    Map<String, String>? assignProjects,
+    Map<String, String>? documentUrls,
     List<Map<String, dynamic>>? documentList,
     String? branchName,
     String? departmentName,
@@ -433,6 +501,8 @@ class Employee {
       branches: branches ?? this.branches,
       roles: roles ?? this.roles,
       locationTypes: locationTypes ?? this.locationTypes,
+      assignProjects: assignProjects ?? this.assignProjects,
+      documentUrls: documentUrls ?? this.documentUrls,
       documentList: documentList ?? this.documentList,
       branchName: branchName ?? this._branchName,
       departmentName: departmentName ?? this._departmentName,

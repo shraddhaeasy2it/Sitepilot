@@ -1,0 +1,2403 @@
+import 'dart:io';
+import 'package:ecoteam_app/contractor/services/dio_service.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:provider/provider.dart';
+import 'package:ecoteam_app/contractor/services/company_site_provider.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:ecoteam_app/contractor/view/contractor_dashboard/notification.dart';
+import 'package:ecoteam_app/contractor/view/contractor_dashboard/chat_screen.dart';
+import 'package:ecoteam_app/contractor/models/site_model.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:ecoteam_app/contractor/view/widgets/notification_actions.dart';
+
+// Material Model based on API response
+class MaterialItem {
+  final int id;
+  final String name;
+  final String sku;
+  final int categoryId;
+  final int unitId;
+  final String description;
+  final double price;
+  final int reorderLevel;
+  final String status;
+  final String? image;
+  final int? siteId;
+  final int createdBy;
+  final int workspaceId;
+  final String createdAt;
+  final String updatedAt;
+  final Unit? unit;
+  final Category? category;
+
+  MaterialItem({
+    required this.id,
+    required this.name,
+    required this.sku,
+    required this.categoryId,
+    required this.unitId,
+    required this.description,
+    required this.price,
+    required this.reorderLevel,
+    required this.status,
+    this.image,
+    this.siteId,
+    required this.createdBy,
+    required this.workspaceId,
+    required this.createdAt,
+    required this.updatedAt,
+    this.unit,
+    this.category,
+  });
+
+  factory MaterialItem.fromJson(Map<String, dynamic> json) {
+    return MaterialItem(
+      id: int.tryParse(json['id']?.toString() ?? '0') ?? 0,
+      name: json['name'] ?? '',
+      sku: json['sku'] ?? '',
+      categoryId: int.tryParse(json['category_id']?.toString() ?? '0') ?? 0,
+      unitId: int.tryParse(json['unit_id']?.toString() ?? '0') ?? 0,
+      description: json['description'] ?? '',
+      price: double.tryParse(json['price']?.toString().replaceAll(',', '') ?? '0') ?? 0.0,
+      reorderLevel: int.tryParse(json['reorder_level']?.toString() ?? '0') ?? 0,
+      status: json['status'] ?? 'inactive',
+      image: json['image'],
+      siteId: int.tryParse(json['site_id']?.toString() ?? '') ?? null,
+      createdBy: int.tryParse(json['created_by']?.toString() ?? '0') ?? 0,
+      workspaceId: int.tryParse(json['workspace_id']?.toString() ?? '0') ?? 0,
+      createdAt: json['created_at'] ?? '',
+      updatedAt: json['updated_at'] ?? '',
+      unit: json['unit'] != null ? Unit.fromJson(json['unit']) : null,
+      category: json['category'] != null
+          ? Category.fromJson(json['category'])
+          : null,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'name': name,
+      'sku': sku,
+      'category_id': categoryId,
+      'unit_id': unitId,
+      'description': description,
+      'price': price,
+      'reorder_level': reorderLevel,
+      'status': status,
+      'image': image,
+      'site_id': siteId ?? 1,
+      'created_by': createdBy,
+      'workspace_id': workspaceId,
+    };
+  }
+
+  // Helper method to get category name from available categories list
+  String getCategoryName(List<Category> categories) {
+    if (category != null && category!.name.isNotEmpty) {
+      return category!.name;
+    }
+    final categoryFromList = categories.firstWhere(
+      (cat) => cat.id == categoryId,
+      orElse: () => Category(
+        id: 0,
+        name: 'N/A',
+        isActive: 0,
+        createdBy: 0,
+        workspaceId: 0,
+        status: '0',
+        createdAt: '',
+        updatedAt: '',
+      ),
+    );
+    return categoryFromList.name;
+  }
+
+  // Helper method to get unit name from available units list
+  String getUnitName(List<Unit> units) {
+    if (unit != null && unit!.name.isNotEmpty) {
+      return unit!.name;
+    }
+    final unitFromList = units.firstWhere(
+      (u) => u.id == unitId,
+      orElse: () => Unit(id: 0, name: 'N/A', symbol: '', isActive: 0),
+    );
+    return unitFromList.name;
+  }
+}
+
+class Unit {
+  final int id;
+  final String name;
+  final String symbol;
+  final String? description;
+  final int isActive;
+
+  Unit({
+    required this.id,
+    required this.name,
+    required this.symbol,
+    this.description,
+    required this.isActive,
+  });
+
+  factory Unit.fromJson(Map<String, dynamic> json) {
+    return Unit(
+      id: int.tryParse(json['id']?.toString() ?? '0') ?? 0,
+      name: json['name'] ?? '',
+      symbol: json['symbol'] ?? '',
+      description: json['description'],
+      isActive: int.tryParse(json['is_active']?.toString() ?? '0') ?? 0,
+    );
+  }
+}
+
+class Category {
+  final int id;
+  final String name;
+  final int isActive;
+  final int? siteId;
+  final int createdBy;
+  final int workspaceId;
+  final String status;
+  final String createdAt;
+  final String updatedAt;
+
+  Category({
+    required this.id,
+    required this.name,
+    required this.isActive,
+    this.siteId,
+    required this.createdBy,
+    required this.workspaceId,
+    required this.status,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+
+  factory Category.fromJson(Map<String, dynamic> json) {
+    return Category(
+      id: int.tryParse(json['id']?.toString() ?? '0') ?? 0,
+      name: json['name'] ?? '',
+      isActive: int.tryParse(json['is_active']?.toString() ?? '0') ?? 0,
+      siteId: int.tryParse(json['site_id']?.toString() ?? '') ?? null,
+      createdBy: int.tryParse(json['created_by']?.toString() ?? '0') ?? 0,
+      workspaceId: int.tryParse(json['workspace_id']?.toString() ?? '0') ?? 0,
+      status: json['status']?.toString() ?? '0', // status might be int or string
+      createdAt: json['created_at'] ?? '',
+      updatedAt: json['updated_at'] ?? '',
+    );
+  }
+}
+
+// Pagination Response Model
+class PaginatedMaterialsResponse {
+  final int currentPage;
+  final List<MaterialItem> data;
+  final String firstPageUrl;
+  final int from;
+  final int lastPage;
+  final String lastPageUrl;
+  final List<PaginationLink> links;
+  final String? nextPageUrl;
+  final String path;
+  final int perPage;
+  final String? prevPageUrl;
+  final int to;
+  final int total;
+
+  PaginatedMaterialsResponse({
+    required this.currentPage,
+    required this.data,
+    required this.firstPageUrl,
+    required this.from,
+    required this.lastPage,
+    required this.lastPageUrl,
+    required this.links,
+    this.nextPageUrl,
+    required this.path,
+    required this.perPage,
+    this.prevPageUrl,
+    required this.to,
+    required this.total,
+  });
+
+  factory PaginatedMaterialsResponse.fromJson(Map<String, dynamic> json) {
+    int _parseInt(dynamic value) {
+      if (value is int) return value;
+      if (value is String) return int.tryParse(value) ?? 0;
+      return 0;
+    }
+
+    return PaginatedMaterialsResponse(
+      currentPage: _parseInt(json['current_page']) > 0 ? _parseInt(json['current_page']) : 1,
+      data:
+          (json['data'] as List<dynamic>?)
+              ?.map((item) => MaterialItem.fromJson(item))
+              .toList() ??
+          [],
+      firstPageUrl: json['first_page_url'] ?? '',
+      from: _parseInt(json['from']),
+      lastPage: _parseInt(json['last_page']) > 0 ? _parseInt(json['last_page']) : 1,
+      lastPageUrl: json['last_page_url'] ?? '',
+      links:
+          (json['links'] as List<dynamic>?)
+              ?.map((link) => PaginationLink.fromJson(link))
+              .toList() ??
+          [],
+      nextPageUrl: json['next_page_url'],
+      path: json['path'] ?? '',
+      perPage: _parseInt(json['per_page']) > 0 ? _parseInt(json['per_page']) : 10,
+      prevPageUrl: json['prev_page_url'],
+      to: _parseInt(json['to']),
+      total: _parseInt(json['total']),
+    );
+  }
+}
+
+class PaginationLink {
+  final String? url;
+  final String label;
+  final bool active;
+
+  PaginationLink({this.url, required this.label, required this.active});
+
+  factory PaginationLink.fromJson(Map<String, dynamic> json) {
+    return PaginationLink(
+      url: json['url'],
+      label: json['label'] ?? '',
+      active: json['active'] ?? false,
+    );
+  }
+}
+
+class MaterialApiService {
+  static const String materialsEndpoint = '/materials';
+  static const String categoriesEndpoint = '/material-categories';
+  static const String unitsEndpoint = '/units';
+  static const String imageBaseUrl = 'https://app.ecoteamsolar.com';
+  
+  // Static variable to hold auth token for Image.network headers
+  static String? _authToken;
+  static String? get authToken => _authToken;
+
+  // Call this when app starts or user logs in
+  static Future<void> initToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    _authToken = prefs.getString('auth_token');
+  }
+
+  static Future<PaginatedMaterialsResponse> getMaterials({
+    int page = 1,
+    int? workspaceId,
+    int? siteId,
+  }) async {
+    try {
+      final queryParams = {'page': page};
+      if (workspaceId != null) queryParams['workspace_id'] = workspaceId;
+      if (siteId != null) queryParams['site_id'] = siteId;
+
+      final response = await DioService.instance.dio.get(
+        materialsEndpoint,
+        queryParameters: queryParams,
+      );
+
+      // print('Materials Response Status: ${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        final responseData = response.data;
+
+        // Check if status is 1 (success)
+        if (responseData['status'] == 1) {
+          // Handle different possible response structures
+          if (responseData['data'] != null && responseData['data'] is Map) {
+            // This is a paginated response
+            return PaginatedMaterialsResponse.fromJson(responseData['data']);
+          } else {
+            // This might be a non-paginated response, create a paginated response with single page
+            List<dynamic> data = [];
+
+            if (responseData['data'] != null) {
+              if (responseData['data'] is List) {
+                data = responseData['data'];
+              } else if (responseData['data'] is Map) {
+                // Single material object
+                data = [responseData['data']];
+              }
+            }
+
+            return PaginatedMaterialsResponse(
+              currentPage: 1,
+              data: data.map((item) => MaterialItem.fromJson(item)).toList(),
+              firstPageUrl: '',
+              from: 1,
+              lastPage: 1,
+              lastPageUrl: '',
+              links: [],
+              nextPageUrl: null,
+              path: '',
+              perPage: data.length,
+              prevPageUrl: null,
+              to: data.length,
+              total: data.length,
+            );
+          }
+        } else {
+          throw Exception(
+            'API returned error status: ${responseData['message']}',
+          );
+        }
+      } else {
+        throw Exception(
+          'Failed to load materials',
+        );
+      }
+    } catch (e) {
+      print('Error in getMaterials: $e');
+      throw Exception('Failed to load materials'); // Simplified error
+    }
+  }
+
+  static Future<List<Category>> getCategories() async {
+    try {
+      print('Fetching categories from: $categoriesEndpoint');
+      final response = await DioService.instance.dio.get(categoriesEndpoint);
+
+      if (response.statusCode == 200) {
+        final dynamic responseData = response.data;
+
+        List<dynamic> data = [];
+
+        if (responseData is Map) {
+          // Check if status is 1 (success) or if there's no status field (assume success)
+          if (responseData['status'] == 1 || responseData['status'] == null) {
+            // Handle different possible response structures
+            if (responseData['data'] != null) {
+              if (responseData['data'] is List) {
+                data = responseData['data'];
+              } else if (responseData['data'] is Map &&
+                  responseData['data']['data'] != null) {
+                data = responseData['data']['data'];
+              } else if (responseData['data'] is Map &&
+                  responseData['data']['data'] == null) {
+                // If data is a map but no nested data, try to use the data map directly
+                data = [responseData['data']];
+              }
+            }
+          } else {
+            // Only throw error if status is explicitly not 1 and not null
+            if (responseData['status'] != null && responseData['status'] != 1) {
+              throw Exception(
+                'API returned error status: ${responseData['message']}',
+              );
+            }
+          }
+        } else if (responseData is List) {
+          data = responseData;
+        }
+
+        if (data.isNotEmpty) {
+          return data.map((item) => Category.fromJson(item)).toList();
+        } else {
+          // Return empty list instead of throwing error
+          print('No categories data found, returning empty list');
+          return [];
+        }
+      } else {
+        throw Exception(
+          'Failed to load categories: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      print('Error in getCategories: $e');
+      // Return empty list instead of throwing error
+      return [];
+    }
+  }
+
+  static Future<List<Unit>> getUnits() async {
+    try {
+      print('Fetching units from: $unitsEndpoint');
+      final response = await DioService.instance.dio.get(unitsEndpoint);
+
+      if (response.statusCode == 200) {
+        final dynamic responseData = response.data;
+
+        List<dynamic> data = [];
+
+        if (responseData is Map) {
+          // Check if status is 1 (success) or if there's no status field (assume success)
+          if (responseData['status'] == 1 || responseData['status'] == null) {
+            // Handle different possible response structures
+            if (responseData['data'] != null) {
+              if (responseData['data'] is List) {
+                data = responseData['data'];
+              } else if (responseData['data'] is Map &&
+                  responseData['data']['data'] != null) {
+                data = responseData['data']['data'];
+              } else if (responseData['data'] is Map &&
+                  responseData['data']['data'] == null) {
+                // If data is a map but no nested data, try to use the data map directly
+                data = [responseData['data']];
+              }
+            }
+          } else {
+            // Only throw error if status is explicitly not 1 and not null
+            if (responseData['status'] != null && responseData['status'] != 1) {
+              throw Exception(
+                'API returned error status: ${responseData['message']}',
+              );
+            }
+          }
+        } else if (responseData is List) {
+          data = responseData;
+        }
+
+        if (data.isNotEmpty) {
+          return data.map((item) => Unit.fromJson(item)).toList();
+        } else {
+          // Return empty list instead of throwing error
+          print('No units data found, returning empty list');
+          return [];
+        }
+      } else {
+        throw Exception(
+          'Failed to load units: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      print('Error in getUnits: $e');
+      // Return empty list instead of throwing error
+      return [];
+    }
+  }
+
+  static Future<MaterialItem> addMaterial(MaterialItem material, {File? imageFile}) async {
+    try {
+      print('Adding material: ${material.toJson()}');
+      final formData = FormData();
+
+      // Add fields to FormData
+      final materialData = material.toJson();
+      materialData.forEach((key, value) {
+        if (value != null) {
+          formData.fields.add(MapEntry(key, value.toString()));
+        }
+      });
+
+      if (imageFile != null) {
+        formData.files.add(MapEntry(
+          'image',
+          await MultipartFile.fromFile(imageFile.path),
+        ));
+      }
+
+      final response = await DioService.instance.dio.post(
+        materialsEndpoint,
+        data: formData,
+      );
+
+      print('Add Material Response Status: ${response.statusCode}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final responseData = response.data;
+
+        if (responseData['status'] == 1) {
+          final createdMaterial = MaterialItem.fromJson(responseData['data']);
+          return createdMaterial;
+        } else {
+          throw Exception(
+            'API returned error status: ${responseData['message']}',
+          );
+        }
+      } else {
+        throw Exception(
+          'Failed to add material: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      print('Error in addMaterial: $e');
+      throw Exception('Failed to add material: $e');
+    }
+  }
+
+  static Future<MaterialItem> updateMaterial(MaterialItem material, {File? imageFile}) async {
+    try {
+      print('Updating material ${material.id}');
+      final formData = FormData();
+      
+      // Add fields
+      final materialData = material.toJson();
+      materialData.forEach((key, value) {
+        if (value != null) {
+          formData.fields.add(MapEntry(key, value.toString()));
+        }
+      });
+
+      formData.fields.add(const MapEntry('_method', 'PUT')); // Laravel requirement
+
+      if (imageFile != null) {
+        formData.files.add(MapEntry(
+          'image',
+          await MultipartFile.fromFile(imageFile.path),
+        ));
+      }
+
+      final response = await DioService.instance.dio.post(
+        '$materialsEndpoint/${material.id}',
+        data: formData,
+      );
+
+      print('Update Material Response Status: ${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        final responseData = response.data;
+
+        if (responseData['status'] == 1) {
+          return MaterialItem.fromJson(responseData['data']);
+        } else {
+          throw Exception(
+            'API returned error status: ${responseData['message']}',
+          );
+        }
+      } else {
+        throw Exception(
+          'Failed to update material: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      print('Error in updateMaterial: $e');
+      throw Exception('Failed to update material: $e');
+    }
+  }
+
+  static Future<bool> deleteMaterial(int materialId) async {
+    try {
+      final response = await DioService.instance.dio.delete('$materialsEndpoint/$materialId');
+      return response.statusCode == 200;
+    } catch (e) {
+      throw Exception('Failed to delete material: $e');
+    }
+  }
+}
+
+class AdminAllMaterialPage extends StatefulWidget {
+  final int? userId;
+  final int? workspaceId;
+  final int? siteId;
+
+  const AdminAllMaterialPage({
+    Key? key,
+    this.userId,
+    this.workspaceId,
+    this.siteId,
+  }) : super(key: key);
+
+  @override
+  State<AdminAllMaterialPage> createState() => _AdminAllMaterialPageState();
+}
+
+class _AdminAllMaterialPageState extends State<AdminAllMaterialPage> {
+  final TextEditingController _searchController = TextEditingController();
+  List<MaterialItem> _allMaterials = [];
+  List<MaterialItem> _filteredMaterials = [];
+  List<Category> _categories = [];
+  List<Unit> _units = [];
+  bool _isLoading = true;
+  String _errorMessage = '';
+
+  // Pagination variables
+  int _currentPage = 1;
+  int _lastPage = 1;
+  int _totalItems = 0;
+  int _perPage = 10;
+  bool _isLoadingMore = false;
+  bool _hasNextPage = false;
+  bool _hasPrevPage = false;
+  
+
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+    _searchController.addListener(_filterMaterials);
+  }
+
+  Future<void> _loadData({int page = 1, bool loadMore = false}) async {
+    if (!loadMore) {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = '';
+      });
+      // Ensure token is loaded for images
+      await MaterialApiService.initToken();
+    } else {
+      setState(() {
+        _isLoadingMore = true;
+      });
+    }
+
+    try {
+      // Get dynamic workspace ID from widget or provider
+      final companyProvider = Provider.of<CompanySiteProvider>(
+        context,
+        listen: false,
+      );
+      final dynamicWorkspaceId = widget.workspaceId ?? 
+          int.tryParse(companyProvider.selectedCompanyId ?? '');
+
+      // Load materials with pagination and filters
+      final materialsResponse = await MaterialApiService.getMaterials(
+        page: page,
+        workspaceId: dynamicWorkspaceId,
+        siteId: 0,
+      );
+
+      // Refresh permissions if this is a full reload (page 1) to verify latest access
+      if (!loadMore && page == 1) {
+        companyProvider.refreshPermissions();
+      }
+
+      // Load categories and units only on first load
+      final categories = _categories.isEmpty
+          ? await MaterialApiService.getCategories()
+          : _categories;
+      final units = _units.isEmpty
+          ? await MaterialApiService.getUnits()
+          : _units;
+
+      setState(() {
+        if (loadMore) {
+          // Append new materials when loading more
+          _allMaterials.addAll(materialsResponse.data);
+        } else {
+          // Replace materials when loading first page or refreshing
+          _allMaterials = materialsResponse.data;
+        }
+
+        _filteredMaterials = _allMaterials;
+        _categories = categories;
+        _units = units;
+
+        // Update pagination info
+        _currentPage = materialsResponse.currentPage;
+        _lastPage = materialsResponse.lastPage;
+        _totalItems = materialsResponse.total;
+        _perPage = materialsResponse.perPage;
+        _hasNextPage = materialsResponse.nextPageUrl != null;
+        _hasPrevPage = materialsResponse.prevPageUrl != null;
+
+        _isLoading = false;
+        _isLoadingMore = false;
+      });
+
+      print(
+        'Loaded ${_allMaterials.length} materials, ${_categories.length} categories, ${_units.length} units',
+      );
+      print(
+        'Pagination: Page $_currentPage of $_lastPage, Total: $_totalItems',
+      );
+    } catch (e) {
+      print('Error in _loadData: $e');
+      setState(() {
+        _errorMessage = e.toString();
+        _isLoading = false;
+        _isLoadingMore = false;
+      });
+      _showSnackBar('Failed to load materials: $e');
+    }
+  }
+
+  void _filterMaterials() {
+    final query = _searchController.text.toLowerCase();
+    setState(() {
+      _filteredMaterials = _allMaterials.where((material) {
+        return material.name.toLowerCase().contains(query) ||
+            material.getCategoryName(_categories).toLowerCase().contains(query);
+      }).toList();
+    });
+  }
+
+  Future<void> _loadNextPage() async {
+    if (_hasNextPage && _currentPage < _lastPage) {
+      await _loadData(page: _currentPage + 1, loadMore: false);
+    }
+  }
+
+  Future<void> _loadPrevPage() async {
+    if (_hasPrevPage && _currentPage > 1) {
+      await _loadData(page: _currentPage - 1, loadMore: false);
+    }
+  }
+
+  void _goToPage(int page) async {
+    if (page >= 1 && page <= _lastPage && page != _currentPage) {
+      await _loadData(page: page, loadMore: false);
+    }
+  }
+
+  String _generateAutoSKU() {
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    return 'MAT$timestamp';
+  }
+
+  void _showAddMaterialBottomSheet() {
+    final TextEditingController nameController = TextEditingController();
+    final TextEditingController skuController = TextEditingController();
+    final TextEditingController descriptionController = TextEditingController();
+    final TextEditingController priceController = TextEditingController();
+    final TextEditingController reorderController = TextEditingController();
+    String status = 'active';
+    int? selectedCategoryId = _categories.isNotEmpty
+        ? _categories.first.id
+        : null;
+    int? selectedUnitId = _units.isNotEmpty ? _units.first.id : null;
+    File? _selectedImage;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            Future<void> _pickImage(ImageSource source) async {
+              try {
+                final picker = ImagePicker();
+                final pickedFile = await picker.pickImage(source: source);
+                if (pickedFile != null) {
+                  setState(() {
+                    _selectedImage = File(pickedFile.path);
+                  });
+                }
+              } catch (e) {
+                _showSnackBar('Error picking image: $e');
+              }
+            }
+
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+                left: 16,
+                right: 16,
+                top: 16,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 30,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Add New Material',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1F2937),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  // Row for Name and SKU
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: nameController,
+                          decoration: InputDecoration(
+                            labelText: 'Material Name *',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            prefixIcon: Icon(Icons.inventory, size: 18),
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 8,
+                            ),
+                          ),
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: TextField(
+                          controller: skuController,
+                          decoration: InputDecoration(
+                            labelText: 'SKU *',
+                            border:  OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            prefixIcon: const Icon(Icons.qr_code, size: 18),
+                            suffixIcon: IconButton(
+                              icon: const Icon(
+                                Icons.qr_code_2_outlined,
+                                size: 18,
+                              ),
+                              onPressed: () {
+                                skuController.text = _generateAutoSKU();
+                              },
+                              tooltip: 'Generate Auto SKU',
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 8,
+                            ),
+                          ),
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  
+                  // Image Picker UI
+                  Row(
+                    children: [
+                      Container(
+                        width: 80,
+                        height: 80,
+                        decoration: BoxDecoration(
+                           border: Border.all(color: Colors.grey),
+                           borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: _selectedImage != null
+                            ? ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.file(_selectedImage!, fit: BoxFit.cover),
+                              )
+                            : const Icon(Icons.image, color: Colors.grey),
+                      ),
+                      const SizedBox(width: 16),
+                      Column(
+                         crossAxisAlignment: CrossAxisAlignment.start,
+                         children: [
+                            TextButton.icon(
+                               onPressed: () => _pickImage(ImageSource.camera),
+                               icon: const Icon(Icons.camera_alt),
+                               label: const Text('Camera'),
+                            ),
+                            TextButton.icon(
+                               onPressed: () => _pickImage(ImageSource.gallery),
+                               icon: const Icon(Icons.photo_library),
+                               label: const Text('Gallery'),
+                            ),
+                         ],
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 8),
+                  // Category Dropdown
+                  DropdownButtonFormField<int>(
+                    value: selectedCategoryId,
+                    decoration: InputDecoration(
+                      labelText: 'Category *',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      prefixIcon: Icon(Icons.category, size: 18),
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 8,
+                      ),
+                    ),
+                    items: _categories.map((category) {
+                      return DropdownMenuItem<int>(
+                        value: category.id,
+                        child: Text(
+                          category.name,
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        selectedCategoryId = value;
+                      });
+                    },
+                    validator: (value) {
+                      if (value == null) {
+                        return 'Please select a category';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  // Unit Dropdown
+                  DropdownButtonFormField<int>(
+                    value: selectedUnitId,
+                    decoration: InputDecoration(
+                      labelText: 'Unit *',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      prefixIcon: Icon(Icons.straighten, size: 18),
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 8,
+                      ),
+                    ),
+                    items: _units.map((unit) {
+                      return DropdownMenuItem<int>(
+                        value: unit.id,
+                        child: Text(
+                          '${unit.name} (${unit.symbol})',
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        selectedUnitId = value;
+                      });
+                    },
+                    validator: (value) {
+                      if (value == null) {
+                        return 'Please select a unit';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: descriptionController,
+                    decoration: InputDecoration(
+                      labelText: 'Description',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      prefixIcon: Icon(Icons.description, size: 18),
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 8,
+                      ),
+                    ),
+                    maxLines: 2,
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                  const SizedBox(height: 8),
+                  // Row for Price and Reorder Level
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: priceController,
+                          decoration: InputDecoration(
+                            labelText: 'Price *',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            prefixIcon: Icon(Icons.currency_rupee, size: 18),
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 8,
+                            ),
+                          ),
+                          keyboardType: TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: TextField(
+                          controller: reorderController,
+                          decoration:  InputDecoration(
+                            labelText: 'Reorder Level',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            prefixIcon: Icon(Icons.warning, size: 18),
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 8,
+                            ),
+                          ),
+                          keyboardType: TextInputType.number,
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  SwitchListTile(
+                    title: const Text('Status', style: TextStyle(fontSize: 14)),
+                    value: status == 'active',
+                    onChanged: (value) {
+                      setState(() {
+                        status = value ? 'active' : 'inactive';
+                      });
+                    },
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 40,
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        final name = nameController.text.trim();
+                        final sku = skuController.text.trim();
+                        final description = descriptionController.text.trim();
+                        final price =
+                            double.tryParse(priceController.text) ?? 0.0;
+                        final reorder =
+                            int.tryParse(reorderController.text) ?? 0;
+                        
+                        if (name.isEmpty || sku.isEmpty || selectedCategoryId == null || selectedUnitId == null) {
+                            _showSnackBar('Please fill all required fields');
+                            return;
+                        }
+
+                        Navigator.pop(context);
+
+                        final provider = Provider.of<CompanySiteProvider>(
+                          context,
+                          listen: false,
+                        );
+
+                        // Optimistic update logic if desired, or simplified
+                        // Wait, I am replacing the block, so I should keep original logic structure where possible
+
+                        final newMaterial = MaterialItem(
+                          id: 0,
+                          name: name,
+                          sku: sku,
+                          categoryId: selectedCategoryId!,
+                          unitId: selectedUnitId!,
+                          description: description,
+                          price: price,
+                          reorderLevel: reorder,
+                          status: status,
+                          siteId: widget.siteId ?? (int.tryParse(provider.selectedCompanyId ?? '0') ?? 0), 
+                          createdBy: widget.userId ?? (provider.currentUserId ?? 1),
+                          workspaceId: widget.workspaceId ?? (int.tryParse(provider.selectedCompanyId ?? '0') ?? 0),
+                          createdAt: '',
+                          updatedAt: '',
+                        );
+
+                        try {
+                          _showSnackBar('Adding material...');
+                          await MaterialApiService.addMaterial(newMaterial, imageFile: _selectedImage);
+                          _showSnackBar('Material added successfully');
+                          _loadData();
+                        } catch (e) {
+                          _showSnackBar('Failed to add material: $e');
+                        }
+
+
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF2a43a0),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                      ),
+                      child: const Text(
+                        'Add Material',
+                        style: TextStyle(fontSize: 14),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showEditMaterialBottomSheet(MaterialItem material) {
+    final TextEditingController nameController = TextEditingController(
+      text: material.name,
+    );
+    final TextEditingController skuController = TextEditingController(
+      text: material.sku,
+    );
+    final TextEditingController descriptionController = TextEditingController(
+      text: material.description,
+    );
+    final TextEditingController priceController = TextEditingController(
+      text: material.price.toString(),
+    );
+    final TextEditingController reorderController = TextEditingController(
+      text: material.reorderLevel.toString(),
+    );
+    String status = material.status;
+    int? selectedCategoryId = _categories.any((c) => c.id == material.categoryId)
+        ? material.categoryId
+        : null;
+    int? selectedUnitId = _units.any((u) => u.id == material.unitId)
+        ? material.unitId
+        : null;
+    File? _selectedImage;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            Future<void> _pickImage(ImageSource source) async {
+              try {
+                final picker = ImagePicker();
+                final pickedFile = await picker.pickImage(source: source);
+                if (pickedFile != null) {
+                  setState(() {
+                    _selectedImage = File(pickedFile.path);
+                  });
+                }
+              } catch (e) {
+                _showSnackBar('Error picking image: $e');
+              }
+            }
+
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+                left: 16,
+                right: 16,
+                top: 16,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 30,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Edit Material',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1F2937),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  // Row for Name and SKU
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: nameController,
+                          decoration: const InputDecoration(
+                            labelText: 'Material Name *',
+                            border: OutlineInputBorder(),
+                            prefixIcon: Icon(Icons.inventory, size: 18),
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 8,
+                            ),
+                          ),
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: TextField(
+                          controller: skuController,
+                          decoration: InputDecoration(
+                            labelText: 'SKU *',
+                            border: const OutlineInputBorder(),
+                            prefixIcon: const Icon(Icons.qr_code, size: 18),
+                            suffixIcon: IconButton(
+                              icon: const Icon(Icons.refresh, size: 18),
+                              onPressed: () {
+                                skuController.text = _generateAutoSKU();
+                              },
+                              tooltip: 'Generate Auto SKU',
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 8,
+                            ),
+                          ),
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  // Category Dropdown
+                  DropdownButtonFormField<int>(
+                    value: selectedCategoryId,
+                    decoration: const InputDecoration(
+                      labelText: 'Category *',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.category, size: 18),
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 8,
+                      ),
+                    ),
+                    items: _categories.map((category) {
+                      return DropdownMenuItem<int>(
+                        value: category.id,
+                        child: Text(
+                          category.name,
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        selectedCategoryId = value;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  // Unit Dropdown
+                  DropdownButtonFormField<int>(
+                    value: selectedUnitId,
+                    decoration: const InputDecoration(
+                      labelText: 'Unit *',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.straighten, size: 18),
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 8,
+                      ),
+                    ),
+                    items: _units.map((unit) {
+                      return DropdownMenuItem<int>(
+                        value: unit.id,
+                        child: Text(
+                          '${unit.name} (${unit.symbol})',
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        selectedUnitId = value;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: descriptionController,
+                    decoration: const InputDecoration(
+                      labelText: 'Description',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.description, size: 18),
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 8,
+                      ),
+                    ),
+                    maxLines: 2,
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                  const SizedBox(height: 8),
+                  // Row for Price and Reorder Level
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: priceController,
+                          decoration: const InputDecoration(
+                            labelText: 'Price *',
+                            border: OutlineInputBorder(),
+                            prefixIcon: Icon(Icons.currency_rupee, size: 18),
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 8,
+                            ),
+                          ),
+                          keyboardType: TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: TextField(
+                          controller: reorderController,
+                          decoration: const InputDecoration(
+                            labelText: 'Reorder Level',
+                            border: OutlineInputBorder(),
+                            prefixIcon: Icon(Icons.warning, size: 18),
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 8,
+                            ),
+                          ),
+                          keyboardType: TextInputType.number,
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  
+                  // Image Picker UI
+                  Row(
+                    children: [
+                      Container(
+                        width: 80,
+                        height: 80,
+                        decoration: BoxDecoration(
+                           border: Border.all(color: Colors.grey),
+                           borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: _selectedImage != null
+                            ? ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.file(_selectedImage!, fit: BoxFit.cover),
+                              )
+                            : (material.image != null && material.image!.isNotEmpty)
+                                ? ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Image.network(
+                                       '${MaterialApiService.imageBaseUrl}/${material.image}',
+                                       headers: MaterialApiService.authToken != null
+                                           ? {'Authorization': 'Bearer ${MaterialApiService.authToken}'}
+                                           : null,
+                                       fit: BoxFit.cover,
+                                       errorBuilder: (context, error, stackTrace) {
+                                          return const Icon(Icons.broken_image, color: Colors.grey);
+                                       },
+                                    ),
+                                  )
+                                : const Icon(Icons.image, color: Colors.grey),
+                      ),
+                      const SizedBox(width: 16),
+                      Column(
+                         crossAxisAlignment: CrossAxisAlignment.start,
+                         children: [
+                            TextButton.icon(
+                               onPressed: () => _pickImage(ImageSource.camera),
+                               icon: const Icon(Icons.camera_alt),
+                               label: const Text('Camera'),
+                            ),
+                            TextButton.icon(
+                               onPressed: () => _pickImage(ImageSource.gallery),
+                               icon: const Icon(Icons.photo_library),
+                               label: const Text('Gallery'),
+                            ),
+                         ],
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 8),
+                  SwitchListTile(
+                    title: const Text('Status', style: TextStyle(fontSize: 14)),
+                    value: status == 'active',
+                    onChanged: (value) {
+                      setState(() {
+                        status = value ? 'active' : 'inactive';
+                      });
+                    },
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 40,
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        final name = nameController.text.trim();
+                        final sku = skuController.text.trim();
+                        final description = descriptionController.text.trim();
+                        final price =
+                            double.tryParse(priceController.text) ?? 0.0;
+                        final reorder =
+                            int.tryParse(reorderController.text) ?? 0;
+
+                        if (name.isEmpty ||
+                            sku.isEmpty ||
+                            selectedCategoryId == null ||
+                            selectedUnitId == null) {
+                          _showSnackBar('Please fill all required fields (*)');
+                          return;
+                        }
+
+                        try {
+                          final updatedMaterial = MaterialItem(
+                            id: material.id,
+                            name: name,
+                            sku: sku,
+                            categoryId: selectedCategoryId!,
+                            unitId: selectedUnitId!,
+                            description: description,
+                            price: price,
+                            reorderLevel: reorder,
+                            status: status,
+                            image: material.image, // Keep old image path, API will overwrite if file provided
+                            siteId: material.siteId,
+                            createdBy: material.createdBy,
+                            workspaceId: material.workspaceId,
+                            createdAt: material.createdAt,
+                            updatedAt: DateTime.now().toIso8601String(),
+                            unit: material.unit,
+                            category: material.category,
+                          );
+
+                          await MaterialApiService.updateMaterial(
+                            updatedMaterial,
+                            imageFile: _selectedImage,
+                          );
+                          await _loadData(); // Refresh the entire list to get updated data
+                          Navigator.pop(context);
+                          _showSnackBar('Material updated successfully');
+                        } catch (e) {
+                          _showSnackBar('Failed to update material: $e');
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF2a43a0),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                      ),
+                      child: const Text(
+                        'Update Material',
+                        style: TextStyle(fontSize: 14),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _deleteMaterial(MaterialItem material) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirm Delete'),
+        content: Text('Are you sure you want to delete ${material.name}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        await MaterialApiService.deleteMaterial(material.id);
+        await _loadData(); // Refresh the list
+        _showSnackBar('Material deleted successfully');
+      } catch (e) {
+        _showSnackBar('Failed to delete material: $e');
+      }
+    }
+  }
+
+  void _showMaterialDetailsBottomSheet(MaterialItem material) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+            left: 16,
+            right: 16,
+            top: 24,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 30,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Material Details',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1F2937),
+                ),
+              ),
+              const SizedBox(height: 24),
+              // Image
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  shape: BoxShape.circle,
+                ),
+                child: ClipOval(
+                  child: (material.image != null && material.image!.isNotEmpty)
+                      ? Image.network(
+                          '${MaterialApiService.imageBaseUrl}/${material.image}',
+                          headers: MaterialApiService.authToken != null
+                              ? {'Authorization': 'Bearer ${MaterialApiService.authToken}'}
+                              : null,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            print('Error loading detail image: $error');
+                            return Icon(Icons.inventory,
+                                color: Colors.grey[600], size: 40);
+                          },
+                        )
+                      : Icon(Icons.inventory, color: Colors.grey[600], size: 40),
+                ),
+              ),
+              const SizedBox(height: 16),
+              // Material Name
+              Text(
+                material.name,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1F2937),
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              // Details Grid
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.grey[50],
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  children: [
+                    _buildDetailRow('SKU', material.sku),
+                    const Divider(),
+                    _buildDetailRow(
+                      'Category',
+                      material.getCategoryName(_categories),
+                    ),
+                    const Divider(),
+                    _buildDetailRow('Unit', material.getUnitName(_units)),
+                    const Divider(),
+                    _buildDetailRow('Price', '₹${material.price}'),
+                    const Divider(),
+                    _buildDetailRow(
+                      'Reorder Level',
+                      material.reorderLevel.toString(),
+                    ),
+                    const Divider(),
+                    _buildDetailRow(
+                      'Status',
+                      material.status == 'active' ? 'Active' : 'Inactive',
+                      valueColor: material.status == 'active'
+                          ? Colors.green
+                          : Colors.red,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+              // Action Buttons
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: const Text('Close'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  if (Provider.of<CompanySiteProvider>(
+                    context,
+                    listen: false,
+                  ).hasPermission('material edit'))
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          _showEditMaterialBottomSheet(material);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF2a43a0),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: const Text('Edit'),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value, {Color? valueColor}) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: Colors.grey,
+          ),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: valueColor ?? const Color(0xFF1F2937),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  // Build pagination controls widget
+  Widget _buildPaginationControls() {
+    return Container(
+      margin: EdgeInsets.only(top: 10.h),
+      padding: EdgeInsets.symmetric(vertical: 10.h, horizontal: 14.w),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12.r),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+        border: Border.all(color: Colors.grey[200]!),
+      ),
+      child: Column(
+        children: [
+          // Page info
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Page $_currentPage of $_lastPage',
+                style: TextStyle(
+                  fontSize: 12.sp,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey[700],
+                ),
+              ),
+              Text(
+                '$_totalItems items total',
+                style: TextStyle(
+                  fontSize: 12.sp,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.grey[600],
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 12.h),
+
+          // Pagination buttons - Simple layout
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Previous button
+              Flexible(
+                child: GestureDetector(
+                  onTap: _hasPrevPage ? _loadPrevPage : null,
+                  child: Container(
+                    height: 30,
+                    padding: EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: _hasPrevPage
+                          ? const Color(0xFF2a43a0)
+                          : Colors.grey[300],
+                      borderRadius: BorderRadius.circular(6.r),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.chevron_left,
+                          size: 18.sp,
+                          color: _hasPrevPage ? Colors.white : Colors.grey[500],
+                        ),
+                        SizedBox(width: 2.w),
+                        Text(
+                          'Prev',
+                          style: TextStyle(
+                            fontSize: 12.sp,
+                            fontWeight: FontWeight.w500,
+                            color: _hasPrevPage
+                                ? Colors.white
+                                : Colors.grey[500],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              SizedBox(width: 8.w),
+
+              // Current page indicator
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(6.r),
+                  border: Border.all(color: Colors.grey[300]!),
+                ),
+                child: Text(
+                  '$_currentPage',
+                  style: TextStyle(
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF2a43a0),
+                  ),
+                ),
+              ),
+
+              SizedBox(width: 8.w),
+
+              // Next button
+              Flexible(
+                child: GestureDetector(
+                  onTap: _hasNextPage ? _loadNextPage : null,
+                  child: Container(
+                    height: 30,
+                    padding: EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: _hasNextPage
+                          ? const Color(0xFF2a43a0)
+                          : Colors.grey[300],
+                      borderRadius: BorderRadius.circular(6.r),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.chevron_right,
+                          size: 18.sp,
+                          color: _hasNextPage ? Colors.white : Colors.grey[500],
+                        ),
+                        SizedBox(width: 2.w),
+                        Text(
+                          'Next',
+                          style: TextStyle(
+                            fontSize: 12.sp,
+                            fontWeight: FontWeight.w500,
+                            color: _hasNextPage
+                                ? Colors.white
+                                : Colors.grey[500],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<Widget> _buildSmartPageNumbers() {
+    final List<Widget> pages = [];
+
+    // Always show first page
+    pages.add(_buildPageNumberButton(1));
+
+    if (_currentPage > 3) {
+      pages.add(
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 4.w),
+          child: Text(
+            '...',
+            style: TextStyle(fontSize: 14.sp, color: Colors.grey[500]),
+          ),
+        ),
+      );
+    }
+
+    // Show pages around current page
+    final start = _currentPage > 2 ? _currentPage - 1 : 2;
+    final end = _currentPage < _lastPage - 1 ? _currentPage + 1 : _lastPage - 1;
+
+    for (int i = start; i <= end; i++) {
+      if (i > 1 && i < _lastPage) {
+        pages.add(_buildPageNumberButton(i));
+      }
+    }
+
+    if (_currentPage < _lastPage - 2) {
+      pages.add(
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 4.w),
+          child: Text(
+            '...',
+            style: TextStyle(fontSize: 14.sp, color: Colors.grey[500]),
+          ),
+        ),
+      );
+    }
+
+    // Always show last page
+    if (_lastPage > 1) {
+      pages.add(_buildPageNumberButton(_lastPage));
+    }
+
+    return pages;
+  }
+
+  Widget _buildPageNumberButton(int pageNumber) {
+    final isActive = pageNumber == _currentPage;
+    return GestureDetector(
+      onTap: () => _goToPage(pageNumber),
+      child: Container(
+        width: 40.w,
+        height: 40.h,
+        decoration: BoxDecoration(
+          color: isActive ? const Color(0xFF2a43a0) : Colors.transparent,
+          border: Border.all(
+            color: isActive ? const Color(0xFF2a43a0) : Colors.grey[300]!,
+          ),
+        ),
+        child: Center(
+          child: Text(
+            '$pageNumber',
+            style: TextStyle(
+              fontSize: 12.sp,
+              fontWeight: FontWeight.w500,
+              color: isActive ? Colors.white : Colors.grey[700],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showMaterialOptionsBottomSheet(
+    BuildContext context,
+    MaterialItem material,
+  ) {
+    final provider = Provider.of<CompanySiteProvider>(context, listen: false);
+    final canEdit = provider.hasPermission('material edit');
+    final canDelete = provider.hasPermission('material delete');
+    final canView = provider.hasPermission('material show');
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Container(
+          padding: EdgeInsets.symmetric(vertical: 20.h),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40.w,
+                height: 4.h,
+                margin: EdgeInsets.only(bottom: 20.h),
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2.r),
+                ),
+              ),
+              if (canView)
+                _buildOptionItem(
+                  context,
+                  icon: Icons.visibility,
+                  title: 'View Details',
+                  onTap: () {
+                    Navigator.pop(context);
+                    _showMaterialDetailsBottomSheet(material);
+                  },
+                ),
+              if (canEdit)
+                _buildOptionItem(
+                  context,
+                  icon: Icons.edit,
+                  title: 'Edit',
+                  onTap: () {
+                    Navigator.pop(context);
+                    _showEditMaterialBottomSheet(material);
+                  },
+                ),
+              if (canDelete)
+                _buildOptionItem(
+                  context,
+                  icon: Icons.delete,
+                  title: 'Delete',
+                  onTap: () {
+                    Navigator.pop(context);
+                    _deleteMaterial(material);
+                  },
+                  isDestructive: true,
+                ),
+              if (!canEdit && !canDelete)
+                Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: Text("No actions available"),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildOptionItem(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+    bool isDestructive = false,
+  }) {
+    final color = isDestructive ? Colors.red : const Color(0xFF4a63c0);
+    final bgColor = isDestructive ? Colors.red.withOpacity(0.1) : const Color(0xFF4a63c0).withOpacity(0.1);
+    final textColor = isDestructive ? Colors.red : Colors.black87;
+
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
+        child: Row(
+          children: [
+            Container(
+              padding: EdgeInsets.all(12.w),
+              decoration: BoxDecoration(
+                color: bgColor,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: color, size: 24.sp),
+            ),
+            SizedBox(width: 16.w),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w500,
+                color: textColor,
+              ),
+            ),
+            const Spacer(),
+            Icon(Icons.chevron_right, color: Colors.grey[400], size: 24.sp),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text(
+          'All Material',
+          style: TextStyle(color: Colors.white),
+        ),
+        iconTheme: const IconThemeData(color: Colors.white),
+        toolbarHeight: 74.h,
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            borderRadius: BorderRadius.vertical(bottom: Radius.circular(25)),
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color(0xFF4a63c0), Color(0xFF3a53b0), Color(0xFF2a43a0)],
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black12,
+                blurRadius: 10,
+                offset: Offset(0, 4),
+              ),
+            ],
+          ),
+        ),
+
+        actions: buildNotificationActions(
+          context: context,
+          selectedSiteId: null,
+          sites: Provider.of<CompanySiteProvider>(context, listen: false).sites,
+          currentCompany: Provider.of<CompanySiteProvider>(context, listen: false).selectedCompanyName ?? '',
+          workspaceId: int.tryParse(Provider.of<CompanySiteProvider>(context, listen: false).selectedCompanyId ?? '0'),
+        ),
+      ),
+      floatingActionButton:
+          Provider.of<CompanySiteProvider>(
+            context,
+          ).hasPermission('material create')
+          ? FloatingActionButton(
+              onPressed: _showAddMaterialBottomSheet,
+              backgroundColor: const Color(0xFF2a43a0),
+              child: const Icon(Icons.add, color: Colors.white),
+            )
+          : null,
+
+      body: Padding(
+        padding: EdgeInsets.all(16.w),
+        child: Column(
+          children: [
+            // Search Bar
+            TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Search by name or category',
+                prefixIcon: const Icon(Icons.search),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8.r),
+                ),
+              ),
+            ),
+            SizedBox(height: 16.h),
+
+            if (_isLoading)
+              const Expanded(child: Center(child: CircularProgressIndicator()))
+            else if (_errorMessage.isNotEmpty)
+              Expanded(
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Error loading materials: Network Error',
+                        style: TextStyle(fontSize: 16.sp, color: Colors.red),
+                      ),
+                      
+                    ],
+                  ),
+                ),
+              )
+            else if (_allMaterials.isEmpty)
+              Expanded(
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.inventory_2_outlined,
+                        size: 64.sp,
+                        color: Colors.grey[400],
+                      ),
+                      SizedBox(height: 16.h),
+                      Text(
+                        'No materials found',
+                        style: TextStyle(
+                          fontSize: 18.sp,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                      SizedBox(height: 8.h),
+                      Text(
+                        'Add your first material to get started',
+                        style: TextStyle(
+                          fontSize: 14.sp,
+                          color: Colors.grey[500],
+                        ),
+                      ),
+                      SizedBox(height: 16.h),
+                      if (Provider.of<CompanySiteProvider>(
+                        context,
+                      ).hasPermission('material create'))
+                        ElevatedButton(
+                          onPressed: _showAddMaterialBottomSheet,
+                          child: const Text('Add Material'),
+                        ),
+                    ],
+                  ),
+                ),
+              )
+            else ...[
+              // Total Entries
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Showing ${_filteredMaterials.length} of $_totalItems entries',
+                  style: TextStyle(
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ),
+              SizedBox(height: 16.h),
+              // Material List
+              Expanded(
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: RefreshIndicator(
+                        onRefresh: () => _loadData(),
+                        child: ListView.builder(
+                          itemCount:
+                              _filteredMaterials.length +
+                              (_isLoadingMore ? 1 : 0),
+                          itemBuilder: (context, index) {
+                            if (index == _filteredMaterials.length &&
+                                _isLoadingMore) {
+                              return const Center(
+                                child: Padding(
+                                  padding: EdgeInsets.all(16.0),
+                                  child: CircularProgressIndicator(),
+                                ),
+                              );
+                            }
+
+                            final material = _filteredMaterials[index];
+                            return InkWell(
+                              onTap: () {
+                                if (Provider.of<CompanySiteProvider>(
+                                  context,
+                                  listen: false,
+                                ).hasPermission('material show')) {
+                                  _showMaterialDetailsBottomSheet(material);
+                                } else {
+                                  _showSnackBar(
+                                    'You do not have permission to view material details.',
+                                  );
+                                }
+                              },
+                              child: Card(
+                                margin: EdgeInsets.only(bottom: 8.h),
+                                child: Padding(
+                                  padding: EdgeInsets.all(12.w),
+                                  child: Row(
+                                    children: [
+                                      // Image
+                                      Container(
+                                        width: 48.r,
+                                        height: 48.r,
+                                        decoration: const BoxDecoration(
+                                          color: Color.fromARGB(255, 224, 224, 238),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: ClipOval(
+                                          child: (material.image != null &&
+                                                  material.image!.isNotEmpty)
+                                              ? Image.network(
+                                                  '${MaterialApiService.imageBaseUrl}/${material.image}',
+                                                  headers: MaterialApiService.authToken != null
+                                                      ? {
+                                                          'Authorization':
+                                                              'Bearer ${MaterialApiService.authToken}'
+                                                        }
+                                                      : null,
+                                                  fit: BoxFit.cover,
+                                                  errorBuilder:
+                                                      (context, error, stackTrace) {
+                                                    print(
+                                                        'Error loading list image: $error');
+                                                    return Icon(
+                                                      Icons.inventory,
+                                                      color: const Color.fromARGB(
+                                                          255, 48, 55, 153),
+                                                      size: 24.sp,
+                                                    );
+                                                  },
+                                                )
+                                              : Icon(
+                                                  Icons.inventory,
+                                                  color: const Color.fromARGB(
+                                                      255, 48, 55, 153),
+                                                  size: 24.sp,
+                                                ),
+                                        ),
+                                      ),
+                                      SizedBox(width: 12.w),
+                                      // Details - Limited info as requested
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment
+                                                      .spaceBetween,
+                                              children: [
+                                                Text(
+                                                  material.name,
+                                                  style: TextStyle(
+                                                    fontSize: 16.sp,
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                ),
+                                                Container(
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                        horizontal: 10,
+                                                        vertical: 4,
+                                                      ),
+                                                  decoration: BoxDecoration(
+                                                    color:
+                                                        material.status ==
+                                                            'active'
+                                                        ? Colors.green
+                                                              .withOpacity(0.1)
+                                                        : Colors.red
+                                                              .withOpacity(0.1),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          20,
+                                                        ),
+                                                    border: Border.all(
+                                                      color:
+                                                          material.status ==
+                                                              'active'
+                                                          ? Colors.green
+                                                                .withOpacity(
+                                                                  0.3,
+                                                                )
+                                                          : Colors.red
+                                                                .withOpacity(
+                                                                  0.3,
+                                                                ),
+                                                    ),
+                                                  ),
+                                                  child: Text(
+                                                    '${material.status == 'active' ? 'Active' : 'Inactive'}',
+                                                    style: TextStyle(
+                                                      fontSize: 12.sp,
+                                                      color:
+                                                          material.status ==
+                                                              'active'
+                                                          ? const Color.fromARGB(
+                                                              255,
+                                                              59,
+                                                              145,
+                                                              62,
+                                                            )
+                                                          : Colors.red,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            SizedBox(height: 4.h),
+                                            Text(
+                                              'Category: ${material.getCategoryName(_categories)}',
+                                              style: TextStyle(
+                                                fontSize: 13.sp,
+                                                color: Colors.grey[600],
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      IconButton(
+                                        icon: const Icon(Icons.more_vert),
+                                        onPressed: () =>
+                                            _showMaterialOptionsBottomSheet(
+                                              context,
+                                              material,
+                                            ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 40),
+
+                    // Pagination Controls
+                    if (_lastPage > 1) _buildPaginationControls(),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+}
